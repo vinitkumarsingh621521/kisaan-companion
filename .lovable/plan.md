@@ -1,45 +1,41 @@
+The user has a long, broad ask. Let me break it down into themes and form a focused plan.
 
+## Themes
 
-## What actually happened
+1. **Performance** — slow nav, slow reloads, tab-switch causes full reload
+2. **Personalization broken** — climate-by-location, user-selected crop prices not flowing through
+3. **Research page** — attach the uploaded `.ipynb` so anyone can open it in Google Colab
+4. **Feature audit** — "use your brain", make sure every feature actually works (not gimmicks)
+5. **Wow factor** — make it bigger/better
 
-**Nothing is broken.** Here's the evidence:
+## Investigation findings (from context already gathered)
 
-| Check | Result |
-|---|---|
-| Dev server log | Last entry is a clean HMR update at 18:07:58. No errors, no crashes. |
-| Browser console (your preview) | Only a harmless `Unknown message type: RESET_BLANK_CHECK` warning from `lovable.js`. No React errors, no failed chunks. |
-| HTTP response from `localhost:8080/` | `200 OK`, 2050 bytes of valid HTML returned. |
-| Session replay | Shows the cursor moving around the page and **clicking at (330, 258)** — you literally interacted with rendered content. |
-| Leaflet deps | `leaflet`, `react-leaflet`, `react-leaflet-draw` all installed correctly. |
-| `App.tsx`, `Index.tsx`, `ActiveProfileBar.tsx` | All clean. `ActiveProfileBar` even early-returns `null` on `/`, so it can't break the landing page. |
+**Perf root causes I can already see:**
 
-The `RESET_BLANK_CHECK` warning is the Lovable preview iframe's own "is this page blank?" probe — and the app is **explicitly responding "no, I'm rendering."** That's the opposite of a white screen.
+- `usePersonalization` calls the `farmer-context` edge function on every profile change with no caching → re-fires on tab refocus because React refetches
+- `WeatherWidget`, `MarketPriceWidget`, `CropRecommendationCard` etc. likely each call edge functions on mount with no React Query → no dedup, no stale-while-revalidate, no cache across nav
+- `QueryClient` is created with defaults (`staleTime: 0`) so every nav refetches
+- `framer-motion` `AnimatePresence` + `PageTransition` re-mounts the entire page tree on every route change → lazy chunks re-init, edge fns re-fire
+- Tab-switch reload: browser auto-pauses → on resume, React Query default `refetchOnWindowFocus: true` triggers everything at once. Plus Supabase auth `onAuthStateChange` fires `TOKEN_REFRESHED` → many components re-subscribe
+- Console warning: `Function components cannot be given refs` in `TeamPage` → `Footer` needs `forwardRef` (motion wraps it). Same for `AnimatedRoutes`/`PageTransition`. Cheap fix.
 
-## Most likely cause of what you saw
+**Personalization gaps:**
 
-A transient state, not a code bug. Three possibilities, in order of likelihood:
+- `WeatherWidget` likely uses hardcoded city, not `ctx.location`
+- `MarketPriceWidget` likely shows fixed crop list, not `ctx.crops.current`
+- `farmer-context` returns `climate.zone` but no real climate API call — need to wire it to `active.farm_location` properly
 
-1. **Stale iframe / HMR disconnect** — the dev server restarted between 18:03 and 18:06 (when I added Leaflet). If your preview tab was open during that window, it would briefly show white until Vite reconnected. The fix is a hard refresh (Cmd/Ctrl + Shift + R).
-2. **Heavy first paint on `/research` or `/tools/field-mapper`** — those routes now lazy-load chart libs and Leaflet. The `<RouteSkeleton />` should appear, but if you navigated during a chunk fetch over slow network you might see ~300ms of muted-gray background that *looks* blank.
-3. **Browser cache holding the pre-split bundle** — the old 1.9 MB bundle hash is gone; if your browser tried to load it, the chunk 404s and React renders nothing. Hard refresh fixes this too.
+**Research/Colab:**
 
-## What I propose to do
+- Drop the `.ipynb` into `public/notebooks/` and add a "Open in Colab" button that links to `https://colab.research.google.com/github/...` — but since we can't host on GitHub from here, the right pattern is:
+  - Upload to Supabase storage `research-papers` bucket (already exists)
+  - Provide download + a "How to open in Colab" helper (Colab can open from URL via `?url=` param if file is hosted publicly)
+  - Even better: detect `.ipynb` file type in `ResearchPapersPanel` and show a "🚀 Open in Colab" button that uses `https://colab.research.google.com/github/...` won't work for arbitrary URLs, but `https://colab.research.google.com/?url=<public_pdf>` does work for any public `.ipynb` URL via Colab's URL importer. Actually the working pattern is: the file in a public bucket → Colab "File → Open notebook → URL" — we'll provide a one-click that copies the URL + opens Colab.
+  - Plus: bundle the uploaded notebook as a featured "SIH Reference Notebook" card on the Research page.
 
-Since there's no actual bug to patch right now, my plan is **diagnostic, not destructive**:
+**Feature audit (quick scan needed in plan-mode → flag, don't fix all):** I'll list what to verify in the implementation phase.
 
-1. **Add a top-level `<ErrorBoundary>`** wrapping `<AnimatedRoutes />` so that if *any* future runtime error occurs, you see a readable error card instead of a white screen. Tiny, ~40 LOC component.
-2. **Add a visible loading state inside `<RouteSkeleton />`** with the KrishiMitra logo + "Loading..." text, so lazy-route fetches never look blank even on slow networks.
-3. **Add a `console.info("[KrishiMitra] App mounted v4")`** beacon in `main.tsx` so we can confirm in console logs whether the root ever mounted (useful for any future "blank screen" report — you can just check the console).
-4. **Verify the preview** with one screenshot after the changes to confirm the landing page renders end-to-end.
-
-If after the hard refresh you still see white, the ErrorBoundary will tell us *exactly* which component threw, and we'll fix that specifically.
-
-## Files I'll touch
-- `src/components/ErrorBoundary.tsx` (new, ~40 LOC)
-- `src/components/RouteSkeleton.tsx` (add logo + label)
-- `src/App.tsx` (wrap routes in ErrorBoundary)
-- `src/main.tsx` (one-line mount log)
-
-## Out of scope
-No refactor of routes, no dependency changes, no Leaflet/Field Mapper changes — those are working.
-
+I should not over-plan. Keep it focused and tight per instructions.  
+  
+yes but  do something more and all feature  should work fine but try to add something new in every tab of  the navigation so for example when i switch between the dashboard , crop advisor , field mapper , etc . i should feel something new and something good  , something usefull. etc .  
+add atleast 10 new feature .
