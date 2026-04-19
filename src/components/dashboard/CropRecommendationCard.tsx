@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { usePersonalization } from "@/hooks/usePersonalization";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -25,6 +27,8 @@ interface CropRecommendationCardProps {
 }
 
 export default function CropRecommendationCard({ profile }: CropRecommendationCardProps) {
+  const { active } = useActiveProfile();
+  const { ctx } = usePersonalization();
   const [crops, setCrops] = useState<CropType[]>(defaultCrops);
   const [selectedCrop, setSelectedCrop] = useState<CropType | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
@@ -41,13 +45,15 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
         },
         body: JSON.stringify({
           action: "crop_recommendation",
+          profileContext: ctx,
+          profile: active,
           farmData: {
-            location: profile?.farm_location || "Not specified",
-            soilType: profile?.soil_type || "Not specified",
-            farmSize: profile?.farm_size || "Not specified",
-            season: "Kharif",
-            previousCrops: "Rice, Maize",
-            waterAvailability: "Medium",
+            location: profile?.farm_location || active?.farmer_details?.state || "Not specified",
+            soilType: profile?.soil_type || active?.farmer_details?.soil_type || "Not specified",
+            farmSize: profile?.farm_size || active?.farmer_details?.farm_size_acres || "Not specified",
+            season: ctx?.climate?.current_season || "Kharif",
+            previousCrops: (active?.farmer_details?.current_crops || []).join(", ") || "Rice, Maize",
+            waterAvailability: active?.farmer_details?.water_availability || "Medium",
           },
         }),
       });
