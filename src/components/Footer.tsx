@@ -1,14 +1,15 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
-import { Sprout, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 import TeamSection from "@/components/TeamSection";
 
-export default function Footer() {
+const Footer = forwardRef<HTMLElement>((_, ref) => {
   return (
     <>
     <TeamSection compact />
-    <footer className="bg-foreground text-background py-16">
+    <footer ref={ref} className="bg-foreground text-background py-16">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           <div>
@@ -17,7 +18,7 @@ export default function Footer() {
               <span className="font-display font-bold text-xl">KrishiMitra</span>
             </div>
             <p className="text-background/60 text-sm leading-relaxed">
-              AI-powered crop recommendation platform for Indian farmers. 
+              AI-powered crop recommendation platform for Indian farmers.
               Built for SIH 2025 — Problem Statement #25030.
             </p>
           </div>
@@ -50,10 +51,12 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-background/10 pt-6 text-center text-sm text-background/40">
-          © 2025 KrishiMitra — SIH 25030 | Built with ❤️ for India's farmers
+          © 2025 KrishiMitra — SIH 25030 | Built with ❤️ for India's farmers · Press <kbd className="px-1.5 py-0.5 bg-background/10 rounded text-xs">⌘K</kbd> for command menu
         </div>
       </div>
     </footer>
     </>
   );
-}
+});
+Footer.displayName = "Footer";
+export default Footer;

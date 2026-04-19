@@ -12,6 +12,7 @@ import CropCalendarWidget from "@/components/dashboard/CropCalendarWidget";
 import FarmHealthScore from "@/components/dashboard/FarmHealthScore";
 import SeasonalAlertBanner from "@/components/dashboard/SeasonalAlertBanner";
 import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
+import TodayActionCard from "@/components/dashboard/TodayActionCard";
 import { motion } from "framer-motion";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
@@ -58,6 +59,8 @@ export default function Dashboard() {
           </motion.div>
 
           <ProfileCompletionBanner />
+
+          <TodayActionCard />
 
           <div className="mb-5">
             <SeasonalAlertBanner />
