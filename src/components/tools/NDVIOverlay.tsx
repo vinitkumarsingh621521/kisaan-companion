@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { TileLayer } from "react-leaflet";
 import type { Zone } from "./FieldMap";
 
@@ -77,6 +77,3 @@ export function NDVILegend() {
   );
 }
 
-// Marker for unused warning suppression
-export const _useEffectShim = useEffect;
-export const _useStateShim = useState;
