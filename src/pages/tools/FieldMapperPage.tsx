@@ -1,114 +1,258 @@
-import { useState, useRef } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Map, Pencil, Trash2, Save, Sprout } from "lucide-react";
+import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import type { LatLng } from "leaflet";
+import type { Zone } from "@/components/tools/FieldMap";
 
-interface Zone { id: string; points: { x: number; y: number }[]; color: string; crop: string; areaPct: number }
+const FieldMap = lazy(() => import("@/components/tools/FieldMap"));
 
-const COLORS = ["#22c55e", "#eab308", "#3b82f6", "#ef4444", "#a855f7", "#f97316"];
+const CROPS = ["Rice", "Wheat", "Maize", "Cotton", "Vegetables", "Sugarcane", "Pulses", "Fallow"];
+const COLORS: Record<string, string> = {
+  Rice: "#22c55e", Wheat: "#eab308", Maize: "#f59e0b", Cotton: "#f0abfc",
+  Vegetables: "#3b82f6", Sugarcane: "#10b981", Pulses: "#a855f7", Fallow: "#64748b",
+};
+const INDIA_CENTER: [number, number] = [22.97, 78.65];
+const GEOCODE_CACHE_KEY = "fieldmapper.geocache.v1";
+
+// Spherical excess polygon area (m²) using lat/lng — accurate enough for farm scale.
+function polygonAreaM2(latlngs: { lat: number; lng: number }[]): number {
+  if (latlngs.length < 3) return 0;
+  const R = 6378137; // Earth radius (m)
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  let area = 0;
+  for (let i = 0; i < latlngs.length; i++) {
+    const p1 = latlngs[i];
+    const p2 = latlngs[(i + 1) % latlngs.length];
+    area += toRad(p2.lng - p1.lng) * (2 + Math.sin(toRad(p1.lat)) + Math.sin(toRad(p2.lat)));
+  }
+  return Math.abs((area * R * R) / 2);
+}
+
+async function geocodeDistrict(query: string): Promise<[number, number] | null> {
+  try {
+    const cache = JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || "{}");
+    if (cache[query]) return cache[query];
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data?.[0]) {
+      const c: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      cache[query] = c;
+      localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache));
+      return c;
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
 
 export default function FieldMapperPage() {
   const { active } = useActiveProfile();
+  const profileId = active?.id || "guest";
+  const storageKey = `fieldmapper.zones.${profileId}`;
+
   const [zones, setZones] = useState<Zone[]>([]);
-  const [drawing, setDrawing] = useState<{ x: number; y: number }[]>([]);
   const [selectedCrop, setSelectedCrop] = useState("Rice");
-  const svgRef = useRef<SVGSVGElement>(null);
+  const [center, setCenter] = useState<[number, number]>(INDIA_CENTER);
+  const [locating, setLocating] = useState(true);
+
   const totalAcres = parseFloat(active?.farmer_details?.total_land || active?.farm_size || "5") || 5;
 
-  const onClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = svgRef.current!.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setDrawing(prev => [...prev, { x, y }]);
+  // Load zones from localStorage when profile changes
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      setZones(raw ? JSON.parse(raw) : []);
+    } catch { setZones([]); }
+  }, [storageKey]);
+
+  // Persist
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(zones));
+  }, [zones, storageKey]);
+
+  // Geocode farmer location
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLocating(true);
+      const district = active?.farmer_details?.district;
+      const state = active?.farmer_details?.state;
+      const loc = active?.farm_location;
+      const query = [district, state].filter(Boolean).join(", ") || loc || "India";
+      const c = await geocodeDistrict(query);
+      if (!cancel) {
+        setCenter(c || INDIA_CENTER);
+        setLocating(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [active?.id, active?.farm_location, active?.farmer_details?.district, active?.farmer_details?.state]);
+
+  const handleCreate = (latlngs: LatLng[]) => {
+    const pts = latlngs.map((p) => ({ lat: p.lat, lng: p.lng }));
+    const m2 = polygonAreaM2(pts);
+    const hectares = m2 / 10000;
+    const acres = hectares * 2.47105;
+    const zone: Zone = {
+      id: Date.now().toString(),
+      crop: selectedCrop,
+      color: COLORS[selectedCrop] || "#22c55e",
+      hectares,
+      acres,
+      latlngs: pts,
+    };
+    setZones((prev) => [...prev, zone]);
+    toast.success(`✓ ${selectedCrop} zone added — ${hectares.toFixed(3)} ha (${acres.toFixed(2)} ac)`);
   };
 
-  const finishZone = () => {
-    if (drawing.length < 3) { toast.error("Need at least 3 points to make a zone"); return; }
-    // shoelace area
-    let area = 0;
-    for (let i = 0; i < drawing.length; i++) {
-      const j = (i + 1) % drawing.length;
-      area += drawing[i].x * drawing[j].y - drawing[j].x * drawing[i].y;
-    }
-    const areaPct = Math.abs(area) / 2 / 100;
-    setZones(prev => [...prev, { id: Date.now().toString(), points: drawing, color: COLORS[prev.length % COLORS.length], crop: selectedCrop, areaPct }]);
-    setDrawing([]);
-    toast.success(`✓ Zone added: ${selectedCrop} (~${(areaPct * totalAcres).toFixed(2)} acres)`);
+  const handleDeleteIds = (ids: string[]) => {
+    setZones((prev) => prev.filter((z) => !ids.includes(z.id)));
+    toast.info(`Removed ${ids.length} zone${ids.length > 1 ? "s" : ""}`);
   };
 
-  const clearAll = () => { setZones([]); setDrawing([]); toast.info("All zones cleared"); };
+  const removeZone = (id: string) => {
+    setZones((prev) => prev.filter((z) => z.id !== id));
+  };
+
+  const clearAll = () => {
+    if (zones.length === 0) return;
+    setZones([]);
+    toast.info("All zones cleared");
+  };
+
+  const totals = useMemo(() => {
+    const ha = zones.reduce((s, z) => s + z.hectares, 0);
+    const ac = zones.reduce((s, z) => s + z.acres, 0);
+    return { ha, ac };
+  }, [zones]);
 
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
       <main className="pt-24 pb-12 px-4">
-        <div className="container mx-auto max-w-5xl">
+        <div className="container mx-auto max-w-6xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-2">
-              <Map className="h-7 w-7 text-primary" /> Field Mapper
+              <MapIcon className="h-7 w-7 text-primary" /> Field Mapper
             </h1>
-            <p className="text-muted-foreground mt-1">Sketch your farm, paint crop zones, see acreage instantly. Total: <span className="font-medium text-foreground">{totalAcres} acres</span></p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Draw your farm on real satellite imagery. Auto-calculates hectares & acres.{" "}
+              <span className="font-medium text-foreground">Plot total: {totalAcres} acres</span>
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div className="lg:col-span-2 glass-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex flex-wrap gap-2">
-                  {["Rice", "Wheat", "Maize", "Cotton", "Vegetables", "Fallow"].map(c => (
-                    <button key={c} onClick={() => setSelectedCrop(c)} className={`text-xs px-3 py-1.5 rounded-full border ${selectedCrop === c ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>{c}</button>
+            {/* Map */}
+            <div className="lg:col-span-2 glass-card p-3">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {CROPS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setSelectedCrop(c)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                        selectedCrop === c
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                      style={selectedCrop === c ? { background: COLORS[c], borderColor: COLORS[c], color: "#fff" } : {}}
+                    >
+                      {c}
+                    </button>
                   ))}
                 </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="outline" onClick={finishZone} disabled={drawing.length < 3}><Save className="h-3.5 w-3.5 mr-1" /> Finish</Button>
-                  <Button size="sm" variant="outline" onClick={clearAll}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </div>
+                <Button size="sm" variant="outline" onClick={clearAll} disabled={!zones.length}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Clear
+                </Button>
               </div>
-              <div className="aspect-square bg-gradient-to-br from-krishi-green-light/30 to-krishi-gold-light/30 rounded-xl border border-border relative overflow-hidden">
-                <svg ref={svgRef} viewBox="0 0 100 100" className="w-full h-full cursor-crosshair" onClick={onClick}>
-                  {zones.map(z => (
-                    <polygon key={z.id} points={z.points.map(p => `${p.x},${p.y}`).join(" ")} fill={z.color} fillOpacity="0.4" stroke={z.color} strokeWidth="0.5" />
-                  ))}
-                  {drawing.length > 0 && (
-                    <>
-                      <polyline points={drawing.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke="hsl(var(--primary))" strokeWidth="0.5" strokeDasharray="2,1" />
-                      {drawing.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="1" fill="hsl(var(--primary))" />)}
-                    </>
-                  )}
-                </svg>
-                <div className="absolute bottom-2 left-2 text-xs text-muted-foreground bg-card/80 backdrop-blur px-2 py-1 rounded"><Pencil className="h-3 w-3 inline mr-1" /> Click to add points, then Finish</div>
+
+              <div className="relative rounded-xl overflow-hidden border border-border" style={{ minHeight: 480 }}>
+                {locating && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/40 z-[1000] backdrop-blur-sm">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Finding your farm location…
+                    </div>
+                  </div>
+                )}
+                <Suspense fallback={<Skeleton className="w-full" style={{ height: 480 }} />}>
+                  <FieldMap
+                    center={center}
+                    zones={zones}
+                    selectedCrop={selectedCrop}
+                    cropColor={COLORS[selectedCrop] || "#22c55e"}
+                    onCreate={handleCreate}
+                    onDelete={handleDeleteIds}
+                  />
+                </Suspense>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Use the polygon tool (top-left) to draw a zone.
+                Centered near {active?.farmer_details?.district || active?.farm_location || "India"}.
               </div>
             </div>
 
+            {/* Sidebar */}
             <div className="space-y-4">
               <div className="glass-card p-4">
-                <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2"><Sprout className="h-4 w-4 text-primary" /> Crop Zones</h3>
+                <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Sprout className="h-4 w-4 text-primary" /> Crop Zones
+                </h3>
                 {zones.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No zones yet. Sketch one on the map! 🎨</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    No zones yet. Pick a crop, then draw a polygon on the map. 🎨
+                  </p>
                 ) : (
                   <div className="space-y-2">
-                    {zones.map(z => (
-                      <div key={z.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/30">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded" style={{ background: z.color }} />
-                          <span className="font-medium">{z.crop}</span>
+                    {zones.map((z) => (
+                      <div key={z.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/30 group">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-3 h-3 rounded shrink-0" style={{ background: z.color }} />
+                          <span className="font-medium truncate">{z.crop}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">{(z.areaPct * totalAcres).toFixed(2)} ac</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <div className="text-xs font-medium">{z.acres.toFixed(2)} ac</div>
+                            <div className="text-[10px] text-muted-foreground">{z.hectares.toFixed(3)} ha</div>
+                          </div>
+                          <button
+                            onClick={() => removeZone(z.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                            aria-label="Delete zone"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
-                    <div className="pt-2 border-t border-border text-xs text-muted-foreground">
-                      Total mapped: {(zones.reduce((s, z) => s + z.areaPct, 0) * totalAcres).toFixed(2)} of {totalAcres} acres
+                    <div className="pt-2 mt-1 border-t border-border space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Mapped</span>
+                        <span className="font-medium">{totals.ac.toFixed(2)} ac · {totals.ha.toFixed(3)} ha</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Plot total</span>
+                        <span className="font-medium">{totalAcres.toFixed(2)} ac</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Coverage</span>
+                        <span className={`font-medium ${totals.ac > totalAcres ? "text-destructive" : "text-primary"}`}>
+                          {totalAcres ? ((totals.ac / totalAcres) * 100).toFixed(0) : 0}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="glass-card p-4 text-xs text-muted-foreground space-y-2">
-                <p>💡 <strong>Tip:</strong> Map each field section, then download as a PDF report from Smart Reports.</p>
-                <p>📡 In the future this will sync with satellite NDVI for crop-health overlays.</p>
+                <p>💡 <strong>Tip:</strong> Zones auto-save per profile. Switch profiles to see different farms.</p>
+                <p>🛰️ Toggle Satellite/Streets via the layers control (top-right).</p>
+                <p>📡 Future: sync polygons to cloud + overlay NDVI from satellite.</p>
               </div>
             </div>
           </div>
