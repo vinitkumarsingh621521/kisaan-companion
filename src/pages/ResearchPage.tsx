@@ -491,7 +491,9 @@ export default function ResearchPage() {
 
             {/* Research Papers */}
             <TabsContent value="papers">
-              <ResearchPapersPanel />
+              <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+                <ResearchPapersPanel />
+              </Suspense>
             </TabsContent>
           </Tabs>
         </div>
