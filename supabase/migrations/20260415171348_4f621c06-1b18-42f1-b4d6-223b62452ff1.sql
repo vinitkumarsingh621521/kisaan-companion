@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS farmer_details jsonb DEFAULT '{}'::jsonb;
