@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,31 +7,38 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import CropAdvisor from "./pages/CropAdvisor";
-import MarketPage from "./pages/MarketPage";
-import SchemesPage from "./pages/SchemesPage";
-import CommunityPage from "./pages/CommunityPage";
 import AuthPage from "./pages/AuthPage";
-import ProfilePage from "./pages/ProfilePage";
-import NewsPage from "./pages/NewsPage";
-import ResearchPage from "./pages/ResearchPage";
-import TeamPage from "./pages/TeamPage";
-import AdminTeamPage from "./pages/AdminTeamPage";
-import FieldMapperPage from "./pages/tools/FieldMapperPage";
-import ReportsPage from "./pages/tools/ReportsPage";
-import SatellitePage from "./pages/tools/SatellitePage";
-import IoTPage from "./pages/tools/IoTPage";
-import AchievementsPage from "./pages/tools/AchievementsPage";
-import OfflinePage from "./pages/tools/OfflinePage";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/AuthGuard";
 import PageTransition from "./components/PageTransition";
 import BackToTop from "./components/BackToTop";
 import ActiveProfileBar from "./components/ActiveProfileBar";
+import RouteSkeleton from "./components/RouteSkeleton";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 
+// Lazy-loaded routes (code-split into separate chunks)
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CropAdvisor = lazy(() => import("./pages/CropAdvisor"));
+const MarketPage = lazy(() => import("./pages/MarketPage"));
+const SchemesPage = lazy(() => import("./pages/SchemesPage"));
+const CommunityPage = lazy(() => import("./pages/CommunityPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const NewsPage = lazy(() => import("./pages/NewsPage"));
+const ResearchPage = lazy(() => import("./pages/ResearchPage"));
+const TeamPage = lazy(() => import("./pages/TeamPage"));
+const AdminTeamPage = lazy(() => import("./pages/AdminTeamPage"));
+const FieldMapperPage = lazy(() => import("./pages/tools/FieldMapperPage"));
+const ReportsPage = lazy(() => import("./pages/tools/ReportsPage"));
+const SatellitePage = lazy(() => import("./pages/tools/SatellitePage"));
+const IoTPage = lazy(() => import("./pages/tools/IoTPage"));
+const AchievementsPage = lazy(() => import("./pages/tools/AchievementsPage"));
+const OfflinePage = lazy(() => import("./pages/tools/OfflinePage"));
+
 const queryClient = new QueryClient();
+
+const lazyRoute = (el: JSX.Element) => (
+  <Suspense fallback={<RouteSkeleton />}>{el}</Suspense>
+);
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -41,22 +49,22 @@ function AnimatedRoutes() {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PageTransition><Index /></PageTransition>} />
           <Route path="/auth" element={<PageTransition><AuthPage /></PageTransition>} />
-          <Route path="/dashboard" element={<PageTransition><AuthGuard><Dashboard /></AuthGuard></PageTransition>} />
-          <Route path="/crop-advisor" element={<PageTransition><AuthGuard><CropAdvisor /></AuthGuard></PageTransition>} />
-          <Route path="/market" element={<PageTransition><AuthGuard><MarketPage /></AuthGuard></PageTransition>} />
-          <Route path="/schemes" element={<PageTransition><AuthGuard><SchemesPage /></AuthGuard></PageTransition>} />
-          <Route path="/community" element={<PageTransition><AuthGuard><CommunityPage /></AuthGuard></PageTransition>} />
-          <Route path="/profile" element={<PageTransition><AuthGuard><ProfilePage /></AuthGuard></PageTransition>} />
-          <Route path="/news" element={<PageTransition><NewsPage /></PageTransition>} />
-          <Route path="/research" element={<PageTransition><ResearchPage /></PageTransition>} />
-          <Route path="/team" element={<PageTransition><TeamPage /></PageTransition>} />
-          <Route path="/admin/team" element={<PageTransition><AuthGuard><AdminTeamPage /></AuthGuard></PageTransition>} />
-          <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard><FieldMapperPage /></AuthGuard></PageTransition>} />
-          <Route path="/tools/reports" element={<PageTransition><AuthGuard><ReportsPage /></AuthGuard></PageTransition>} />
-          <Route path="/tools/satellite" element={<PageTransition><AuthGuard><SatellitePage /></AuthGuard></PageTransition>} />
-          <Route path="/tools/iot" element={<PageTransition><AuthGuard><IoTPage /></AuthGuard></PageTransition>} />
-          <Route path="/tools/achievements" element={<PageTransition><AuthGuard><AchievementsPage /></AuthGuard></PageTransition>} />
-          <Route path="/tools/offline" element={<PageTransition><OfflinePage /></PageTransition>} />
+          <Route path="/dashboard" element={<PageTransition><AuthGuard>{lazyRoute(<Dashboard />)}</AuthGuard></PageTransition>} />
+          <Route path="/crop-advisor" element={<PageTransition><AuthGuard>{lazyRoute(<CropAdvisor />)}</AuthGuard></PageTransition>} />
+          <Route path="/market" element={<PageTransition><AuthGuard>{lazyRoute(<MarketPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/schemes" element={<PageTransition><AuthGuard>{lazyRoute(<SchemesPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/community" element={<PageTransition><AuthGuard>{lazyRoute(<CommunityPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/profile" element={<PageTransition><AuthGuard>{lazyRoute(<ProfilePage />)}</AuthGuard></PageTransition>} />
+          <Route path="/news" element={<PageTransition>{lazyRoute(<NewsPage />)}</PageTransition>} />
+          <Route path="/research" element={<PageTransition>{lazyRoute(<ResearchPage />)}</PageTransition>} />
+          <Route path="/team" element={<PageTransition>{lazyRoute(<TeamPage />)}</PageTransition>} />
+          <Route path="/admin/team" element={<PageTransition><AuthGuard>{lazyRoute(<AdminTeamPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard>{lazyRoute(<FieldMapperPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/tools/reports" element={<PageTransition><AuthGuard>{lazyRoute(<ReportsPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/tools/satellite" element={<PageTransition><AuthGuard>{lazyRoute(<SatellitePage />)}</AuthGuard></PageTransition>} />
+          <Route path="/tools/iot" element={<PageTransition><AuthGuard>{lazyRoute(<IoTPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/tools/achievements" element={<PageTransition><AuthGuard>{lazyRoute(<AchievementsPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/tools/offline" element={<PageTransition>{lazyRoute(<OfflinePage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
