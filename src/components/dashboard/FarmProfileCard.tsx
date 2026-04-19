@@ -1,37 +1,52 @@
-import { MapPin, Ruler, Layers, Award, Leaf } from "lucide-react";
+import { MapPin, Ruler, Layers, Award, Leaf, Sparkles } from "lucide-react";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { usePersonalization } from "@/hooks/usePersonalization";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const badges = [
-  { label: "Organic Pioneer", emoji: "🌿" },
-  { label: "Water Saver", emoji: "💧" },
-  { label: "Early Adopter", emoji: "🚀" },
-];
+export default function FarmProfileCard() {
+  const { active, completionPct } = useActiveProfile();
+  const { ctx } = usePersonalization();
 
-interface FarmProfileCardProps {
-  profile?: {
-    full_name: string | null;
-    farm_location: string | null;
-    farm_size: string | null;
-    soil_type: string | null;
-  } | null;
-}
+  if (!active) return null;
 
-export default function FarmProfileCard({ profile }: FarmProfileCardProps) {
-  const name = profile?.full_name || "Farmer";
-  const location = profile?.farm_location || "Not set";
-  const farmSize = profile?.farm_size || "Not set";
-  const soilType = profile?.soil_type || "Not set";
+  const d = active.farmer_details || {};
+  const name = active.full_name;
+  const location =
+    active.farm_location ||
+    [d.village, d.district, d.state].filter(Boolean).join(", ") ||
+    "Add location";
+  const farmSize = active.farm_size || (d.total_land ? `${d.total_land} acres` : "Not set");
+  const soilType = active.soil_type || d.soil_type || ctx?.climate.soils?.[0] || "Not set";
+  const initials = name?.split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase() || "F";
+
+  const goals = [d.main_goal, d.crop_priority].filter(Boolean);
+  const cropList = ctx?.crops.current || [];
+  const seasonText = ctx?.climate.current_season ? `${ctx.climate.current_season} ${new Date().getFullYear()}` : "Current season";
+
+  // Completion ring
+  const circ = 2 * Math.PI * 18;
+  const dash = (completionPct / 100) * circ;
 
   return (
     <div className="glass-card p-5">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center">
-          <Leaf className="h-7 w-7 text-primary-foreground" />
+        <div className="relative">
+          <Avatar className="h-14 w-14">
+            <AvatarImage src={active.avatar_url || undefined} />
+            <AvatarFallback className="gradient-primary text-primary-foreground font-semibold">{initials}</AvatarFallback>
+          </Avatar>
+          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40" width={56} height={56}>
+            <circle cx="20" cy="20" r="18" fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" />
+            <circle cx="20" cy="20" r="18" fill="none" stroke="hsl(var(--primary))" strokeWidth="2.5"
+              strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+          </svg>
         </div>
-        <div>
-          <h3 className="font-display font-semibold text-lg text-foreground">{name}'s Farm</h3>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> {location}
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display font-semibold text-lg text-foreground truncate">{name}</h3>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3" /> <span className="truncate">{location}</span>
           </div>
+          <div className="text-[10px] text-primary font-medium mt-0.5">{completionPct}% complete</div>
         </div>
       </div>
 
@@ -39,33 +54,39 @@ export default function FarmProfileCard({ profile }: FarmProfileCardProps) {
         <div className="bg-muted/50 rounded-lg p-3">
           <Ruler className="h-4 w-4 text-primary mb-1" />
           <div className="text-xs text-muted-foreground">Area</div>
-          <div className="font-semibold text-foreground">{farmSize}</div>
+          <div className="font-semibold text-foreground text-sm">{farmSize}</div>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <Layers className="h-4 w-4 text-krishi-gold mb-1" />
-          <div className="text-xs text-muted-foreground">Soil Type</div>
-          <div className="font-semibold text-foreground">{soilType}</div>
+          <div className="text-xs text-muted-foreground">Soil</div>
+          <div className="font-semibold text-foreground text-sm truncate">{soilType}</div>
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center gap-1.5 mb-2">
-          <Award className="h-4 w-4 text-krishi-gold" />
-          <span className="text-sm font-medium text-foreground">Achievements</span>
+      {goals.length > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium text-foreground">Goals</span>
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {goals.map(g => (
+              <span key={g} className="krishi-badge bg-primary/10 text-primary text-[10px]">{g}</span>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {badges.map((b) => (
-            <span key={b.label} className="krishi-badge bg-krishi-gold-light text-krishi-earth text-xs">
-              {b.emoji} {b.label}
-            </span>
-          ))}
-        </div>
-      </div>
+      )}
 
-      <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
-        <div className="text-xs text-muted-foreground mb-1">Current Season</div>
-        <div className="font-display font-semibold text-foreground">Kharif 2025 — Paddy + Maize</div>
-        <div className="text-xs text-primary mt-1">Sowing in 12 days</div>
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Current Season</div>
+        <div className="font-display font-semibold text-foreground text-sm">
+          {seasonText}{cropList.length ? ` — ${cropList.slice(0, 3).join(" + ")}` : ""}
+        </div>
+        {ctx?.nearest_mandi.distance_km && ctx.nearest_mandi.distance_km !== "unknown" && (
+          <div className="text-xs text-muted-foreground mt-1">
+            Nearest mandi: {ctx.nearest_mandi.name} ({ctx.nearest_mandi.distance_km} km)
+          </div>
+        )}
       </div>
     </div>
   );

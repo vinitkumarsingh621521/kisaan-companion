@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
@@ -10,8 +9,12 @@ import FarmProfileCard from "@/components/dashboard/FarmProfileCard";
 import GovtSchemesCard from "@/components/dashboard/GovtSchemesCard";
 import QuickActions from "@/components/dashboard/QuickActions";
 import CropCalendarWidget from "@/components/dashboard/CropCalendarWidget";
+import FarmHealthScore from "@/components/dashboard/FarmHealthScore";
+import SeasonalAlertBanner from "@/components/dashboard/SeasonalAlertBanner";
+import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { usePersonalization } from "@/hooks/usePersonalization";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -22,74 +25,58 @@ function getGreeting() {
   return "🌙 Good Night";
 }
 
-interface Profile {
-  full_name: string | null;
-  farm_location: string | null;
-  farm_size: string | null;
-  soil_type: string | null;
-  preferred_language: string | null;
-  farmer_details: Record<string, string> | null;
-}
-
 export default function Dashboard() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [userName, setUserName] = useState("Farmer");
+  const { active } = useActiveProfile();
+  const { ctx } = usePersonalization();
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, farm_location, farm_size, soil_type, preferred_language, farmer_details")
-        .eq("user_id", user.id)
-        .single();
-
-      if (data) {
-        setProfile(data as Profile);
-        setUserName(data.full_name || user.email?.split("@")[0] || "Farmer");
-      } else {
-        setUserName(user.user_metadata?.full_name || user.email?.split("@")[0] || "Farmer");
-      }
-    };
-    loadProfile();
-  }, []);
+  const userName = active?.full_name || "Farmer";
+  const season = ctx?.climate.current_season || "Kharif";
+  const location =
+    active?.farm_location ||
+    [active?.farmer_details?.district, active?.farmer_details?.state].filter(Boolean).join(", ") ||
+    "your farm";
 
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
-      <main className="pt-20 pb-12 px-4">
+      <main className="pt-4 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
+            className="mb-5"
           >
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
               {getGreeting()}, {userName}!
             </h1>
             <p className="text-muted-foreground mt-1">
-              Here's your farm overview for <span className="text-primary font-medium">
-                {profile?.farmer_details?.preferred_season || "Kharif"} 2025
-              </span>
-              {profile?.farm_location && <span> — <span className="font-medium">{profile.farm_location}</span></span>}
+              Here's your farm overview for{" "}
+              <span className="text-primary font-medium">{season} {new Date().getFullYear()}</span>
+              {" — "}
+              <span className="font-medium">{location}</span>
             </p>
           </motion.div>
 
+          <ProfileCompletionBanner />
+
+          <div className="mb-5">
+            <SeasonalAlertBanner />
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className="lg:col-span-3 space-y-5">
-              <FarmProfileCard profile={profile} />
+              <FarmProfileCard />
+              <FarmHealthScore />
               <QuickActions />
               <GovtSchemesCard />
             </div>
             <div className="lg:col-span-5 space-y-5">
-              <CropRecommendationCard profile={profile} />
+              <CropRecommendationCard />
               <CropCalendarWidget />
               <MarketPriceWidget />
             </div>
             <div className="lg:col-span-4 space-y-5">
-              <WeatherWidget location={profile?.farm_location} />
+              <WeatherWidget />
               <SoilHealthCard />
               <AIChatWidget />
             </div>

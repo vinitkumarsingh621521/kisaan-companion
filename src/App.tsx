@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/AuthGuard";
 import PageTransition from "./components/PageTransition";
 import BackToTop from "./components/BackToTop";
+import ActiveProfileBar from "./components/ActiveProfileBar";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 
 const queryClient = new QueryClient();
@@ -34,29 +35,32 @@ const queryClient = new QueryClient();
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
-        <Route path="/auth" element={<PageTransition><AuthPage /></PageTransition>} />
-        <Route path="/dashboard" element={<PageTransition><AuthGuard><Dashboard /></AuthGuard></PageTransition>} />
-        <Route path="/crop-advisor" element={<PageTransition><AuthGuard><CropAdvisor /></AuthGuard></PageTransition>} />
-        <Route path="/market" element={<PageTransition><AuthGuard><MarketPage /></AuthGuard></PageTransition>} />
-        <Route path="/schemes" element={<PageTransition><AuthGuard><SchemesPage /></AuthGuard></PageTransition>} />
-        <Route path="/community" element={<PageTransition><AuthGuard><CommunityPage /></AuthGuard></PageTransition>} />
-        <Route path="/profile" element={<PageTransition><AuthGuard><ProfilePage /></AuthGuard></PageTransition>} />
-        <Route path="/news" element={<PageTransition><NewsPage /></PageTransition>} />
-        <Route path="/research" element={<PageTransition><ResearchPage /></PageTransition>} />
-        <Route path="/team" element={<PageTransition><TeamPage /></PageTransition>} />
-        <Route path="/admin/team" element={<PageTransition><AuthGuard><AdminTeamPage /></AuthGuard></PageTransition>} />
-        <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard><FieldMapperPage /></AuthGuard></PageTransition>} />
-        <Route path="/tools/reports" element={<PageTransition><AuthGuard><ReportsPage /></AuthGuard></PageTransition>} />
-        <Route path="/tools/satellite" element={<PageTransition><AuthGuard><SatellitePage /></AuthGuard></PageTransition>} />
-        <Route path="/tools/iot" element={<PageTransition><AuthGuard><IoTPage /></AuthGuard></PageTransition>} />
-        <Route path="/tools/achievements" element={<PageTransition><AuthGuard><AchievementsPage /></AuthGuard></PageTransition>} />
-        <Route path="/tools/offline" element={<PageTransition><OfflinePage /></PageTransition>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AnimatePresence>
+    <>
+      <ActiveProfileBar />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+          <Route path="/auth" element={<PageTransition><AuthPage /></PageTransition>} />
+          <Route path="/dashboard" element={<PageTransition><AuthGuard><Dashboard /></AuthGuard></PageTransition>} />
+          <Route path="/crop-advisor" element={<PageTransition><AuthGuard><CropAdvisor /></AuthGuard></PageTransition>} />
+          <Route path="/market" element={<PageTransition><AuthGuard><MarketPage /></AuthGuard></PageTransition>} />
+          <Route path="/schemes" element={<PageTransition><AuthGuard><SchemesPage /></AuthGuard></PageTransition>} />
+          <Route path="/community" element={<PageTransition><AuthGuard><CommunityPage /></AuthGuard></PageTransition>} />
+          <Route path="/profile" element={<PageTransition><AuthGuard><ProfilePage /></AuthGuard></PageTransition>} />
+          <Route path="/news" element={<PageTransition><NewsPage /></PageTransition>} />
+          <Route path="/research" element={<PageTransition><ResearchPage /></PageTransition>} />
+          <Route path="/team" element={<PageTransition><TeamPage /></PageTransition>} />
+          <Route path="/admin/team" element={<PageTransition><AuthGuard><AdminTeamPage /></AuthGuard></PageTransition>} />
+          <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard><FieldMapperPage /></AuthGuard></PageTransition>} />
+          <Route path="/tools/reports" element={<PageTransition><AuthGuard><ReportsPage /></AuthGuard></PageTransition>} />
+          <Route path="/tools/satellite" element={<PageTransition><AuthGuard><SatellitePage /></AuthGuard></PageTransition>} />
+          <Route path="/tools/iot" element={<PageTransition><AuthGuard><IoTPage /></AuthGuard></PageTransition>} />
+          <Route path="/tools/achievements" element={<PageTransition><AuthGuard><AchievementsPage /></AuthGuard></PageTransition>} />
+          <Route path="/tools/offline" element={<PageTransition><OfflinePage /></PageTransition>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AnimatePresence>
+    </>
   );
 }
 
