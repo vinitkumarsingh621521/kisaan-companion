@@ -41,6 +41,56 @@ export type Database = {
         }
         Relationships: []
       }
+      farm_zones: {
+        Row: {
+          acres: number
+          color: string
+          created_at: string
+          crop: string
+          hectares: number
+          id: string
+          latlngs: Json
+          notes: string | null
+          profile_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acres?: number
+          color?: string
+          created_at?: string
+          crop: string
+          hectares?: number
+          id?: string
+          latlngs?: Json
+          notes?: string | null
+          profile_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acres?: number
+          color?: string
+          created_at?: string
+          crop?: string
+          hectares?: number
+          id?: string
+          latlngs?: Json
+          notes?: string | null
+          profile_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farm_zones_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "farmer_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       farmer_profiles: {
         Row: {
           avatar_url: string | null

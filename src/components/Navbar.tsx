@@ -1,42 +1,43 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sprout, Globe, LogOut, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, X, Sprout, Globe, LogOut, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import logo from "@/assets/logo.png";
 import type { Session } from "@supabase/supabase-js";
-
-const navItems = [
-  { label: "Home", path: "/" },
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Crop Advisor", path: "/crop-advisor" },
-  { label: "Market", path: "/market" },
-  { label: "Schemes", path: "/schemes" },
-  { label: "News", path: "/news" },
-  { label: "Research Lab", path: "/research" },
-  { label: "Community", path: "/community" },
-  { label: "Field Mapper", path: "/tools/field-mapper" },
-  { label: "Smart Reports", path: "/tools/reports" },
-  { label: "Satellite", path: "/tools/satellite" },
-  { label: "IoT Sensors", path: "/tools/iot" },
-  { label: "Achievements", path: "/tools/achievements" },
-  { label: "Offline Mode", path: "/tools/offline" },
-  { label: "Team", path: "/team" },
-];
-
-const languages = ["English", "हिंदी", "বাংলা", "தமிழ்", "తెలుగు", "ಕನ್ನಡ"];
+import { useTranslation } from "react-i18next";
+import { SUPPORTED_LANGUAGES } from "@/i18n";
 
 export default function Navbar() {
+  const { t, i18n } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [langIdx, setLangIdx] = useState(0);
   const [session, setSession] = useState<Session | null>(null);
   const [showScrollLeft, setShowScrollLeft] = useState(false);
   const [showScrollRight, setShowScrollRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const navItems = [
+    { label: t("nav.home"), path: "/" },
+    { label: t("nav.dashboard"), path: "/dashboard" },
+    { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
+    { label: t("nav.market"), path: "/market" },
+    { label: t("nav.schemes"), path: "/schemes" },
+    { label: t("nav.news"), path: "/news" },
+    { label: t("nav.research"), path: "/research" },
+    { label: t("nav.community"), path: "/community" },
+    { label: t("nav.fieldMapper"), path: "/tools/field-mapper" },
+    { label: t("nav.reports"), path: "/tools/reports" },
+    { label: t("nav.satellite"), path: "/tools/satellite" },
+    { label: t("nav.iot"), path: "/tools/iot" },
+    { label: t("nav.achievements"), path: "/tools/achievements" },
+    { label: t("nav.offline"), path: "/tools/offline" },
+    { label: t("nav.team"), path: "/team" },
+  ];
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => setSession(s));
@@ -59,6 +60,7 @@ export default function Navbar() {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
   const scroll = (dir: "left" | "right") => scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language) || SUPPORTED_LANGUAGES[0];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/85 backdrop-blur-xl border-b border-border/50">
@@ -70,7 +72,6 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Scrollable nav */}
         <div className="hidden md:flex items-center flex-1 min-w-0 relative">
           {showScrollLeft && (
             <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-card border border-border shadow-sm hover:bg-muted">
@@ -109,15 +110,26 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center gap-1 flex-shrink-0">
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLangIdx((i) => (i + 1) % languages.length)}
-            className="gap-1.5 text-muted-foreground"
-          >
-            <Globe className="h-4 w-4" />
-            <span className="hidden lg:inline">{languages[langIdx]}</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                <Globe className="h-4 w-4" />
+                <span className="hidden lg:inline">{currentLang.native}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-card">
+              {SUPPORTED_LANGUAGES.map((lng) => (
+                <DropdownMenuItem
+                  key={lng.code}
+                  onClick={() => i18n.changeLanguage(lng.code)}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span>{lng.native}</span>
+                  {i18n.language === lng.code && <Check className="h-3.5 w-3.5 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {session ? (
             <Button variant="ghost" size="sm" className="gap-1.5 text-destructive" onClick={handleLogout}>
@@ -126,7 +138,7 @@ export default function Navbar() {
           ) : (
             <Link to="/auth">
               <Button size="sm" className="gradient-primary border-0 text-primary-foreground font-semibold">
-                <Sprout className="h-4 w-4 mr-1" /> Get Started
+                <Sprout className="h-4 w-4 mr-1" /> {t("nav.getStarted")}
               </Button>
             </Link>
           )}
@@ -134,6 +146,21 @@ export default function Navbar() {
 
         <div className="md:hidden flex items-center gap-2 ml-auto">
           <ThemeToggle />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Globe className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-card">
+              {SUPPORTED_LANGUAGES.map((lng) => (
+                <DropdownMenuItem key={lng.code} onClick={() => i18n.changeLanguage(lng.code)}>
+                  {lng.native}
+                  {i18n.language === lng.code && <Check className="h-3.5 w-3.5 text-primary ml-2" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button className="p-2" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -164,11 +191,11 @@ export default function Navbar() {
               <div className="pt-2 border-t border-border">
                 {session ? (
                   <Button variant="outline" className="w-full text-destructive" onClick={() => { handleLogout(); setMobileOpen(false); }}>
-                    <LogOut className="h-4 w-4 mr-1" /> Logout
+                    <LogOut className="h-4 w-4 mr-1" /> {t("nav.logout")}
                   </Button>
                 ) : (
                   <Link to="/auth" onClick={() => setMobileOpen(false)}>
-                    <Button className="w-full gradient-primary border-0 text-primary-foreground">Get Started</Button>
+                    <Button className="w-full gradient-primary border-0 text-primary-foreground">{t("nav.getStarted")}</Button>
                   </Link>
                 )}
               </div>

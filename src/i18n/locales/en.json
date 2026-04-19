@@ -1,0 +1,53 @@
+{
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "cropAdvisor": "Crop Advisor",
+    "market": "Market",
+    "schemes": "Schemes",
+    "news": "News",
+    "research": "Research Lab",
+    "community": "Community",
+    "fieldMapper": "Field Mapper",
+    "reports": "Smart Reports",
+    "satellite": "Satellite",
+    "iot": "IoT Sensors",
+    "achievements": "Achievements",
+    "offline": "Offline Mode",
+    "team": "Team",
+    "getStarted": "Get Started",
+    "logout": "Logout"
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "export": "Export",
+    "share": "Share",
+    "clear": "Clear",
+    "refresh": "Refresh",
+    "language": "Language",
+    "offline": "You are offline. Showing cached data.",
+    "online": "Back online — syncing…"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "today": "Today's plan",
+    "weather": "Weather",
+    "marketPrices": "Market prices",
+    "soilHealth": "Soil health",
+    "schemes": "Schemes for you",
+    "askAI": "Ask Krishi AI"
+  },
+  "fieldMapper": {
+    "title": "Field Mapper",
+    "subtitle": "Draw your farm on real satellite imagery. Auto-calculates hectares & acres.",
+    "noZones": "No zones yet. Pick a crop, then draw a polygon on the map.",
+    "ndvi": "Crop health (NDVI)",
+    "ndviHint": "Green = healthy, yellow = moderate, red = stressed",
+    "syncing": "Syncing to cloud…",
+    "synced": "Synced",
+    "localOnly": "Saved locally — sign in to sync"
+  }
+}

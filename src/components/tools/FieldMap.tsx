@@ -4,6 +4,7 @@ import { EditControl } from "react-leaflet-draw";
 import L, { LatLng } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
+import NDVIOverlay from "./NDVIOverlay";
 
 // Fix Leaflet default marker icon paths (Vite issue)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -29,9 +30,11 @@ interface Props {
   cropColor: string;
   onCreate: (latlngs: LatLng[]) => void;
   onDelete: (ids: string[]) => void;
+  ndvi?: boolean;
+  ndviOpacity?: number;
 }
 
-export default function FieldMap({ center, zones, selectedCrop, cropColor, onCreate, onDelete }: Props) {
+export default function FieldMap({ center, zones, selectedCrop, cropColor, onCreate, onDelete, ndvi = false, ndviOpacity = 0.6 }: Props) {
   const fgRef = useRef<L.FeatureGroup>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -71,6 +74,9 @@ export default function FieldMap({ center, zones, selectedCrop, cropColor, onCre
           />
         </LayersControl.BaseLayer>
       </LayersControl>
+
+      {/* NDVI overlay */}
+      {ndvi && <NDVIOverlay opacity={ndviOpacity} />}
 
       {/* Render saved zones */}
       {zones.map((z) => (
