@@ -31,12 +31,13 @@ export default function Footer() {
             </div>
           </div>
           <div>
-            <h4 className="font-display font-semibold mb-3">Resources</h4>
+            <h4 className="font-display font-semibold mb-3">Tools</h4>
             <div className="space-y-2 text-sm text-background/60">
-              <a href="#" className="block hover:text-background transition-colors">Documentation</a>
-              <a href="#" className="block hover:text-background transition-colors">API Reference</a>
-              <a href="#" className="block hover:text-background transition-colors">Support</a>
-              <a href="#" className="block hover:text-background transition-colors">Privacy Policy</a>
+              <Link to="/tools/field-mapper" className="block hover:text-background transition-colors">Field Mapper</Link>
+              <Link to="/tools/reports" className="block hover:text-background transition-colors">Smart Reports</Link>
+              <Link to="/tools/satellite" className="block hover:text-background transition-colors">Satellite View</Link>
+              <Link to="/tools/iot" className="block hover:text-background transition-colors">IoT Sensors</Link>
+              <Link to="/tools/achievements" className="block hover:text-background transition-colors">Achievements</Link>
             </div>
           </div>
           <div>
