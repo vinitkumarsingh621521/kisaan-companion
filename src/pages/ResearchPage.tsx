@@ -487,6 +487,11 @@ export default function ResearchPage() {
                 ))}
               </div>
             </TabsContent>
+
+            {/* Research Papers */}
+            <TabsContent value="papers">
+              <ResearchPapersPanel />
+            </TabsContent>
           </Tabs>
         </div>
       </main>
