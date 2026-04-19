@@ -2,13 +2,17 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2 } from "lucide-react";
+import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2, Cloud, CloudOff, Satellite } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { useFarmZones } from "@/hooks/useFarmZones";
+import { NDVILegend } from "@/components/tools/NDVIOverlay";
 import type { LatLng } from "leaflet";
-import type { Zone } from "@/components/tools/FieldMap";
 
 const FieldMap = lazy(() => import("@/components/tools/FieldMap"));
 
@@ -20,10 +24,9 @@ const COLORS: Record<string, string> = {
 const INDIA_CENTER: [number, number] = [22.97, 78.65];
 const GEOCODE_CACHE_KEY = "fieldmapper.geocache.v1";
 
-// Spherical excess polygon area (m²) using lat/lng — accurate enough for farm scale.
 function polygonAreaM2(latlngs: { lat: number; lng: number }[]): number {
   if (latlngs.length < 3) return 0;
-  const R = 6378137; // Earth radius (m)
+  const R = 6378137;
   const toRad = (d: number) => (d * Math.PI) / 180;
   let area = 0;
   for (let i = 0; i < latlngs.length; i++) {
@@ -51,31 +54,18 @@ async function geocodeDistrict(query: string): Promise<[number, number] | null> 
 }
 
 export default function FieldMapperPage() {
+  const { t } = useTranslation();
   const { active } = useActiveProfile();
-  const profileId = active?.id || "guest";
-  const storageKey = `fieldmapper.zones.${profileId}`;
+  const { zones, addZone, removeZones, clearAll, status } = useFarmZones();
 
-  const [zones, setZones] = useState<Zone[]>([]);
   const [selectedCrop, setSelectedCrop] = useState("Rice");
   const [center, setCenter] = useState<[number, number]>(INDIA_CENTER);
   const [locating, setLocating] = useState(true);
+  const [ndvi, setNdvi] = useState(false);
+  const [ndviOpacity, setNdviOpacity] = useState(0.6);
 
   const totalAcres = parseFloat(active?.farmer_details?.total_land || active?.farm_size || "5") || 5;
 
-  // Load zones from localStorage when profile changes
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      setZones(raw ? JSON.parse(raw) : []);
-    } catch { setZones([]); }
-  }, [storageKey]);
-
-  // Persist
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(zones));
-  }, [zones, storageKey]);
-
-  // Geocode farmer location
   useEffect(() => {
     let cancel = false;
     (async () => {
@@ -93,35 +83,31 @@ export default function FieldMapperPage() {
     return () => { cancel = true; };
   }, [active?.id, active?.farm_location, active?.farmer_details?.district, active?.farmer_details?.state]);
 
-  const handleCreate = (latlngs: LatLng[]) => {
+  const handleCreate = async (latlngs: LatLng[]) => {
     const pts = latlngs.map((p) => ({ lat: p.lat, lng: p.lng }));
     const m2 = polygonAreaM2(pts);
     const hectares = m2 / 10000;
     const acres = hectares * 2.47105;
-    const zone: Zone = {
-      id: Date.now().toString(),
+    await addZone({
       crop: selectedCrop,
       color: COLORS[selectedCrop] || "#22c55e",
       hectares,
       acres,
       latlngs: pts,
-    };
-    setZones((prev) => [...prev, zone]);
-    toast.success(`✓ ${selectedCrop} zone added — ${hectares.toFixed(3)} ha (${acres.toFixed(2)} ac)`);
+    });
+    toast.success(`✓ ${selectedCrop} — ${hectares.toFixed(3)} ha (${acres.toFixed(2)} ac)`);
   };
 
   const handleDeleteIds = (ids: string[]) => {
-    setZones((prev) => prev.filter((z) => !ids.includes(z.id)));
+    removeZones(ids);
     toast.info(`Removed ${ids.length} zone${ids.length > 1 ? "s" : ""}`);
   };
 
-  const removeZone = (id: string) => {
-    setZones((prev) => prev.filter((z) => z.id !== id));
-  };
+  const removeZone = (id: string) => removeZones([id]);
 
-  const clearAll = () => {
-    if (zones.length === 0) return;
-    setZones([]);
+  const onClearAll = () => {
+    if (!zones.length) return;
+    clearAll();
     toast.info("All zones cleared");
   };
 
@@ -151,7 +137,7 @@ export default function FieldMapperPage() {
     a.download = `farm-zones-${active?.full_name || "map"}.geojson`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("GeoJSON exported — opens in QGIS, Mapbox, or Google Earth");
+    toast.success("GeoJSON exported");
   };
 
   const shareSummary = async () => {
@@ -164,6 +150,14 @@ export default function FieldMapperPage() {
     }
   };
 
+  const SyncBadge = () => {
+    if (status === "syncing") return <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> {t("fieldMapper.syncing")}</span>;
+    if (status === "synced") return <span className="inline-flex items-center gap-1 text-[11px] text-primary"><Cloud className="h-3 w-3" /> {t("fieldMapper.synced")}</span>;
+    if (status === "local") return <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400"><CloudOff className="h-3 w-3" /> {t("fieldMapper.localOnly")}</span>;
+    if (status === "error") return <span className="inline-flex items-center gap-1 text-[11px] text-destructive"><CloudOff className="h-3 w-3" /> Sync error</span>;
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
@@ -171,10 +165,11 @@ export default function FieldMapperPage() {
         <div className="container mx-auto max-w-6xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-2">
-              <MapIcon className="h-7 w-7 text-primary" /> Field Mapper
+              <MapIcon className="h-7 w-7 text-primary" /> {t("fieldMapper.title")}
+              <span className="ml-2"><SyncBadge /></span>
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Draw your farm on real satellite imagery. Auto-calculates hectares & acres.{" "}
+              {t("fieldMapper.subtitle")}{" "}
               <span className="font-medium text-foreground">Plot total: {totalAcres} acres</span>
             </p>
           </motion.div>
@@ -199,16 +194,46 @@ export default function FieldMapperPage() {
                     </button>
                   ))}
                 </div>
-                <Button size="sm" variant="outline" onClick={exportGeoJSON} disabled={!zones.length}>
-                  <FileDown className="h-3.5 w-3.5 mr-1" /> Export
-                </Button>
-                <Button size="sm" variant="outline" onClick={shareSummary} disabled={!zones.length}>
-                  <Share2 className="h-3.5 w-3.5 mr-1" /> Share
-                </Button>
-                <Button size="sm" variant="outline" onClick={clearAll} disabled={!zones.length}>
-                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Clear
-                </Button>
+                <div className="flex gap-1.5">
+                  <Button size="sm" variant="outline" onClick={exportGeoJSON} disabled={!zones.length}>
+                    <FileDown className="h-3.5 w-3.5 mr-1" /> {t("common.export")}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={shareSummary} disabled={!zones.length}>
+                    <Share2 className="h-3.5 w-3.5 mr-1" /> {t("common.share")}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={onClearAll} disabled={!zones.length}>
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> {t("common.clear")}
+                  </Button>
+                </div>
               </div>
+
+              {/* NDVI controls */}
+              <div className="flex items-center justify-between gap-3 mb-3 px-2 py-2 rounded-lg bg-muted/40">
+                <div className="flex items-center gap-2">
+                  <Satellite className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium">{t("fieldMapper.ndvi")}</span>
+                  <Switch checked={ndvi} onCheckedChange={setNdvi} aria-label="Toggle NDVI overlay" />
+                </div>
+                {ndvi && (
+                  <div className="flex items-center gap-3 flex-1 max-w-xs">
+                    <span className="text-[10px] text-muted-foreground">Opacity</span>
+                    <Slider
+                      value={[Math.round(ndviOpacity * 100)]}
+                      onValueChange={(v) => setNdviOpacity(v[0] / 100)}
+                      min={20}
+                      max={95}
+                      step={5}
+                      className="flex-1"
+                    />
+                  </div>
+                )}
+              </div>
+              {ndvi && (
+                <div className="flex items-center justify-between mb-3 text-xs px-1">
+                  <NDVILegend />
+                  <span className="text-[10px] text-muted-foreground">NASA GIBS · MODIS 16-day</span>
+                </div>
+              )}
 
               <div className="relative rounded-xl overflow-hidden border border-border" style={{ minHeight: 480 }}>
                 {locating && (
@@ -226,12 +251,15 @@ export default function FieldMapperPage() {
                     cropColor={COLORS[selectedCrop] || "#22c55e"}
                     onCreate={handleCreate}
                     onDelete={handleDeleteIds}
+                    ndvi={ndvi}
+                    ndviOpacity={ndviOpacity}
                   />
                 </Suspense>
               </div>
               <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                 <MapPin className="h-3 w-3" /> Use the polygon tool (top-left) to draw a zone.
                 Centered near {active?.farmer_details?.district || active?.farm_location || "India"}.
+                {ndvi && <span className="ml-1">{t("fieldMapper.ndviHint")}</span>}
               </div>
             </div>
 
@@ -242,9 +270,7 @@ export default function FieldMapperPage() {
                   <Sprout className="h-4 w-4 text-primary" /> Crop Zones
                 </h3>
                 {zones.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">
-                    No zones yet. Pick a crop, then draw a polygon on the map. 🎨
-                  </p>
+                  <p className="text-xs text-muted-foreground italic">{t("fieldMapper.noZones")} 🎨</p>
                 ) : (
                   <div className="space-y-2">
                     {zones.map((z) => (
@@ -289,9 +315,9 @@ export default function FieldMapperPage() {
               </div>
 
               <div className="glass-card p-4 text-xs text-muted-foreground space-y-2">
-                <p>💡 <strong>Tip:</strong> Zones auto-save per profile. Switch profiles to see different farms.</p>
-                <p>🛰️ Toggle Satellite/Streets via the layers control (top-right).</p>
-                <p>📡 Future: sync polygons to cloud + overlay NDVI from satellite.</p>
+                <p>☁️ <strong>Cloud sync:</strong> Zones now sync to your account. Switch devices, see the same fields.</p>
+                <p>🛰️ <strong>NDVI:</strong> Toggle satellite crop-health on. Updated every 16 days from NASA MODIS.</p>
+                <p>📡 <strong>Pro tip:</strong> Higher-res Sentinel-2 NDVI available — wire up a free Sentinel Hub key.</p>
               </div>
             </div>
           </div>
