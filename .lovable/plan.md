@@ -1,75 +1,52 @@
 
 
-## Situation
+## Why the preview looked blank
 
-I can see the uploaded zip but I'm in read-only planning mode and can't unzip it to inspect file-by-file. Based on **your own summary** of what's already shipped vs. remaining, here's the plan to finish KrishiMitra v4.
+Not a real bug. Console shows `[vite] server connection lost. Polling for restart...` and a 404 on a `text/x-vite-ping` request — that's Vite's HMR pinging during a brief dev-server restart. The session replay confirms the page actually loaded multiple times right after. A hard refresh (Cmd/Ctrl+Shift+R) clears it. No code change needed; if it persists I'll dig deeper after the refresh.
 
-Once you approve, I'll switch to default mode, extract the zip into the project, audit what's actually there, then execute the work below.
+## Plan
 
----
+### 1. End-to-end QA pass (browser automation)
+- Navigate to `/auth`, sign in (or use existing session).
+- `/dashboard` → switch active profile via ActiveProfileBar, confirm widgets re-render with new name/state.
+- Click each of the 6 FeaturesGrid tool cards → verify each route loads without error.
+- `/crop-advisor` → confirm greeting uses farmer name, send a chat message, confirm AI references profile.
+- `/research` → upload a small test PDF, verify it appears in the papers list, view/download counters work.
+- Report findings; fix any bugs found inline before moving on.
 
-## Phase 0 — Import & Audit (first thing after approval)
+### 2. Code-splitting (shrink 1.9 MB bundle)
+In `src/App.tsx`, convert heavy/rarely-first-paint routes to `React.lazy` + `<Suspense>` with a skeleton fallback:
+- All 6 `/tools/*` pages
+- `ResearchPage`, `AdminTeamPage`, `TeamPage`, `NewsPage`, `CommunityPage`, `SchemesPage`, `MarketPage`, `CropAdvisor`, `ProfilePage`, `Dashboard`
+- Keep `Index`, `AuthPage`, `NotFound` eager (landing + auth must be instant).
 
-1. Unzip `urja-fasal-saathi-main.zip` into the project, overwriting current scaffolding.
-2. Verify the migration ran (5 new tables: `farmer_profiles`, `team_members`, `research_papers`, `achievements`, `user_settings`) and 3 storage buckets exist.
-3. Confirm hooks `useActiveProfile` / `usePersonalization` and edge functions `farmer-context`, `market-compare`, upgraded `krishi-ai` are present and wired.
-4. Spot-check the 6 tool pages, ActiveProfileBar, AdminTeam, TeamPage.
+Inside `ResearchPage`, lazy-load the chart-heavy panels (`ResearchPapersPanel` and any recharts blocks) via `React.lazy` so the Overview tab paints first without pulling recharts.
 
-I'll report a short "what's actually there" summary before writing code.
+Add a tiny `<RouteSkeleton />` component (already have skeleton primitives) as the Suspense fallback. Expected drop: ~600–900 KB off initial JS.
 
----
+### 3. Real interactive Field Mapper with Leaflet
+Replace the SVG sketch in `src/pages/tools/FieldMapperPage.tsx`:
+- Add deps: `leaflet`, `react-leaflet`, `leaflet-draw`, `@types/leaflet`, `@types/leaflet-draw`.
+- Import Leaflet CSS in the page (scoped via dynamic import so it doesn't bloat global).
+- `<MapContainer>` centered on the active farmer's district (geocode lazily via Nominatim with a cached fallback to India centroid `[22.97, 78.65]`, zoom 15).
+- Tile layer: Esri World Imagery (free satellite tiles, no key) with OSM street overlay toggle.
+- `FeatureGroup` + `EditControl` (leaflet-draw) for polygon draw / edit / delete.
+- On every polygon change, compute area with the spherical polygon formula (small inline helper using Leaflet's lat/lng — no extra dep) → display **hectares** and **acres**.
+- Crop palette buttons assign a color + crop label per polygon; persist to `localStorage` keyed by active profile id (DB persistence is a future step).
+- Sidebar: list of zones with crop, hectares, acres, delete button; totals row vs. farmer's `total_land`.
+- Keep the existing "Tip" cards, restyle to match.
 
-## Phase 1 — Refactor existing pages to use active profile
+Lazy-load the whole map component (`React.lazy`) so Leaflet's ~150 KB only loads when this route is opened.
 
-Wire `useActiveProfile()` + `usePersonalization()` into:
+### Files touched
+- `src/App.tsx` — lazy routes + Suspense
+- `src/components/RouteSkeleton.tsx` (new)
+- `src/pages/ResearchPage.tsx` — lazy chart/panel sections
+- `src/pages/tools/FieldMapperPage.tsx` — Leaflet rewrite
+- `src/components/tools/FieldMap.tsx` (new, lazy-loaded)
+- `package.json` — add Leaflet deps
 
-- **Dashboard** — SoilHealthCard, WeatherWidget, FarmProfileCard (with Completion % ring), GovtSchemesCard, CropCalendarWidget all read active profile context. Add **FarmHealthScore** radial gauge + **SeasonalAlertBanner**. Show profile-completion banner until ≥80%.
-- **Crop Advisor** — pass full active-profile context to AI calls; references farmer by name/crops/state.
-- **Market Prices** — auto-pin `current_crops`, replace static Ranchi list with state-aware mandis, show distance + freight using `nearest_mandi_km`.
-- **Schemes** — AI-filter to farmer's state, income bracket, ownership, crops.
-- **News** — fix category filter (case-insensitive trim + alias map on both sides), per-tab category-specific fetches, tag with farmer state.
-- **AIChatWidget** — inject active-profile context every call; humorous, kisaan-friendly tone.
-
----
-
-## Phase 2 — Missing features
-
-- **MultiMandiCompare** panel on Market page: multi-crop × multi-mandi picker → comparison table + grouped bar chart + "best place to sell" highlight (uses `market-compare` edge function).
-- **FarmHealthScore** radial gauge component (composite: soil + finance + tech-readiness + diversification).
-- **SeasonalAlertBanner** driven by farmer state + current month.
-- **WeatherWidget rebuild**: dynamic location label, monsoon stage indicator, sowing-window banner, AI-generated 7-day forecast, "what to do today" tip per current crops.
-
----
-
-## Phase 3 — Research page 4× upgrade
-
-- Reorganize into 8 tabs: Overview, Models (22), Charts, Datasets, Code, Tech Stack, Outputs, Publications.
-- Add: problem statement deep-dive, system architecture diagram, data pipeline diagram, hyperparameter tuning, confusion matrix, training loss, t-SNE/UMAP, ROC curves, Shapley feature importance, ablation table.
-- **Upload Research Paper** section: signed-in users upload PDFs to `research-papers` bucket, list with download + view counters backed by `research_papers` table.
-- Inline notebook cell preview from the v13 ipynb (if present in repo).
-
----
-
-## Phase 4 — Polish pass
-
-- Empty-state jokes across the app.
-- Loading skeletons (replace raw spinners).
-- Consistent sonner toast styling.
-- Verify Crop Advisor mobile camera flow (separate Upload + Take Photo, tune touch targets).
-- Fix any leftover Footer/FeaturesGrid `forwardRef` issues.
-- Sticky scrollable navbar with active-route gradient underline (verify already done, polish if needed).
-
----
-
-## Phase 5 — QA
-
-- Build the project, fix any TypeScript / import errors from the zip import.
-- Click through each refactored page in the preview to confirm the active profile drives content.
-- Confirm migrations idempotent; storage RLS correct.
-
----
-
-## Out of scope (already shipped per your summary, will only fix if broken)
-
-Multi-profile DB + ActiveProfileBar, 70-field wizard, scrollable navbar, 6 tool pages, Team showcase + admin, edge functions skeleton, base migration.
+### Out of scope (will note, not do)
+- Persisting polygons to Supabase (needs a `farm_zones` table) — call out as a follow-up.
+- Real NDVI satellite overlay — Satellite page already mocks it; real provider needs an API key.
 
