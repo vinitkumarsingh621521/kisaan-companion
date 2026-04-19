@@ -4,78 +4,14 @@ import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const isBackendConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
-
-const backendError = new Error('Lovable Cloud is not configured for this preview yet.');
-
-type SupabaseClientLike = ReturnType<typeof createClient<Database>>;
-
-function createFallbackQueryBuilder(result: unknown = []) {
-  const builder = {
-    select: () => builder,
-    insert: () => builder,
-    update: () => builder,
-    delete: () => builder,
-    upsert: () => builder,
-    eq: () => builder,
-    neq: () => builder,
-    gt: () => builder,
-    gte: () => builder,
-    lt: () => builder,
-    lte: () => builder,
-    order: () => builder,
-    limit: () => builder,
-    range: () => builder,
-    single: async () => ({ data: null, error: backendError }),
-    maybeSingle: async () => ({ data: null, error: backendError }),
-    then: (onFulfilled?: (value: { data: unknown; error: Error }) => unknown, onRejected?: (reason: unknown) => unknown) =>
-      Promise.resolve({ data: result, error: backendError }).then(onFulfilled, onRejected),
-    catch: (onRejected?: (reason: unknown) => unknown) => Promise.resolve({ data: result, error: backendError }).catch(onRejected),
-    finally: (onFinally?: () => void) => Promise.resolve({ data: result, error: backendError }).finally(onFinally),
-  };
-
-  return builder;
-}
-
-const fallbackClient = {
-  auth: {
-    onAuthStateChange: (callback: ((event: string, session: null) => void) | undefined) => {
-      queueMicrotask(() => callback?.('SIGNED_OUT', null));
-      return { data: { subscription: { unsubscribe() {} } } };
-    },
-    getSession: async () => ({ data: { session: null }, error: backendError }),
-    getUser: async () => ({ data: { user: null }, error: backendError }),
-    signInWithPassword: async () => ({ data: { user: null, session: null }, error: backendError }),
-    signUp: async () => ({ data: { user: null, session: null }, error: backendError }),
-    signOut: async () => ({ error: null }),
-    setSession: async () => ({ data: { user: null, session: null }, error: backendError }),
-  },
-  from: () => createFallbackQueryBuilder(),
-  storage: {
-    from: () => ({
-      upload: async () => ({ data: null, error: backendError }),
-      getPublicUrl: (path: string) => ({ data: { publicUrl: path } }),
-      remove: async () => ({ data: null, error: backendError }),
-      list: async () => ({ data: [], error: backendError }),
-    }),
-  },
-} as unknown as SupabaseClientLike;
-
-if (!isBackendConfigured) {
-  console.warn('[KrishiMitra] Lovable Cloud env vars missing; using safe client fallback.');
-}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase: SupabaseClientLike = isBackendConfigured
-  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        storage: localStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    })
-  : fallbackClient;
-
-export { isBackendConfigured };
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
