@@ -13,6 +13,8 @@ import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 
+const _personalizationOn = true;
+
 type DiseaseResult = {
   name: string;
   confidence: number;
@@ -24,6 +26,8 @@ type DiseaseResult = {
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
 export default function CropAdvisor() {
+  const { active } = useActiveProfile();
+  const { ctx } = usePersonalization();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -77,7 +81,7 @@ export default function CropAdvisor() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ action: "disease", image: uploadedImage }),
+        body: JSON.stringify({ action: "disease", image: uploadedImage, profileContext: ctx, profile: active }),
       });
 
       clearInterval(progressInterval);
@@ -131,8 +135,12 @@ export default function CropAdvisor() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">🌾 AI Crop Advisor</h1>
-            <p className="text-muted-foreground mt-1">Real AI-powered disease detection & crop recommendations</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
+              🌾 AI Crop Advisor {active?.full_name ? <span className="text-base font-normal text-muted-foreground">— for {active.full_name}</span> : null}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {ctx ? `Personalized for your ${ctx.climate?.zone || "region"} farm in ${ctx.location?.state || "India"}.` : "Real AI-powered disease detection & crop recommendations"}
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
