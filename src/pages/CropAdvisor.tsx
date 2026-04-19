@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import ReactMarkdown from "react-markdown";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { usePersonalization } from "@/hooks/usePersonalization";
 
 type DiseaseResult = {
   name: string;

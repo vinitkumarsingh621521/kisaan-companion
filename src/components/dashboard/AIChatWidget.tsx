@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { usePersonalization } from "@/hooks/usePersonalization";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -19,8 +21,13 @@ const quickPrompts = [
 ];
 
 export default function AIChatWidget() {
+  const { active } = useActiveProfile();
+  const { ctx } = usePersonalization();
+  const greeting = active?.full_name
+    ? `🙏 Namaste **${active.full_name}**! I'm **KrishiMitra AI** — I can see your farm details, so my advice is tuned just for you.\n\nAsk me anything about your crops, diseases, schemes — in any language!`
+    : "🙏 Namaste! I'm **KrishiMitra AI** — your intelligent farming advisor.\n\nAsk me anything about crops, diseases, government schemes, or farming practices. I speak Hindi too! मैं हिंदी में भी बात कर सकता हूँ।";
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "🙏 Namaste! I'm **KrishiMitra AI** — your intelligent farming advisor.\n\nAsk me anything about crops, diseases, government schemes, or farming practices. I speak Hindi too! मैं हिंदी में भी बात कर सकता हूँ।" },
+    { role: "assistant", content: greeting },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +45,7 @@ export default function AIChatWidget() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ action: "chat", messages: allMessages }),
+      body: JSON.stringify({ action: "chat", messages: allMessages, profileContext: ctx, profile: active }),
     });
 
     if (!resp.ok) {
