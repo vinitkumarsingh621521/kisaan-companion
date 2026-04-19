@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
 import { FlaskConical, Trophy, Database, BarChart3, Brain, ExternalLink, ChevronDown, ChevronUp, Code2, Layers, Leaf, Droplets, Target, Zap, BookOpen, Workflow, FileOutput } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ResearchPapersPanel from "@/components/research/ResearchPapersPanel";
+import { Skeleton } from "@/components/ui/skeleton";
+const ResearchPapersPanel = lazy(() => import("@/components/research/ResearchPapersPanel"));
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -490,7 +491,9 @@ export default function ResearchPage() {
 
             {/* Research Papers */}
             <TabsContent value="papers">
-              <ResearchPapersPanel />
+              <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+                <ResearchPapersPanel />
+              </Suspense>
             </TabsContent>
           </Tabs>
         </div>
