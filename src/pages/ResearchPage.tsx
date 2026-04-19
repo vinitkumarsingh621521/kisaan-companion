@@ -154,7 +154,7 @@ export default function ResearchPage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
           {/* Hero */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <div className="inline-flex items-center gap-2 krishi-badge bg-primary/10 text-primary mb-4">
               <FlaskConical className="h-4 w-4" /> SIH-25030 Research Project
             </div>
@@ -164,12 +164,44 @@ export default function ResearchPage() {
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Government of Jharkhand · Smart India Hackathon 2025 · ULTRA v13 — 22 ML Models, CNN Disease Detection, Price Forecasting & More
             </p>
-            <div className="flex gap-3 justify-center mt-5">
-              <a href="https://colab.research.google.com" target="_blank" rel="noopener noreferrer">
-                <Button className="gradient-primary border-0 text-primary-foreground gap-2">
-                  <ExternalLink className="h-4 w-4" /> Open in Google Colab
-                </Button>
-              </a>
+          </motion.div>
+
+          {/* Featured Notebook — Open in Colab */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-10 rounded-2xl p-6 bg-gradient-to-br from-primary/10 via-krishi-gold/10 to-krishi-sky/10 border border-primary/25"
+          >
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-background flex items-center justify-center shrink-0 shadow-sm">
+                <span className="text-3xl">📓</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Reference Notebook · ULTRA v13</p>
+                <h3 className="font-display font-bold text-lg text-foreground">SIH_25030_ULTRA_v13.ipynb</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  18 cells · 22 ML models · CNN disease detection · Prophet+LSTM forecasting · Carbon footprint · FastAPI backend.
+                  One-click open in Google Colab — runs free on Google's GPUs.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <a
+                  href={`https://colab.research.google.com/?url=${encodeURIComponent(window.location.origin + "/notebooks/SIH_25030_ULTRA_v13.ipynb")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full"
+                >
+                  <Button className="gradient-primary border-0 text-primary-foreground gap-2 w-full">
+                    <ExternalLink className="h-4 w-4" /> Open in Colab
+                  </Button>
+                </a>
+                <a href="/notebooks/SIH_25030_ULTRA_v13.ipynb" download className="w-full">
+                  <Button variant="outline" className="gap-2 w-full">
+                    <FileOutput className="h-4 w-4" /> Download .ipynb
+                  </Button>
+                </a>
+              </div>
             </div>
           </motion.div>
 
