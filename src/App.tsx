@@ -15,6 +15,8 @@ import BackToTop from "./components/BackToTop";
 import ActiveProfileBar from "./components/ActiveProfileBar";
 import RouteSkeleton from "./components/RouteSkeleton";
 import ErrorBoundary from "./components/ErrorBoundary";
+import CommandPalette from "./components/CommandPalette";
+import OfflineBanner from "./components/OfflineBanner";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 
 // Lazy-loaded routes (code-split into separate chunks)
@@ -91,9 +93,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ActiveProfileProvider>
+            <OfflineBanner />
             <ErrorBoundary>
               <AnimatedRoutes />
             </ErrorBoundary>
+            <CommandPalette />
             <BackToTop />
           </ActiveProfileProvider>
         </BrowserRouter>
