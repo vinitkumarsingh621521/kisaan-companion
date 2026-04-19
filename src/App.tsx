@@ -35,7 +35,17 @@ const IoTPage = lazy(() => import("./pages/tools/IoTPage"));
 const AchievementsPage = lazy(() => import("./pages/tools/AchievementsPage"));
 const OfflinePage = lazy(() => import("./pages/tools/OfflinePage"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,         // 5 min — no refetch storm on tab switch
+      gcTime: 30 * 60 * 1000,           // keep cache 30 min
+      refetchOnWindowFocus: false,       // critical: stops the "tab switch reload" issue
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+  },
+});
 
 const lazyRoute = (el: JSX.Element) => (
   <Suspense fallback={<RouteSkeleton />}>{el}</Suspense>
