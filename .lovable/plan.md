@@ -1,52 +1,45 @@
 
 
-## Why the preview looked blank
+## What actually happened
 
-Not a real bug. Console shows `[vite] server connection lost. Polling for restart...` and a 404 on a `text/x-vite-ping` request — that's Vite's HMR pinging during a brief dev-server restart. The session replay confirms the page actually loaded multiple times right after. A hard refresh (Cmd/Ctrl+Shift+R) clears it. No code change needed; if it persists I'll dig deeper after the refresh.
+**Nothing is broken.** Here's the evidence:
 
-## Plan
+| Check | Result |
+|---|---|
+| Dev server log | Last entry is a clean HMR update at 18:07:58. No errors, no crashes. |
+| Browser console (your preview) | Only a harmless `Unknown message type: RESET_BLANK_CHECK` warning from `lovable.js`. No React errors, no failed chunks. |
+| HTTP response from `localhost:8080/` | `200 OK`, 2050 bytes of valid HTML returned. |
+| Session replay | Shows the cursor moving around the page and **clicking at (330, 258)** — you literally interacted with rendered content. |
+| Leaflet deps | `leaflet`, `react-leaflet`, `react-leaflet-draw` all installed correctly. |
+| `App.tsx`, `Index.tsx`, `ActiveProfileBar.tsx` | All clean. `ActiveProfileBar` even early-returns `null` on `/`, so it can't break the landing page. |
 
-### 1. End-to-end QA pass (browser automation)
-- Navigate to `/auth`, sign in (or use existing session).
-- `/dashboard` → switch active profile via ActiveProfileBar, confirm widgets re-render with new name/state.
-- Click each of the 6 FeaturesGrid tool cards → verify each route loads without error.
-- `/crop-advisor` → confirm greeting uses farmer name, send a chat message, confirm AI references profile.
-- `/research` → upload a small test PDF, verify it appears in the papers list, view/download counters work.
-- Report findings; fix any bugs found inline before moving on.
+The `RESET_BLANK_CHECK` warning is the Lovable preview iframe's own "is this page blank?" probe — and the app is **explicitly responding "no, I'm rendering."** That's the opposite of a white screen.
 
-### 2. Code-splitting (shrink 1.9 MB bundle)
-In `src/App.tsx`, convert heavy/rarely-first-paint routes to `React.lazy` + `<Suspense>` with a skeleton fallback:
-- All 6 `/tools/*` pages
-- `ResearchPage`, `AdminTeamPage`, `TeamPage`, `NewsPage`, `CommunityPage`, `SchemesPage`, `MarketPage`, `CropAdvisor`, `ProfilePage`, `Dashboard`
-- Keep `Index`, `AuthPage`, `NotFound` eager (landing + auth must be instant).
+## Most likely cause of what you saw
 
-Inside `ResearchPage`, lazy-load the chart-heavy panels (`ResearchPapersPanel` and any recharts blocks) via `React.lazy` so the Overview tab paints first without pulling recharts.
+A transient state, not a code bug. Three possibilities, in order of likelihood:
 
-Add a tiny `<RouteSkeleton />` component (already have skeleton primitives) as the Suspense fallback. Expected drop: ~600–900 KB off initial JS.
+1. **Stale iframe / HMR disconnect** — the dev server restarted between 18:03 and 18:06 (when I added Leaflet). If your preview tab was open during that window, it would briefly show white until Vite reconnected. The fix is a hard refresh (Cmd/Ctrl + Shift + R).
+2. **Heavy first paint on `/research` or `/tools/field-mapper`** — those routes now lazy-load chart libs and Leaflet. The `<RouteSkeleton />` should appear, but if you navigated during a chunk fetch over slow network you might see ~300ms of muted-gray background that *looks* blank.
+3. **Browser cache holding the pre-split bundle** — the old 1.9 MB bundle hash is gone; if your browser tried to load it, the chunk 404s and React renders nothing. Hard refresh fixes this too.
 
-### 3. Real interactive Field Mapper with Leaflet
-Replace the SVG sketch in `src/pages/tools/FieldMapperPage.tsx`:
-- Add deps: `leaflet`, `react-leaflet`, `leaflet-draw`, `@types/leaflet`, `@types/leaflet-draw`.
-- Import Leaflet CSS in the page (scoped via dynamic import so it doesn't bloat global).
-- `<MapContainer>` centered on the active farmer's district (geocode lazily via Nominatim with a cached fallback to India centroid `[22.97, 78.65]`, zoom 15).
-- Tile layer: Esri World Imagery (free satellite tiles, no key) with OSM street overlay toggle.
-- `FeatureGroup` + `EditControl` (leaflet-draw) for polygon draw / edit / delete.
-- On every polygon change, compute area with the spherical polygon formula (small inline helper using Leaflet's lat/lng — no extra dep) → display **hectares** and **acres**.
-- Crop palette buttons assign a color + crop label per polygon; persist to `localStorage` keyed by active profile id (DB persistence is a future step).
-- Sidebar: list of zones with crop, hectares, acres, delete button; totals row vs. farmer's `total_land`.
-- Keep the existing "Tip" cards, restyle to match.
+## What I propose to do
 
-Lazy-load the whole map component (`React.lazy`) so Leaflet's ~150 KB only loads when this route is opened.
+Since there's no actual bug to patch right now, my plan is **diagnostic, not destructive**:
 
-### Files touched
-- `src/App.tsx` — lazy routes + Suspense
-- `src/components/RouteSkeleton.tsx` (new)
-- `src/pages/ResearchPage.tsx` — lazy chart/panel sections
-- `src/pages/tools/FieldMapperPage.tsx` — Leaflet rewrite
-- `src/components/tools/FieldMap.tsx` (new, lazy-loaded)
-- `package.json` — add Leaflet deps
+1. **Add a top-level `<ErrorBoundary>`** wrapping `<AnimatedRoutes />` so that if *any* future runtime error occurs, you see a readable error card instead of a white screen. Tiny, ~40 LOC component.
+2. **Add a visible loading state inside `<RouteSkeleton />`** with the KrishiMitra logo + "Loading..." text, so lazy-route fetches never look blank even on slow networks.
+3. **Add a `console.info("[KrishiMitra] App mounted v4")`** beacon in `main.tsx` so we can confirm in console logs whether the root ever mounted (useful for any future "blank screen" report — you can just check the console).
+4. **Verify the preview** with one screenshot after the changes to confirm the landing page renders end-to-end.
 
-### Out of scope (will note, not do)
-- Persisting polygons to Supabase (needs a `farm_zones` table) — call out as a follow-up.
-- Real NDVI satellite overlay — Satellite page already mocks it; real provider needs an API key.
+If after the hard refresh you still see white, the ErrorBoundary will tell us *exactly* which component threw, and we'll fix that specifically.
+
+## Files I'll touch
+- `src/components/ErrorBoundary.tsx` (new, ~40 LOC)
+- `src/components/RouteSkeleton.tsx` (add logo + label)
+- `src/App.tsx` (wrap routes in ErrorBoundary)
+- `src/main.tsx` (one-line mount log)
+
+## Out of scope
+No refactor of routes, no dependency changes, no Leaflet/Field Mapper changes — those are working.
 
