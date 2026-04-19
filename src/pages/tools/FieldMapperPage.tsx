@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2 } from "lucide-react";
+import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -131,6 +131,39 @@ export default function FieldMapperPage() {
     return { ha, ac };
   }, [zones]);
 
+  const exportGeoJSON = () => {
+    if (!zones.length) { toast.error("Draw at least one zone first"); return; }
+    const fc = {
+      type: "FeatureCollection",
+      features: zones.map(z => ({
+        type: "Feature",
+        properties: { crop: z.crop, hectares: z.hectares, acres: z.acres, color: z.color },
+        geometry: {
+          type: "Polygon",
+          coordinates: [[...z.latlngs.map(p => [p.lng, p.lat]), [z.latlngs[0].lng, z.latlngs[0].lat]]],
+        },
+      })),
+    };
+    const blob = new Blob([JSON.stringify(fc, null, 2)], { type: "application/geo+json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `farm-zones-${active?.full_name || "map"}.geojson`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("GeoJSON exported — opens in QGIS, Mapbox, or Google Earth");
+  };
+
+  const shareSummary = async () => {
+    const text = `🌾 My farm — ${zones.length} zones, ${totals.ac.toFixed(2)} acres mapped on KrishiMitra`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "My Farm Map", text, url: window.location.href }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+      toast.success("Copied summary to clipboard");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
@@ -166,6 +199,12 @@ export default function FieldMapperPage() {
                     </button>
                   ))}
                 </div>
+                <Button size="sm" variant="outline" onClick={exportGeoJSON} disabled={!zones.length}>
+                  <FileDown className="h-3.5 w-3.5 mr-1" /> Export
+                </Button>
+                <Button size="sm" variant="outline" onClick={shareSummary} disabled={!zones.length}>
+                  <Share2 className="h-3.5 w-3.5 mr-1" /> Share
+                </Button>
                 <Button size="sm" variant="outline" onClick={clearAll} disabled={!zones.length}>
                   <Trash2 className="h-3.5 w-3.5 mr-1" /> Clear
                 </Button>
