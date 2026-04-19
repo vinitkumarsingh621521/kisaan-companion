@@ -75,7 +75,7 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const activeId = settings?.active_profile_id;
+    const activeId = (settings as any)?.active_profile_id;
     const activeP = list.find(p => p.id === activeId) || list.find(p => p.is_active) || list[0] || null;
 
     setProfiles(list);
