@@ -14,6 +14,7 @@ import PageTransition from "./components/PageTransition";
 import BackToTop from "./components/BackToTop";
 import ActiveProfileBar from "./components/ActiveProfileBar";
 import RouteSkeleton from "./components/RouteSkeleton";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 
 // Lazy-loaded routes (code-split into separate chunks)
@@ -80,7 +81,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ActiveProfileProvider>
-            <AnimatedRoutes />
+            <ErrorBoundary>
+              <AnimatedRoutes />
+            </ErrorBoundary>
             <BackToTop />
           </ActiveProfileProvider>
         </BrowserRouter>
