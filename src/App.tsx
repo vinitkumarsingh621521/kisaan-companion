@@ -18,6 +18,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import CommandPalette from "./components/CommandPalette";
 import OfflineBanner from "./components/OfflineBanner";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
+import { AuthProvider } from "./hooks/useAuth";
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -58,7 +59,7 @@ function AnimatedRoutes() {
   return (
     <>
       <ActiveProfileBar />
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PageTransition><Index /></PageTransition>} />
           <Route path="/auth" element={<PageTransition><AuthPage /></PageTransition>} />
@@ -92,14 +93,16 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ActiveProfileProvider>
-            <OfflineBanner />
-            <ErrorBoundary>
-              <AnimatedRoutes />
-            </ErrorBoundary>
-            <CommandPalette />
-            <BackToTop />
-          </ActiveProfileProvider>
+          <AuthProvider>
+            <ActiveProfileProvider>
+              <OfflineBanner />
+              <ErrorBoundary>
+                <AnimatedRoutes />
+              </ErrorBoundary>
+              <CommandPalette />
+              <BackToTop />
+            </ActiveProfileProvider>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

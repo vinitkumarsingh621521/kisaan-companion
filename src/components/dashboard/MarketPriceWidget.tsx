@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, Bell, BellOff } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
@@ -35,11 +35,12 @@ export default function MarketPriceWidget() {
   }, [ctx?.crops.current, ctx?.crops.suitable]);
 
   const [activeCrops, setActiveCrops] = useState<string[]>(() => userCrops.slice(0, 3));
-  // Re-sync when user crops change
-  useMemo(() => {
+  // Re-sync when user crops change (proper effect, not useMemo-as-side-effect)
+  useEffect(() => {
     if (userCrops.length && activeCrops.every(c => !userCrops.includes(c))) {
       setActiveCrops(userCrops.slice(0, 3));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCrops]);
 
   const cropColor = (c: string) => palette[userCrops.indexOf(c) % palette.length] || palette[0];

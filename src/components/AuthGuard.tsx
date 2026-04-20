@@ -1,34 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Sprout } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { session, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setAuthenticated(true);
-      }
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setAuthenticated(true);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Only redirect once auth has actually resolved — prevents the brief
+    // /auth flash that caused full route remounts.
+    if (!loading && !session) navigate("/auth", { replace: true });
+  }, [loading, session, navigate]);
 
   if (loading) {
     return (
@@ -41,5 +24,5 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return authenticated ? <>{children}</> : null;
+  return session ? <>{children}</> : null;
 }

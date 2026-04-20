@@ -4,17 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Sprout, Globe, LogOut, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import logo from "@/assets/logo.png";
-import type { Session } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
+  const { session, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
   const [showScrollLeft, setShowScrollLeft] = useState(false);
   const [showScrollRight, setShowScrollRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -40,12 +39,6 @@ export default function Navbar() {
   ];
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => setSession(s));
-    supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s));
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const check = () => {
@@ -58,7 +51,7 @@ export default function Navbar() {
     return () => { el.removeEventListener("scroll", check); window.removeEventListener("resize", check); };
   }, []);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/"); };
+  const handleLogout = async () => { await signOut(); navigate("/"); };
   const scroll = (dir: "left" | "right") => scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language) || SUPPORTED_LANGUAGES[0];
 
