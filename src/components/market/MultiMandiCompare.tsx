@@ -34,11 +34,24 @@ interface Row { crop: string; mandi: string; price: number; trend: "up" | "down"
 
 export default function MultiMandiCompare() {
   const { ctx } = usePersonalization();
-  const state = ctx?.location.state || "Jharkhand";
-  const stateMandis = STATE_MANDIS[state] || STATE_MANDIS["Jharkhand"];
+  const state = ctx?.location.state || "";
+  const district = ctx?.location.district && ctx.location.district !== "your district" ? ctx.location.district : "";
+
+  // Build mandis: nearest (district-derived) first, then state mandis, then nearby states as fallback
+  const stateMandis = state && STATE_MANDIS[state] ? STATE_MANDIS[state] : [];
+  const districtMandi = district ? `${district} Mandi` : "";
+  const nearbyMandis = !state
+    ? Object.values(STATE_MANDIS).flat().slice(0, 6)
+    : [];
+  const allMandis = Array.from(new Set([
+    ...(districtMandi ? [districtMandi] : []),
+    ...stateMandis,
+    ...nearbyMandis,
+  ]));
+  const stateLabel = state || "your region";
 
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
-  const [selectedMandis, setSelectedMandis] = useState<string[]>(stateMandis.slice(0, 3));
+  const [selectedMandis, setSelectedMandis] = useState<string[]>(allMandis.slice(0, 3));
   const [rows, setRows] = useState<Row[]>([]);
   const [bestDeal, setBestDeal] = useState<{ crop: string; mandi: string; reason: string } | null>(null);
   const [advice, setAdvice] = useState("");
@@ -54,8 +67,8 @@ export default function MultiMandiCompare() {
     } else {
       setSelectedCrops(["Rice", "Wheat"]);
     }
-    setSelectedMandis(stateMandis.slice(0, 3));
-  }, [ctx?.location.state, ctx?.crops.current]);
+    setSelectedMandis(allMandis.slice(0, 3));
+  }, [ctx?.location.state, ctx?.location.district, ctx?.crops.current]);
 
   const toggle = (arr: string[], setArr: (v: string[]) => void, item: string) => {
     setArr(arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]);
@@ -106,7 +119,7 @@ export default function MultiMandiCompare() {
           <Sparkles className="h-5 w-5 text-primary" /> Multi-Mandi Compare
         </h3>
         <span className="krishi-badge bg-primary/10 text-primary text-[10px]">
-          <MapPin className="h-3 w-3" /> {state}
+          <MapPin className="h-3 w-3" /> {district ? `${district}, ${stateLabel}` : stateLabel}
         </span>
       </div>
 
@@ -126,9 +139,11 @@ export default function MultiMandiCompare() {
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground mb-1.5 font-medium">Mandis in {state}</div>
+          <div className="text-xs text-muted-foreground mb-1.5 font-medium">
+            Mandis near {stateLabel} {districtMandi && <span className="text-primary">• nearest first</span>}
+          </div>
           <div className="flex gap-1.5 flex-wrap">
-            {stateMandis.map(m => (
+            {allMandis.map(m => (
               <button
                 key={m}
                 onClick={() => toggle(selectedMandis, setSelectedMandis, m)}
