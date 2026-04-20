@@ -13,6 +13,8 @@ import FarmHealthScore from "@/components/dashboard/FarmHealthScore";
 import SeasonalAlertBanner from "@/components/dashboard/SeasonalAlertBanner";
 import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
 import TodayActionCard from "@/components/dashboard/TodayActionCard";
+import CropSuitabilityWarning from "@/components/dashboard/CropSuitabilityWarning";
+import FarmPulseTicker from "@/components/dashboard/FarmPulseTicker";
 import { motion } from "framer-motion";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
@@ -58,7 +60,11 @@ export default function Dashboard() {
             </p>
           </motion.div>
 
+          <FarmPulseTicker />
+
           <ProfileCompletionBanner />
+
+          <CropSuitabilityWarning />
 
           <TodayActionCard />
 

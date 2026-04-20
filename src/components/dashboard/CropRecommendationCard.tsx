@@ -61,18 +61,26 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
       if (!resp.ok) throw new Error("Failed to get recommendations");
 
       const data = await resp.json();
-      const content = data.result || "";
+      const content: string = data.result || data.error || "";
+      if (data.error) throw new Error(data.error);
 
-      try {
-        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-        const parsed = JSON.parse(jsonMatch[1] || content);
-        if (parsed.recommendations) {
-          setCrops(parsed.recommendations);
-          setAiAdvice(parsed.advice || "");
-          toast.success("AI recommendations updated! 🌾");
-        }
-      } catch {
-        setAiAdvice(content);
+      // Tolerant parser: try fenced JSON, raw JSON, then first {...} block
+      const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+      let parsed: any = null;
+      const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced) parsed = tryParse(fenced[1].trim());
+      if (!parsed) parsed = tryParse(content.trim());
+      if (!parsed) {
+        const block = content.match(/\{[\s\S]*\}/);
+        if (block) parsed = tryParse(block[0]);
+      }
+
+      if (parsed?.recommendations?.length) {
+        setCrops(parsed.recommendations);
+        setAiAdvice(parsed.advice || "");
+        toast.success("AI recommendations updated! 🌾");
+      } else {
+        setAiAdvice(content || "AI returned no structured data — try again.");
         toast.success("AI analysis complete!");
       }
     } catch (e: any) {
