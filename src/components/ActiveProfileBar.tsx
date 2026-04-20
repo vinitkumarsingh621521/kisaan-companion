@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown, Plus, MapPin, Trash2, Edit3, Sparkles, User as UserIcon } from "lucide-react";
+import { ChevronDown, Plus, MapPin, Trash2, Edit3, Sparkles, User as UserIcon, EyeOff, Eye } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
