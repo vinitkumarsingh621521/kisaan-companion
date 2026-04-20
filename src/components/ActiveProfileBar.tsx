@@ -50,6 +50,20 @@ export default function ActiveProfileBar() {
     toast.success("Profile deleted");
   };
 
+  if (hidden) {
+    return (
+      <div className="sticky top-16 z-40 flex justify-end container mx-auto px-4 pt-1 pointer-events-none">
+        <button
+          onClick={() => setHidden(false)}
+          className="pointer-events-auto bg-card/90 backdrop-blur border border-border/60 shadow-sm rounded-full px-2.5 py-1 text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1 transition"
+          title="Show profile bar"
+        >
+          <Eye className="h-3 w-3" /> Profile bar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
@@ -125,6 +139,13 @@ export default function ActiveProfileBar() {
               <UserIcon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Profile</span>
             </Button>
           </Link>
+          <button
+            onClick={() => setHidden(true)}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition"
+            title="Hide profile bar"
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
