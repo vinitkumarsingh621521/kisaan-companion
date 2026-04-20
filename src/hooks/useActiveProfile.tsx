@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface FarmerProfile {
   id: string;
@@ -42,14 +43,14 @@ const TRACKED_FIELDS = [
 ];
 
 export function ActiveProfileProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
   const [profiles, setProfiles] = useState<FarmerProfile[]>([]);
   const [active, setActive] = useState<FarmerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setProfiles([]); setActive(null); setLoading(false); return; }
+    setLoading(true);
 
     const { data: profs } = await supabase
       .from("farmer_profiles")
@@ -59,7 +60,6 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
 
     const list = (profs || []) as FarmerProfile[];
 
-    // Auto-create one if none
     if (list.length === 0) {
       const { data: created } = await supabase
         .from("farmer_profiles")
@@ -81,16 +81,15 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
     setProfiles(list);
     setActive(activeP);
     setLoading(false);
-  }, []);
+  }, [user]);
 
+  // Refetch only when the actual user identity changes — NOT on token refresh.
   useEffect(() => {
+    if (authLoading) return;
     refresh();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => refresh());
-    return () => subscription.unsubscribe();
-  }, [refresh]);
+  }, [user?.id, authLoading, refresh]);
 
   const switchProfile = async (id: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from("user_settings").upsert({ user_id: user.id, active_profile_id: id }, { onConflict: "user_id" });
     const p = profiles.find(x => x.id === id) || null;
@@ -98,7 +97,6 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
   };
 
   const createProfile = async (full_name: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     const { data, error } = await supabase
       .from("farmer_profiles")

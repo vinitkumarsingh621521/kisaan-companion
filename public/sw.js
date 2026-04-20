@@ -1,7 +1,8 @@
 /* KrishiMitra Service Worker — minimal offline cache */
-const VERSION = "krishimitra-v1";
+const VERSION = "krishimitra-v2";
 const CORE = ["/", "/manifest.webmanifest", "/placeholder.svg"];
 const RUNTIME = `${VERSION}-runtime`;
+const MAX_CACHE_BYTES = 2 * 1024 * 1024; // 2 MB cap per response
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -24,8 +25,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
-  // Never cache Supabase auth/realtime; let them fail-fast online.
+  // Never cache Supabase auth/realtime
   if (url.hostname.includes("supabase.co") && url.pathname.includes("/auth/")) return;
+
+  // Never cache the giant notebook or anything in /notebooks/
+  if (url.pathname.endsWith(".ipynb") || url.pathname.startsWith("/notebooks/")) return;
 
   // Navigation: network-first, fallback to cached shell
   if (req.mode === "navigate") {
@@ -35,13 +39,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static + API: stale-while-revalidate
+  // Static + API: stale-while-revalidate, but cap by content-length to avoid bloating quota
   event.respondWith(
     caches.open(RUNTIME).then(async (cache) => {
       const cached = await cache.match(req);
       const network = fetch(req).then((res) => {
         if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
-          cache.put(req, res.clone()).catch(() => {});
+          const len = parseInt(res.headers.get("content-length") || "0", 10);
+          if (!len || len <= MAX_CACHE_BYTES) {
+            cache.put(req, res.clone()).catch(() => {});
+          }
         }
         return res;
       }).catch(() => cached);
@@ -50,7 +57,6 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Allow page to broadcast skipWaiting
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
