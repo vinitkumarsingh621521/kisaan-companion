@@ -16,7 +16,12 @@ export default function ActiveProfileBar() {
   const [openAdd, setOpenAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [hidden, setHidden] = useState(() => localStorage.getItem("km.profileBar.hidden") === "1");
   const location = useLocation();
+
+  useEffect(() => {
+    localStorage.setItem("km.profileBar.hidden", hidden ? "1" : "0");
+  }, [hidden]);
 
   // Hide on auth and home pages
   if (location.pathname === "/auth" || location.pathname === "/") return null;
