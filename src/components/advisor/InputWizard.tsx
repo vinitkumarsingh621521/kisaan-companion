@@ -31,13 +31,30 @@ const SECTIONS: { id: SectionId; label: string; icon: any; accent: string }[] = 
 ];
 
 export default function InputWizard({ initial, onSubmit, loading }: Props) {
-  const [v, setV] = useState<AdvisorInput>(initial);
+  const asArr = (x: any): string[] => {
+    if (Array.isArray(x)) return x.map(String);
+    if (typeof x === "string" && x.trim()) return x.split(",").map((s) => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const [v, setV] = useState<AdvisorInput>(() => ({
+    ...initial,
+    current_crops: asArr(initial.current_crops),
+    previous_crops: asArr(initial.previous_crops),
+    machinery_owned: asArr(initial.machinery_owned),
+  }));
   const [open, setOpen] = useState<Record<SectionId, boolean>>({ loc: true, soil: false, crops: false, inputs: false, econ: false, goals: false });
 
   useEffect(() => {
     try {
       const draft = localStorage.getItem(DRAFT_KEY);
-      if (draft) setV((prev) => ({ ...prev, ...JSON.parse(draft) }));
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        parsed.current_crops = asArr(parsed.current_crops);
+        parsed.previous_crops = asArr(parsed.previous_crops);
+        parsed.machinery_owned = asArr(parsed.machinery_owned);
+        setV((prev) => ({ ...prev, ...parsed }));
+      }
     } catch {}
   }, []);
 
@@ -133,8 +150,8 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
                 )}
                 {id === "crops" && (
                   <>
-                    <Field label="Current crops (comma-separated)" full><Input value={(v.current_crops || []).join(", ")} onChange={(e) => set("current_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
-                    <Field label="Previous crops" full><Input value={(v.previous_crops || []).join(", ")} onChange={(e) => set("previous_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <Field label="Current crops (comma-separated)" full><Input value={asArr(v.current_crops).join(", ")} onChange={(e) => set("current_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <Field label="Previous crops" full><Input value={asArr(v.previous_crops).join(", ")} onChange={(e) => set("previous_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
                     <Field label="Intended crop"><Input value={v.intended_crop || ""} onChange={(e) => set("intended_crop", e.target.value)} /></Field>
                     <Field label="Sowing date"><Input type="date" value={v.sowing_date || ""} onChange={(e) => set("sowing_date", e.target.value)} /></Field>
                     <Field label="Expected harvest"><Input type="date" value={v.expected_harvest || ""} onChange={(e) => set("expected_harvest", e.target.value)} /></Field>
@@ -154,7 +171,7 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
                       <SelectBox value={v.farming_style} onChange={(x) => set("farming_style", x as any)} options={["organic", "chemical", "mixed"]} />
                     </Field>
                     <SwitchField label="Mulching" checked={!!v.mulching} onChange={(x) => set("mulching", x)} />
-                    <Field label="Machinery owned" full><Input placeholder="tractor, rotavator…" value={(v.machinery_owned || []).join(", ")} onChange={(e) => set("machinery_owned", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <Field label="Machinery owned" full><Input placeholder="tractor, rotavator…" value={asArr(v.machinery_owned).join(", ")} onChange={(e) => set("machinery_owned", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
                     <Field label="Labour availability">
                       <SelectBox value={v.labour_availability} onChange={(x) => set("labour_availability", x as any)} options={["scarce", "moderate", "abundant"]} />
                     </Field>
