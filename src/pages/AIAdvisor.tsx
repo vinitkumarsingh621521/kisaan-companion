@@ -24,7 +24,16 @@ export default function AIAdvisor() {
 
   // Prefill from profile + personalization
   const initial: AdvisorInput = useMemo(() => {
-    const d = active?.farmer_details || {};
+    const d: any = active?.farmer_details || {};
+    const toArr = (x: any): string[] => {
+      if (Array.isArray(x)) return x.map(String);
+      if (typeof x === "string" && x.trim()) return x.split(",").map((s) => s.trim()).filter(Boolean);
+      return [];
+    };
+    const toNum = (x: any) => {
+      const n = typeof x === "number" ? x : parseFloat(x);
+      return Number.isFinite(n) ? n : undefined;
+    };
     return {
       state: d.state || ctx?.location?.state,
       district: d.district || ctx?.location?.district,
@@ -32,20 +41,20 @@ export default function AIAdvisor() {
       lat: ctx?.location?.lat,
       lon: ctx?.location?.lon,
       soil_type: d.soil_type,
-      soil_ph: d.soil_ph ? parseFloat(d.soil_ph) : undefined,
-      nitrogen: d.nitrogen ? parseFloat(d.nitrogen) : undefined,
-      phosphorus: d.phosphorus ? parseFloat(d.phosphorus) : undefined,
-      potassium: d.potassium ? parseFloat(d.potassium) : undefined,
-      organic_carbon_pct: d.organic_carbon ? parseFloat(d.organic_carbon) : undefined,
-      land_size_acres: d.total_land ? parseFloat(d.total_land) : undefined,
+      soil_ph: toNum(d.soil_ph),
+      nitrogen: toNum(d.nitrogen),
+      phosphorus: toNum(d.phosphorus),
+      potassium: toNum(d.potassium),
+      organic_carbon_pct: toNum(d.organic_carbon),
+      land_size_acres: toNum(d.total_land),
       irrigation_source: d.irrigation_type,
-      current_crops: d.current_crops,
-      previous_crops: d.previous_crops,
-      budget_per_acre: d.budget_per_acre ? parseFloat(d.budget_per_acre) : undefined,
-      mandi_distance_km: d.nearest_mandi_km ? parseFloat(d.nearest_mandi_km) : undefined,
+      current_crops: toArr(d.current_crops),
+      previous_crops: toArr(d.previous_crops),
+      budget_per_acre: toNum(d.budget_per_acre),
+      mandi_distance_km: toNum(d.nearest_mandi_km),
       risk_appetite: d.risk_tolerance,
       market_preference: d.market_preference,
-      tech_comfort: d.tech_comfort ? parseInt(d.tech_comfort) : undefined,
+      tech_comfort: toNum(d.tech_comfort),
     } as AdvisorInput;
   }, [active, ctx]);
 
