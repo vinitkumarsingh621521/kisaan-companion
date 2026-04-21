@@ -21,8 +21,9 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const navItems = [
-    { label: t("nav.home"), path: "/" },
+    { label: t("nav.home"), path: "/", badge: undefined as string | undefined },
     { label: t("nav.dashboard"), path: "/dashboard" },
+    { label: t("nav.aiAdvisor", "AI Advisor"), path: "/ai-advisor", badge: "NEW" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
@@ -78,11 +79,16 @@ export default function Navbar() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`relative px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors snap-start flex-shrink-0 ${
+                  className={`relative px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors snap-start flex-shrink-0 flex items-center gap-1.5 ${
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
                   {item.label}
+                  {item.badge && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-primary to-primary/70 text-primary-foreground">
+                      {item.badge}
+                    </span>
+                  )}
                   {active && (
                     <motion.div
                       layoutId="navUnderline"
