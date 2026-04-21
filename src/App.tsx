@@ -22,6 +22,7 @@ import { AuthProvider } from "./hooks/useAuth";
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const AIAdvisor = lazy(() => import("./pages/AIAdvisor"));
 const CropAdvisor = lazy(() => import("./pages/CropAdvisor"));
 const MarketPage = lazy(() => import("./pages/MarketPage"));
 const SchemesPage = lazy(() => import("./pages/SchemesPage"));
@@ -64,6 +65,7 @@ function AnimatedRoutes() {
           <Route path="/" element={<PageTransition><Index /></PageTransition>} />
           <Route path="/auth" element={<PageTransition><AuthPage /></PageTransition>} />
           <Route path="/dashboard" element={<PageTransition><AuthGuard>{lazyRoute(<Dashboard />)}</AuthGuard></PageTransition>} />
+          <Route path="/ai-advisor" element={<PageTransition><AuthGuard>{lazyRoute(<AIAdvisor />)}</AuthGuard></PageTransition>} />
           <Route path="/crop-advisor" element={<PageTransition><AuthGuard>{lazyRoute(<CropAdvisor />)}</AuthGuard></PageTransition>} />
           <Route path="/market" element={<PageTransition><AuthGuard>{lazyRoute(<MarketPage />)}</AuthGuard></PageTransition>} />
           <Route path="/schemes" element={<PageTransition><AuthGuard>{lazyRoute(<SchemesPage />)}</AuthGuard></PageTransition>} />

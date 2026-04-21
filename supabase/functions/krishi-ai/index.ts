@@ -113,10 +113,54 @@ serve(async (req) => {
     const isStreaming = action === "chat";
     const model = action === "disease" ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
 
+    // Tool-calling schema for crop_recommendation to guarantee structured output
+    const cropRecTool = {
+      type: "function",
+      function: {
+        name: "return_crop_recommendations",
+        description: "Return top crop recommendations tuned to the farmer profile.",
+        parameters: {
+          type: "object",
+          properties: {
+            recommendations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  emoji: { type: "string" },
+                  yield: { type: "string" },
+                  profit: { type: "string" },
+                  water: { type: "string", enum: ["Very Low", "Low", "Medium", "High"] },
+                  season: { type: "string" },
+                  score: { type: "number" },
+                  sustainability: { type: "number" },
+                  reason: { type: "string" },
+                },
+                required: ["name", "emoji", "yield", "profit", "water", "season", "score", "sustainability", "reason"],
+                additionalProperties: false,
+              },
+            },
+            season: { type: "string" },
+            advice: { type: "string" },
+          },
+          required: ["recommendations", "season", "advice"],
+          additionalProperties: false,
+        },
+      },
+    };
+
+    const body: any = { model, messages: apiMessages, stream: isStreaming };
+    if (action === "crop_recommendation") {
+      body.tools = [cropRecTool];
+      body.tool_choice = { type: "function", function: { name: "return_crop_recommendations" } };
+      body.stream = false;
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages: apiMessages, stream: isStreaming }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -132,6 +176,11 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    // Prefer tool-call arguments when present (structured output)
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      return new Response(JSON.stringify({ result: toolCall.function.arguments, structured: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const content = data.choices?.[0]?.message?.content || "";
     return new Response(JSON.stringify({ result: content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

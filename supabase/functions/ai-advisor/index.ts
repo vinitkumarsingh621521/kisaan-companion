@@ -1,0 +1,142 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SYSTEM = `You are KrishiMitra AI Advisor — the most comprehensive agri-consultant for Indian farmers. You receive a deep farmer profile (location, soil, crops, inputs, finance, goals) and return 25 specific, actionable insights in STRUCTURED output via the provided tool. No prose. Use ₹ for money, t/ha or q/acre for yield, kg/acre for fertilizer. Reference the farmer's own numbers (district, soil pH, budget) inside "reason" fields. Be honest about red flags.`;
+
+const INSIGHT_TOOL = {
+  type: "function",
+  function: {
+    name: "return_full_advisory",
+    description: "Return 25 comprehensive farm insights.",
+    parameters: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["ok", "partial"] },
+        summary: { type: "string", description: "2-3 sentence personalized headline" },
+        crop_suitability: {
+          type: "object",
+          properties: {
+            chosen_crop: { type: "string" },
+            score: { type: "number", description: "0-100" },
+            verdict: { type: "string", enum: ["excellent", "good", "marginal", "poor"] },
+            reason: { type: "string" },
+          },
+          required: ["chosen_crop", "score", "verdict", "reason"],
+        },
+        alternative_crops: {
+          type: "array",
+          description: "Top 5 alternatives",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              emoji: { type: "string" },
+              score: { type: "number" },
+              profit_per_acre: { type: "string" },
+              reason: { type: "string" },
+            },
+            required: ["name", "emoji", "score", "profit_per_acre", "reason"],
+          },
+        },
+        climate_risk: {
+          type: "object",
+          properties: {
+            overall: { type: "string", enum: ["low", "medium", "high"] },
+            heat: { type: "string" },
+            frost: { type: "string" },
+            flood: { type: "string" },
+            drought: { type: "string" },
+          },
+          required: ["overall", "heat", "frost", "flood", "drought"],
+        },
+        soil_plan: { type: "object", properties: { action: { type: "string" }, dosage: { type: "string" }, why: { type: "string" } }, required: ["action", "dosage", "why"] },
+        irrigation_plan: { type: "object", properties: { method: { type: "string" }, schedule: { type: "string" }, water_saving_pct: { type: "number" } }, required: ["method", "schedule", "water_saving_pct"] },
+        fertilizer_plan: { type: "object", properties: { npk_kg_per_acre: { type: "string" }, timing: { type: "string" }, brands: { type: "array", items: { type: "string" } }, organic_alt: { type: "string" } }, required: ["npk_kg_per_acre", "timing", "brands", "organic_alt"] },
+        pesticide_plan: { type: "object", properties: { needed: { type: "boolean" }, products: { type: "array", items: { type: "string" } }, ipm_alternative: { type: "string" } }, required: ["needed", "products", "ipm_alternative"] },
+        cost_breakdown: {
+          type: "object",
+          properties: {
+            seed: { type: "string" },
+            labour: { type: "string" },
+            machinery: { type: "string" },
+            transport: { type: "string" },
+            total_per_acre: { type: "string" },
+            total: { type: "string" },
+          },
+          required: ["seed", "labour", "machinery", "transport", "total_per_acre", "total"],
+        },
+        yield_forecast: { type: "object", properties: { low: { type: "string" }, expected: { type: "string" }, high: { type: "string" } }, required: ["low", "expected", "high"] },
+        revenue_forecast: { type: "object", properties: { gross: { type: "string" }, net_profit: { type: "string" }, roi_pct: { type: "number" }, break_even_per_quintal: { type: "string" } }, required: ["gross", "net_profit", "roi_pct", "break_even_per_quintal"] },
+        sowing_window: { type: "string" },
+        harvest_window: { type: "string" },
+        market_strategy: { type: "object", properties: { channel: { type: "string" }, best_month: { type: "string" }, reason: { type: "string" } }, required: ["channel", "best_month", "reason"] },
+        schemes: { type: "array", items: { type: "object", properties: { name: { type: "string" }, benefit: { type: "string" }, fit_reason: { type: "string" } }, required: ["name", "benefit", "fit_reason"] } },
+        insurance: { type: "object", properties: { recommended: { type: "string" }, sum_insured: { type: "string" }, premium: { type: "string" } }, required: ["recommended", "sum_insured", "premium"] },
+        sustainability: { type: "object", properties: { score: { type: "number" }, improvement: { type: "string" } }, required: ["score", "improvement"] },
+        water_footprint: { type: "string" },
+        tips: { type: "array", description: "5 ranked actionable tips", items: { type: "string" } },
+        red_flags: { type: "array", items: { type: "string" } },
+      },
+      required: [
+        "status", "summary", "crop_suitability", "alternative_crops", "climate_risk", "soil_plan",
+        "irrigation_plan", "fertilizer_plan", "pesticide_plan", "cost_breakdown", "yield_forecast",
+        "revenue_forecast", "sowing_window", "harvest_window", "market_strategy", "schemes",
+        "insurance", "sustainability", "water_footprint", "tips", "red_flags",
+      ],
+      additionalProperties: false,
+    },
+  },
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { inputs, profileContext } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const callModel = async (model: string) => {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: SYSTEM },
+            { role: "system", content: `FARMER CONTEXT: ${JSON.stringify(profileContext || {})}` },
+            { role: "user", content: `Generate the full 25-field advisory for this farmer. USER INPUTS: ${JSON.stringify(inputs || {})}` },
+          ],
+          tools: [INSIGHT_TOOL],
+          tool_choice: { type: "function", function: { name: "return_full_advisory" } },
+        }),
+      });
+      return resp;
+    };
+
+    let resp = await callModel("google/gemini-2.5-pro");
+    if (!resp.ok && resp.status !== 429 && resp.status !== 402) {
+      resp = await callModel("openai/gpt-5-mini");
+    }
+
+    if (!resp.ok) {
+      if (resp.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (resp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Please top up." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const t = await resp.text();
+      console.error("ai-advisor gateway error:", resp.status, t);
+      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const data = await resp.json();
+    const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    if (!args) throw new Error("No structured output returned");
+    return new Response(args, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (e) {
+    console.error("ai-advisor error:", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+});
