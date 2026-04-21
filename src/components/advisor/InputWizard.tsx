@@ -150,8 +150,8 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
                 )}
                 {id === "crops" && (
                   <>
-                    <Field label="Current crops (comma-separated)" full><Input value={(v.current_crops || []).join(", ")} onChange={(e) => set("current_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
-                    <Field label="Previous crops" full><Input value={(v.previous_crops || []).join(", ")} onChange={(e) => set("previous_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <Field label="Current crops (comma-separated)" full><Input value={asArr(v.current_crops).join(", ")} onChange={(e) => set("current_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <Field label="Previous crops" full><Input value={asArr(v.previous_crops).join(", ")} onChange={(e) => set("previous_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
                     <Field label="Intended crop"><Input value={v.intended_crop || ""} onChange={(e) => set("intended_crop", e.target.value)} /></Field>
                     <Field label="Sowing date"><Input type="date" value={v.sowing_date || ""} onChange={(e) => set("sowing_date", e.target.value)} /></Field>
                     <Field label="Expected harvest"><Input type="date" value={v.expected_harvest || ""} onChange={(e) => set("expected_harvest", e.target.value)} /></Field>
@@ -171,7 +171,7 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
                       <SelectBox value={v.farming_style} onChange={(x) => set("farming_style", x as any)} options={["organic", "chemical", "mixed"]} />
                     </Field>
                     <SwitchField label="Mulching" checked={!!v.mulching} onChange={(x) => set("mulching", x)} />
-                    <Field label="Machinery owned" full><Input placeholder="tractor, rotavator…" value={(v.machinery_owned || []).join(", ")} onChange={(e) => set("machinery_owned", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <Field label="Machinery owned" full><Input placeholder="tractor, rotavator…" value={asArr(v.machinery_owned).join(", ")} onChange={(e) => set("machinery_owned", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
                     <Field label="Labour availability">
                       <SelectBox value={v.labour_availability} onChange={(x) => set("labour_availability", x as any)} options={["scarce", "moderate", "abundant"]} />
                     </Field>
