@@ -31,13 +31,30 @@ const SECTIONS: { id: SectionId; label: string; icon: any; accent: string }[] = 
 ];
 
 export default function InputWizard({ initial, onSubmit, loading }: Props) {
-  const [v, setV] = useState<AdvisorInput>(initial);
+  const asArr = (x: any): string[] => {
+    if (Array.isArray(x)) return x.map(String);
+    if (typeof x === "string" && x.trim()) return x.split(",").map((s) => s.trim()).filter(Boolean);
+    return [];
+  };
+
+  const [v, setV] = useState<AdvisorInput>(() => ({
+    ...initial,
+    current_crops: asArr(initial.current_crops),
+    previous_crops: asArr(initial.previous_crops),
+    machinery_owned: asArr(initial.machinery_owned),
+  }));
   const [open, setOpen] = useState<Record<SectionId, boolean>>({ loc: true, soil: false, crops: false, inputs: false, econ: false, goals: false });
 
   useEffect(() => {
     try {
       const draft = localStorage.getItem(DRAFT_KEY);
-      if (draft) setV((prev) => ({ ...prev, ...JSON.parse(draft) }));
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        parsed.current_crops = asArr(parsed.current_crops);
+        parsed.previous_crops = asArr(parsed.previous_crops);
+        parsed.machinery_owned = asArr(parsed.machinery_owned);
+        setV((prev) => ({ ...prev, ...parsed }));
+      }
     } catch {}
   }, []);
 
