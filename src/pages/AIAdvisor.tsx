@@ -147,12 +147,27 @@ export default function AIAdvisor() {
               </div>
             ) : result ? (
               <>
-                <div className="flex justify-end mb-2">
+                <div className="flex justify-end mb-2 gap-2">
+                  <PdfExportButton
+                    targetId="advisor-report"
+                    result={result}
+                    farmer={{
+                      name: active?.full_name,
+                      location:
+                        active?.farm_location ||
+                        [active?.farmer_details?.district, active?.farmer_details?.state]
+                          .filter(Boolean)
+                          .join(", "),
+                      season: ctx?.climate?.current_season,
+                    }}
+                  />
                   <Button variant="outline" size="sm" onClick={() => setResult(null)} className="gap-1">
                     <RefreshCw className="h-3 w-3" /> New analysis
                   </Button>
                 </div>
-                <InsightGrid r={result} />
+                <div id="advisor-report" className="bg-background p-2 rounded-2xl">
+                  <InsightGrid r={result} />
+                </div>
               </>
             ) : (
               <div className="glass-card p-10 text-center">
