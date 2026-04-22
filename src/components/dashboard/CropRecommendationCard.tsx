@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { toArray } from "@/lib/utils";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -37,6 +38,8 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
   const getAIRecommendations = async () => {
     setIsLoadingAI(true);
     try {
+      const fd: any = active?.farmer_details || {};
+      const prevCrops = toArray(fd.current_crops);
       const resp = await fetch(AI_URL, {
         method: "POST",
         headers: {
@@ -48,20 +51,25 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
           profileContext: ctx,
           profile: active,
           farmData: {
-            location: profile?.farm_location || active?.farmer_details?.state || "Not specified",
-            soilType: profile?.soil_type || active?.farmer_details?.soil_type || "Not specified",
-            farmSize: profile?.farm_size || active?.farmer_details?.farm_size_acres || "Not specified",
+            location: profile?.farm_location || fd.state || "Not specified",
+            soilType: profile?.soil_type || fd.soil_type || "Not specified",
+            farmSize: profile?.farm_size || fd.farm_size_acres || "Not specified",
             season: ctx?.climate?.current_season || "Kharif",
-            previousCrops: (active?.farmer_details?.current_crops || []).join(", ") || "Rice, Maize",
-            waterAvailability: active?.farmer_details?.water_availability || "Medium",
+            previousCrops: prevCrops.length ? prevCrops.join(", ") : "Rice, Maize",
+            waterAvailability: fd.water_availability || "Medium",
           },
         }),
       });
 
       if (!resp.ok) {
-        if (resp.status === 429) throw new Error("AI is busy — please try again in a few seconds.");
+        let msg = `AI failed (${resp.status})`;
+        try {
+          const j = await resp.json();
+          if (j?.error) msg = j.error;
+        } catch {}
+        if (resp.status === 429) throw new Error("AI is busy — please try again in 30 seconds.");
         if (resp.status === 402) throw new Error("AI credits exhausted. Please top up in Settings → Usage.");
-        throw new Error("Failed to get recommendations");
+        throw new Error(msg);
       }
 
       const data = await resp.json();
