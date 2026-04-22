@@ -142,13 +142,26 @@ export default function Navbar() {
               <ChevronLeft className="h-4 w-4" />
             </button>
           )}
-          <div ref={scrollRef} className="flex items-center gap-0.5 overflow-x-auto scroll-smooth snap-x scrollbar-hide px-6" style={{ scrollbarWidth: "none" }}>
+          {/* Edge fade overlays — visual hint that more tabs exist */}
+          <div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-[5] bg-gradient-to-r from-card to-transparent transition-opacity ${showScrollLeft ? "opacity-100" : "opacity-0"}`} />
+          <div className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-[5] bg-gradient-to-l from-card to-transparent transition-opacity ${showScrollRight ? "opacity-100" : "opacity-0"}`} />
+          {showScrollLeft && (
+            <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-card border border-border shadow-sm hover:bg-muted">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          <div
+            ref={scrollRef}
+            className="flex items-center gap-0.5 overflow-x-auto scroll-smooth snap-x scrollbar-hide px-6 select-none"
+            style={{ scrollbarWidth: "none" }}
+          >
             {navItems.map((item) => {
               const active = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  data-active={active}
                   className={`relative px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors snap-start flex-shrink-0 flex items-center gap-1.5 ${
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
