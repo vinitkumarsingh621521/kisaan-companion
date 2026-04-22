@@ -157,18 +157,44 @@ serve(async (req) => {
       body.stream = false;
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const callLovable = () =>
+      fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+    let response = await callLovable();
+
+    // Groq fallback for non-streaming, non-image actions when Lovable AI is rate-limited or 5xx
+    const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
+    const isRecoverable = !response.ok && (response.status === 429 || response.status >= 500);
+    if (isRecoverable && !isStreaming && action !== "disease" && GROQ_KEY) {
+      console.warn(`[krishi-ai] Lovable AI ${response.status} — falling back to Groq`);
+      const groqBody: any = {
+        model: "llama-3.3-70b-versatile",
+        messages: apiMessages,
+        stream: false,
+      };
+      if (action === "crop_recommendation") {
+        groqBody.tools = [cropRecTool];
+        groqBody.tool_choice = { type: "function", function: { name: "return_crop_recommendations" } };
+      } else {
+        groqBody.response_format = { type: "json_object" };
+      }
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(groqBody),
+      });
+    }
 
     if (!response.ok) {
       if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again in a few seconds." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
-      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: `AI service unavailable (${response.status})` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (isStreaming) {

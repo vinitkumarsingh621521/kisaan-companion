@@ -98,29 +98,48 @@ serve(async (req) => {
   try {
     const { inputs, profileContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const callModel = async (model: string) => {
-      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const messages = [
+      { role: "system", content: SYSTEM },
+      { role: "system", content: `FARMER CONTEXT: ${JSON.stringify(profileContext || {})}` },
+      { role: "user", content: `Generate the full 25-field advisory for this farmer. USER INPUTS: ${JSON.stringify(inputs || {})}` },
+    ];
+
+    const callLovable = (model: string) =>
+      fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model,
-          messages: [
-            { role: "system", content: SYSTEM },
-            { role: "system", content: `FARMER CONTEXT: ${JSON.stringify(profileContext || {})}` },
-            { role: "user", content: `Generate the full 25-field advisory for this farmer. USER INPUTS: ${JSON.stringify(inputs || {})}` },
-          ],
+          messages,
           tools: [INSIGHT_TOOL],
           tool_choice: { type: "function", function: { name: "return_full_advisory" } },
         }),
       });
-      return resp;
-    };
 
-    let resp = await callModel("google/gemini-2.5-pro");
-    if (!resp.ok && resp.status !== 429 && resp.status !== 402) {
-      resp = await callModel("openai/gpt-5-mini");
+    const callGroq = () =>
+      fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages,
+          tools: [INSIGHT_TOOL],
+          tool_choice: { type: "function", function: { name: "return_full_advisory" } },
+        }),
+      });
+
+    // Try Lovable AI primary → secondary, then Groq fallback
+    let resp = await callLovable("google/gemini-2.5-pro");
+    if (!resp.ok && resp.status !== 402) {
+      console.warn(`[ai-advisor] gemini-2.5-pro ${resp.status} — trying gpt-5-mini`);
+      resp = await callLovable("openai/gpt-5-mini");
+    }
+    if (!resp.ok && resp.status !== 402 && GROQ_KEY) {
+      console.warn(`[ai-advisor] Lovable AI ${resp.status} — falling back to Groq`);
+      resp = await callGroq();
     }
 
     if (!resp.ok) {
@@ -128,12 +147,21 @@ serve(async (req) => {
       if (resp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Please top up." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const t = await resp.text();
       console.error("ai-advisor gateway error:", resp.status, t);
-      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: `AI service unavailable (${resp.status})` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const data = await resp.json();
     const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!args) throw new Error("No structured output returned");
+    if (!args) {
+      // Last resort: try to use raw content if it's already JSON
+      const content = data.choices?.[0]?.message?.content || "";
+      try {
+        JSON.parse(content);
+        return new Response(content, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch {
+        throw new Error("No structured output returned");
+      }
+    }
     return new Response(args, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("ai-advisor error:", e);
