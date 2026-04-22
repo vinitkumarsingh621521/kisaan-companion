@@ -39,17 +39,87 @@ export default function Navbar() {
     { label: t("nav.team"), path: "/team" },
   ];
 
+  const updateScrollIndicators = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowScrollLeft(el.scrollLeft > 4);
+    setShowScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const check = () => {
-      setShowScrollLeft(el.scrollLeft > 4);
-      setShowScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    updateScrollIndicators();
+    el.addEventListener("scroll", updateScrollIndicators);
+    window.addEventListener("resize", updateScrollIndicators);
+    return () => {
+      el.removeEventListener("scroll", updateScrollIndicators);
+      window.removeEventListener("resize", updateScrollIndicators);
     };
-    check();
-    el.addEventListener("scroll", check);
-    window.addEventListener("resize", check);
-    return () => { el.removeEventListener("scroll", check); window.removeEventListener("resize", check); };
+  }, []);
+
+  // Auto-scroll active item into view when route changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLAnchorElement>("a[data-active='true']");
+    if (active) {
+      active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [location.pathname]);
+
+  // Drag-to-scroll with cursor + horizontal mouse wheel
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let isDown = false;
+    let startX = 0;
+    let startScroll = 0;
+    let moved = false;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDown = true;
+      moved = false;
+      startX = e.pageX - el.offsetLeft;
+      startScroll = el.scrollLeft;
+      el.style.cursor = "grabbing";
+    };
+    const onMouseLeave = () => { isDown = false; el.style.cursor = ""; };
+    const onMouseUp = () => { isDown = false; el.style.cursor = ""; };
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = x - startX;
+      if (Math.abs(walk) > 4) moved = true;
+      el.scrollLeft = startScroll - walk;
+    };
+    const onClickCapture = (e: MouseEvent) => {
+      if (moved) { e.preventDefault(); e.stopPropagation(); }
+    };
+    const onWheel = (e: WheelEvent) => {
+      // Translate vertical wheel into horizontal scroll
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener("mousedown", onMouseDown);
+    el.addEventListener("mouseleave", onMouseLeave);
+    el.addEventListener("mouseup", onMouseUp);
+    el.addEventListener("mousemove", onMouseMove);
+    el.addEventListener("click", onClickCapture, true);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.style.cursor = "grab";
+    return () => {
+      el.removeEventListener("mousedown", onMouseDown);
+      el.removeEventListener("mouseleave", onMouseLeave);
+      el.removeEventListener("mouseup", onMouseUp);
+      el.removeEventListener("mousemove", onMouseMove);
+      el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("wheel", onWheel);
+    };
   }, []);
 
   const handleLogout = async () => { await signOut(); navigate("/"); };
