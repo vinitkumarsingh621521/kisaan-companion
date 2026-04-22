@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InputWizard from "@/components/advisor/InputWizard";
 import InsightGrid from "@/components/advisor/InsightGrid";
+import PdfExportButton from "@/components/advisor/PdfExportButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
