@@ -39,17 +39,87 @@ export default function Navbar() {
     { label: t("nav.team"), path: "/team" },
   ];
 
+  const updateScrollIndicators = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowScrollLeft(el.scrollLeft > 4);
+    setShowScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const check = () => {
-      setShowScrollLeft(el.scrollLeft > 4);
-      setShowScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    updateScrollIndicators();
+    el.addEventListener("scroll", updateScrollIndicators);
+    window.addEventListener("resize", updateScrollIndicators);
+    return () => {
+      el.removeEventListener("scroll", updateScrollIndicators);
+      window.removeEventListener("resize", updateScrollIndicators);
     };
-    check();
-    el.addEventListener("scroll", check);
-    window.addEventListener("resize", check);
-    return () => { el.removeEventListener("scroll", check); window.removeEventListener("resize", check); };
+  }, []);
+
+  // Auto-scroll active item into view when route changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLAnchorElement>("a[data-active='true']");
+    if (active) {
+      active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [location.pathname]);
+
+  // Drag-to-scroll with cursor + horizontal mouse wheel
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let isDown = false;
+    let startX = 0;
+    let startScroll = 0;
+    let moved = false;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDown = true;
+      moved = false;
+      startX = e.pageX - el.offsetLeft;
+      startScroll = el.scrollLeft;
+      el.style.cursor = "grabbing";
+    };
+    const onMouseLeave = () => { isDown = false; el.style.cursor = ""; };
+    const onMouseUp = () => { isDown = false; el.style.cursor = ""; };
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = x - startX;
+      if (Math.abs(walk) > 4) moved = true;
+      el.scrollLeft = startScroll - walk;
+    };
+    const onClickCapture = (e: MouseEvent) => {
+      if (moved) { e.preventDefault(); e.stopPropagation(); }
+    };
+    const onWheel = (e: WheelEvent) => {
+      // Translate vertical wheel into horizontal scroll
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener("mousedown", onMouseDown);
+    el.addEventListener("mouseleave", onMouseLeave);
+    el.addEventListener("mouseup", onMouseUp);
+    el.addEventListener("mousemove", onMouseMove);
+    el.addEventListener("click", onClickCapture, true);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.style.cursor = "grab";
+    return () => {
+      el.removeEventListener("mousedown", onMouseDown);
+      el.removeEventListener("mouseleave", onMouseLeave);
+      el.removeEventListener("mouseup", onMouseUp);
+      el.removeEventListener("mousemove", onMouseMove);
+      el.removeEventListener("click", onClickCapture, true);
+      el.removeEventListener("wheel", onWheel);
+    };
   }, []);
 
   const handleLogout = async () => { await signOut(); navigate("/"); };
@@ -72,13 +142,26 @@ export default function Navbar() {
               <ChevronLeft className="h-4 w-4" />
             </button>
           )}
-          <div ref={scrollRef} className="flex items-center gap-0.5 overflow-x-auto scroll-smooth snap-x scrollbar-hide px-6" style={{ scrollbarWidth: "none" }}>
+          {/* Edge fade overlays — visual hint that more tabs exist */}
+          <div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-[5] bg-gradient-to-r from-card to-transparent transition-opacity ${showScrollLeft ? "opacity-100" : "opacity-0"}`} />
+          <div className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-[5] bg-gradient-to-l from-card to-transparent transition-opacity ${showScrollRight ? "opacity-100" : "opacity-0"}`} />
+          {showScrollLeft && (
+            <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-card border border-border shadow-sm hover:bg-muted">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          <div
+            ref={scrollRef}
+            className="flex items-center gap-0.5 overflow-x-auto scroll-smooth snap-x scrollbar-hide px-6 select-none"
+            style={{ scrollbarWidth: "none" }}
+          >
             {navItems.map((item) => {
               const active = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  data-active={active}
                   className={`relative px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors snap-start flex-shrink-0 flex items-center gap-1.5 ${
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
