@@ -1,27 +1,34 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sprout, Globe, LogOut, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Menu, X, Sprout, Globe, LogOut, ChevronLeft, ChevronRight, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ThemeToggle from "@/components/ThemeToggle";
+import NotificationCenter from "@/components/NotificationCenter";
 import logo from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useAuth } from "@/hooks/useAuth";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { toast } from "sonner";
+
+const NAV_SCROLL_KEY = "km.nav.scroll";
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { session, signOut } = useAuth();
+  const { canInstall, installed, promptInstall } = usePWAInstall();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showScrollLeft, setShowScrollLeft] = useState(false);
   const [showScrollRight, setShowScrollRight] = useState(false);
+  const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   const navItems = [
-    { label: t("nav.home"), path: "/", badge: undefined as string | undefined },
+    { label: t("nav.home"), path: "/" },
     { label: t("nav.dashboard"), path: "/dashboard" },
     { label: t("nav.aiAdvisor", "AI Advisor"), path: "/ai-advisor", badge: "NEW" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
@@ -37,18 +44,42 @@ export default function Navbar() {
     { label: t("nav.achievements"), path: "/tools/achievements" },
     { label: t("nav.offline"), path: "/tools/offline" },
     { label: t("nav.team"), path: "/team" },
-  ];
+  ] as { label: string; path: string; badge?: string }[];
+
+  // Online/offline LED
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+
+  // Document title per route
+  useEffect(() => {
+    const item = navItems.find((n) => n.path === location.pathname);
+    const title = item ? `${item.label} · KrishiMitra` : "KrishiMitra — AI Farming Companion";
+    document.title = title;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, i18n.language]);
 
   const updateScrollIndicators = () => {
     const el = scrollRef.current;
     if (!el) return;
     setShowScrollLeft(el.scrollLeft > 4);
     setShowScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    sessionStorage.setItem(NAV_SCROLL_KEY, String(el.scrollLeft));
   };
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    // Restore prior scroll
+    const saved = sessionStorage.getItem(NAV_SCROLL_KEY);
+    if (saved) el.scrollLeft = parseFloat(saved);
     updateScrollIndicators();
     el.addEventListener("scroll", updateScrollIndicators);
     window.addEventListener("resize", updateScrollIndicators);
@@ -58,7 +89,7 @@ export default function Navbar() {
     };
   }, []);
 
-  // Auto-scroll active item into view when route changes
+  // Auto-scroll active item into view on route change
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -98,7 +129,6 @@ export default function Navbar() {
       if (moved) { e.preventDefault(); e.stopPropagation(); }
     };
     const onWheel = (e: WheelEvent) => {
-      // Translate vertical wheel into horizontal scroll
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         el.scrollLeft += e.deltaY;
         e.preventDefault();
@@ -126,11 +156,26 @@ export default function Navbar() {
   const scroll = (dir: "left" | "right") => scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language) || SUPPORTED_LANGUAGES[0];
 
+  const handleInstall = async () => {
+    const r = await promptInstall();
+    if (r === "accepted") toast.success("Installing KrishiMitra…");
+    else if (r === "unavailable") toast.message("Install not available here", { description: "Open the Offline page for instructions." });
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/85 backdrop-blur-xl border-b border-border/50">
       <div className="container mx-auto px-4 h-16 flex items-center gap-3">
         <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-          <img src={logo} alt="KrishiMitra" className="h-9 w-9" />
+          <div className="relative">
+            <img src={logo} alt="KrishiMitra" className="h-9 w-9" />
+            {/* Online LED */}
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
+                online ? "bg-primary animate-pulse" : "bg-destructive"
+              }`}
+              title={online ? "Online" : "Offline"}
+            />
+          </div>
           <span className="font-display font-bold text-xl text-foreground hidden sm:inline">
             Krishi<span className="text-primary">Mitra</span>
           </span>
@@ -142,14 +187,8 @@ export default function Navbar() {
               <ChevronLeft className="h-4 w-4" />
             </button>
           )}
-          {/* Edge fade overlays — visual hint that more tabs exist */}
           <div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-[5] bg-gradient-to-r from-card to-transparent transition-opacity ${showScrollLeft ? "opacity-100" : "opacity-0"}`} />
           <div className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-[5] bg-gradient-to-l from-card to-transparent transition-opacity ${showScrollRight ? "opacity-100" : "opacity-0"}`} />
-          {showScrollLeft && (
-            <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-card border border-border shadow-sm hover:bg-muted">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
           <div
             ref={scrollRef}
             className="flex items-center gap-0.5 overflow-x-auto scroll-smooth snap-x scrollbar-hide px-6 select-none"
@@ -175,7 +214,7 @@ export default function Navbar() {
                   {active && (
                     <motion.div
                       layoutId="navUnderline"
-                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full gradient-primary"
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full gradient-primary shadow-[0_0_10px_hsl(var(--primary))]"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -191,6 +230,24 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-1 flex-shrink-0">
+          {/* ⌘K hint */}
+          <kbd className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-[10px] text-muted-foreground bg-muted/30">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+
+          {canInstall && !installed && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleInstall}
+              className="gap-1.5 text-primary hidden lg:inline-flex"
+              title="Install KrishiMitra as an app"
+            >
+              <Download className="h-4 w-4" /> Install
+            </Button>
+          )}
+
+          <NotificationCenter />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -227,6 +284,7 @@ export default function Navbar() {
         </div>
 
         <div className="md:hidden flex items-center gap-2 ml-auto">
+          <NotificationCenter />
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -270,7 +328,12 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
-              <div className="pt-2 border-t border-border">
+              <div className="pt-2 border-t border-border space-y-2">
+                {canInstall && !installed && (
+                  <Button variant="outline" className="w-full gap-2" onClick={handleInstall}>
+                    <Download className="h-4 w-4" /> Install App
+                  </Button>
+                )}
                 {session ? (
                   <Button variant="outline" className="w-full text-destructive" onClick={() => { handleLogout(); setMobileOpen(false); }}>
                     <LogOut className="h-4 w-4 mr-1" /> {t("nav.logout")}

@@ -19,6 +19,9 @@ import CommandPalette from "./components/CommandPalette";
 import OfflineBanner from "./components/OfflineBanner";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 import { AuthProvider } from "./hooks/useAuth";
+import { PWAInstallProvider } from "./hooks/usePWAInstall";
+
+const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -96,14 +99,19 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <ActiveProfileProvider>
-              <OfflineBanner />
-              <ErrorBoundary>
-                <AnimatedRoutes />
-              </ErrorBoundary>
-              <CommandPalette />
-              <BackToTop />
-            </ActiveProfileProvider>
+            <PWAInstallProvider>
+              <ActiveProfileProvider>
+                <OfflineBanner />
+                <ErrorBoundary>
+                  <AnimatedRoutes />
+                </ErrorBoundary>
+                <CommandPalette />
+                <BackToTop />
+                <Suspense fallback={null}>
+                  <VoiceBubble />
+                </Suspense>
+              </ActiveProfileProvider>
+            </PWAInstallProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
