@@ -9,17 +9,29 @@ export default function RouteSkeleton() {
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center animate-pulse">
             <Sprout className="h-5 w-5 text-primary" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">KrishiMitra</p>
-            <p className="text-xs text-muted-foreground">Loading…</p>
+          <div className="flex-1">
+            <Skeleton className="h-4 w-32 mb-1.5" />
+            <Skeleton className="h-3 w-20" />
           </div>
         </div>
         <Skeleton className="h-10 w-1/3" />
         <Skeleton className="h-4 w-1/2" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
+          <div className="space-y-3">
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
         </div>
         <Skeleton className="h-64 rounded-xl" />
       </div>
