@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { motion } from "framer-motion";
-import { FileText, Download, Calculator, Shield, Zap, Loader2, ExternalLink } from "lucide-react";
+import { FileText, Download, Calculator, Shield, Zap, Loader2, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { Skeleton } from "@/components/ui/skeleton";
+import SchemeEligibilityQuiz from "@/components/schemes/SchemeEligibilityQuiz";
 
 interface Scheme { name: string; match_score: number; benefit: string; why: string; action: string }
 
@@ -49,6 +52,7 @@ export default function SchemesPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
+      <Breadcrumbs />
       <main className="pt-4 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -58,6 +62,17 @@ export default function SchemesPage() {
             </p>
           </motion.div>
 
+          <Tabs defaultValue="ai" className="mb-5">
+            <TabsList>
+              <TabsTrigger value="ai" className="gap-1.5"><Sparkles className="h-4 w-4" /> AI Matched</TabsTrigger>
+              <TabsTrigger value="quiz" className="gap-1.5"><Zap className="h-4 w-4" /> Eligibility Quiz</TabsTrigger>
+            </TabsList>
+            <TabsContent value="quiz" className="mt-4">
+              <div className="glass-card p-5">
+                <SchemeEligibilityQuiz />
+              </div>
+            </TabsContent>
+            <TabsContent value="ai" className="mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div className="lg:col-span-2 glass-card p-5">
               <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -111,6 +126,8 @@ export default function SchemesPage() {
               </div>
             </div>
           </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       <Footer />
