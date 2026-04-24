@@ -1,5 +1,6 @@
 import { Camera, Mic, CloudSun, BarChart3, MapPin, FileText, Settings, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 const actions = [
   { icon: Camera, label: "Scan Disease", color: "gradient-primary", to: "/crop-advisor" },
@@ -12,15 +13,40 @@ const actions = [
   { icon: HelpCircle, label: "Community", color: "bg-muted", to: "/community" },
 ];
 
+interface Ripple { id: number; x: number; y: number; }
+
 export default function QuickActions() {
+  const [ripples, setRipples] = useState<Record<string, Ripple[]>>({});
+
+  const onPress = (label: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const r: Ripple = { id: Date.now(), x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setRipples((prev) => ({ ...prev, [label]: [...(prev[label] || []), r] }));
+    setTimeout(() => {
+      setRipples((prev) => ({ ...prev, [label]: (prev[label] || []).filter((x) => x.id !== r.id) }));
+    }, 600);
+  };
+
   return (
     <div className="glass-card p-5">
       <h3 className="font-display font-semibold text-foreground mb-4">Quick Actions</h3>
       <div className="grid grid-cols-4 gap-3">
         {actions.map((a) => (
-          <Link key={a.label} to={a.to} className="flex flex-col items-center gap-1.5 group">
-            <div className={`w-12 h-12 rounded-xl ${a.color} flex items-center justify-center transition-transform group-hover:scale-110`}>
+          <Link
+            key={a.label}
+            to={a.to}
+            onClick={(e) => onPress(a.label, e)}
+            className="flex flex-col items-center gap-1.5 group relative"
+          >
+            <div className={`relative overflow-hidden w-12 h-12 rounded-xl ${a.color} flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-95`}>
               <a.icon className={`h-5 w-5 ${a.color === "bg-muted" ? "text-foreground" : "text-primary-foreground"}`} />
+              {(ripples[a.label] || []).map((r) => (
+                <span
+                  key={r.id}
+                  className="absolute rounded-full bg-white/40 pointer-events-none animate-ripple"
+                  style={{ left: r.x, top: r.y, width: 8, height: 8, transform: "translate(-50%, -50%)" }}
+                />
+              ))}
             </div>
             <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors text-center">{a.label}</span>
           </Link>

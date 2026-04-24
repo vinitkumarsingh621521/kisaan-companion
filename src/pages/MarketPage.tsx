@@ -2,8 +2,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MarketPriceWidget from "@/components/dashboard/MarketPriceWidget";
 import MultiMandiCompare from "@/components/market/MultiMandiCompare";
+import PriceSparkline from "@/components/market/PriceSparkline";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { motion } from "framer-motion";
-import { MapPin, Navigation, Truck } from "lucide-react";
+import { MapPin, Navigation, Truck, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -83,6 +85,23 @@ export default function MarketPage() {
             </div>
           </div>
 
+          <div className="glass-card p-5 mb-5">
+            <h3 className="font-display font-semibold text-foreground mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" /> 30-Day Price Trends · Best Day to Sell
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {["Wheat", "Rice", "Maize", "Soybean", "Cotton", "Mustard"].map((c, i) => (
+                <div key={c} className="rounded-xl bg-muted/30 p-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-foreground text-sm">{c}</div>
+                    <div className="text-xs text-muted-foreground">₹{2000 + i * 350}/qt</div>
+                  </div>
+                  <PriceSparkline crop={c} base={2000 + i * 350} />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <MultiMandiCompare />
         </div>
       </main>
@@ -90,3 +109,4 @@ export default function MarketPage() {
     </div>
   );
 }
+

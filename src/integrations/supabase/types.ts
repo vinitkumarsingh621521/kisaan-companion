@@ -41,6 +41,80 @@ export type Database = {
         }
         Relationships: []
       }
+      community_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          author_avatar: string | null
+          author_name: string
+          badge: string | null
+          comments_count: number
+          content: string
+          created_at: string
+          district: string | null
+          id: string
+          likes_count: number
+          photo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_avatar?: string | null
+          author_name: string
+          badge?: string | null
+          comments_count?: number
+          content: string
+          created_at?: string
+          district?: string | null
+          id?: string
+          likes_count?: number
+          photo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_avatar?: string | null
+          author_name?: string
+          badge?: string | null
+          comments_count?: number
+          content?: string
+          created_at?: string
+          district?: string | null
+          id?: string
+          likes_count?: number
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       farm_zones: {
         Row: {
           acres: number
@@ -275,6 +349,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_xp: {
+        Row: {
+          created_at: string
+          id: string
+          last_active_date: string | null
+          level: number
+          streak_days: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_active_date?: string | null
+          level?: number
+          streak_days?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_active_date?: string | null
+          level?: number
+          streak_days?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
       }
     }
     Views: {

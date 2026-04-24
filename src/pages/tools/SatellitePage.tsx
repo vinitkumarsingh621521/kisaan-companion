@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { motion } from "framer-motion";
 import { Satellite, Layers, Calendar } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -30,6 +31,7 @@ export default function SatellitePage() {
       <Navbar />
       <main className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
+          <Breadcrumbs />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-2">
               <Satellite className="h-7 w-7 text-primary" /> Satellite View
