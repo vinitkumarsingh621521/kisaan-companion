@@ -1,1 +1,7 @@
 project_id = "wckqooblkicjsghmaovy"
+
+[functions.voice-bot]
+verify_jwt = false
+
+[functions.daily-tip]
+verify_jwt = false
