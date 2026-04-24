@@ -1,18 +1,22 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, Share2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import jsPDF from "jspdf";
+import { toPng } from "html-to-image";
 
 export default function ReportsPage() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const generate = () => {
     if (!active) { toast.error("Pick a profile first"); return; }
