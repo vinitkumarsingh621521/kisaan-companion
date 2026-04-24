@@ -90,17 +90,68 @@ export default function ReportsPage() {
     } finally { setLoading(false); }
   };
 
+  const sharePNG = async () => {
+    if (!cardRef.current || !active) { toast.error("Pick a profile first"); return; }
+    setExporting(true);
+    try {
+      const png = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2, backgroundColor: "#ffffff" });
+      const a = document.createElement("a");
+      a.href = png;
+      a.download = `KrishiMitra_Card_${active.full_name.replace(/\s+/g, "_")}.png`;
+      a.click();
+      toast.success("📸 Farm card downloaded — share on WhatsApp!");
+    } catch (e: any) {
+      toast.error("Export failed: " + e.message);
+    } finally { setExporting(false); }
+  };
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
       <main className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-3xl">
+          <Breadcrumbs />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-2">
               <FileText className="h-7 w-7 text-primary" /> Smart Farm Reports
             </h1>
-            <p className="text-muted-foreground mt-1">Generate a real PDF report of your farm — perfect for bank loans, insurance claims, or government applications</p>
+            <p className="text-muted-foreground mt-1">Generate a real PDF report or shareable PNG of your farm — perfect for bank loans, insurance claims, or social proof</p>
           </motion.div>
+
+          {/* Shareable card preview (also captured as PNG) */}
+          {active && (
+            <div ref={cardRef} className="glass-card p-6 mb-5 bg-gradient-to-br from-primary/5 via-background to-krishi-gold-light/40">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider">KrishiMitra · Farm Card</div>
+                  <h2 className="text-xl font-display font-bold text-foreground">{active.full_name}</h2>
+                  <div className="text-xs text-muted-foreground">{active.farm_location || `${active.farmer_details?.district || ""}, ${active.farmer_details?.state || "India"}`}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl">🌾</div>
+                  <div className="text-[10px] text-muted-foreground">SIH 2025 · #25030</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <div className="bg-background/60 rounded-lg p-2">
+                  <div className="text-[10px] text-muted-foreground">Land</div>
+                  <div className="font-semibold text-foreground text-sm">{active.farmer_details?.total_land || "?"} ac</div>
+                </div>
+                <div className="bg-background/60 rounded-lg p-2">
+                  <div className="text-[10px] text-muted-foreground">Soil</div>
+                  <div className="font-semibold text-foreground text-sm truncate">{active.soil_type || active.farmer_details?.soil_color || "—"}</div>
+                </div>
+                <div className="bg-background/60 rounded-lg p-2">
+                  <div className="text-[10px] text-muted-foreground">Health</div>
+                  <div className="font-semibold text-primary text-sm">{ctx?.scores.farm_health ?? "—"}/100</div>
+                </div>
+                <div className="bg-background/60 rounded-lg p-2">
+                  <div className="text-[10px] text-muted-foreground">Schemes</div>
+                  <div className="font-semibold text-foreground text-sm">{ctx?.schemes_matched.length ?? 0}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="glass-card p-6">
             <h3 className="font-display font-semibold text-foreground mb-2">Your Farm Report Includes</h3>
@@ -112,11 +163,17 @@ export default function ReportsPage() {
               <li>AI-generated insights, climate zone & schemes matched</li>
               <li>Farm health score (0-100)</li>
             </ul>
-            <Button onClick={generate} disabled={loading || !active} className="w-full gradient-primary border-0 text-primary-foreground gap-2 h-12">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {loading ? "Generating..." : "Download PDF Report"}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3 italic">💡 Pro tip: The more you fill in your profile, the richer your report. Currently using profile of <strong>{active?.full_name}</strong>.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button onClick={generate} disabled={loading || !active} className="w-full gradient-primary border-0 text-primary-foreground gap-2 h-12">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {loading ? "Generating..." : "Download PDF Report"}
+              </Button>
+              <Button onClick={sharePNG} disabled={exporting || !active} variant="outline" className="w-full gap-2 h-12">
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                {exporting ? "Exporting..." : "Share Card as PNG"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 italic">💡 Pro tip: PNG is great for WhatsApp; PDF is for banks &amp; insurance.</p>
           </div>
         </div>
       </main>
