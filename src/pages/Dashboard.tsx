@@ -15,6 +15,8 @@ import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBan
 import TodayActionCard from "@/components/dashboard/TodayActionCard";
 import CropSuitabilityWarning from "@/components/dashboard/CropSuitabilityWarning";
 import FarmPulseTicker from "@/components/dashboard/FarmPulseTicker";
+import YieldForecastChart from "@/components/dashboard/YieldForecastChart";
+import CarbonFootprintWidget from "@/components/dashboard/CarbonFootprintWidget";
 import { motion } from "framer-motion";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
@@ -81,12 +83,14 @@ export default function Dashboard() {
             </div>
             <div className="lg:col-span-5 space-y-5">
               <CropRecommendationCard />
+              <YieldForecastChart crops={[{ name: ctx?.crops?.current?.[0] || ctx?.crops?.suitable?.[0] || "Rice", yield: "4.2" }]} />
               <CropCalendarWidget />
               <MarketPriceWidget />
             </div>
             <div className="lg:col-span-4 space-y-5">
               <WeatherWidget />
               <SoilHealthCard />
+              <CarbonFootprintWidget />
               <AIChatWidget />
             </div>
           </div>

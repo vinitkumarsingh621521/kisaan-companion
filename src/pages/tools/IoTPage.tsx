@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { motion } from "framer-motion";
 import { Bot, Wifi, Droplets, Thermometer, Beaker, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import IoTLiveStream from "@/components/iot/IoTLiveStream";
 
 export default function IoTPage() {
   const { active } = useActiveProfile();
@@ -44,7 +46,8 @@ export default function IoTPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
-      <main className="pt-24 pb-12 px-4">
+      <Breadcrumbs />
+      <main className="pt-4 pb-12 px-4">
         <div className="container mx-auto max-w-4xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-2">
@@ -63,6 +66,7 @@ export default function IoTPage() {
             </div>
           ) : (
             <>
+              <IoTLiveStream />
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
