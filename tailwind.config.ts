@@ -99,6 +99,13 @@ export default {
           from: { opacity: "0", transform: "translateY(20px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "ripple": {
+          to: { transform: "translate(-50%, -50%) scale(20)", opacity: "0" },
+        },
+        "pulse-ring": {
+          "0%": { transform: "scale(1)", opacity: "0.6" },
+          "100%": { transform: "scale(1.6)", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -106,6 +113,8 @@ export default {
         "count-up": "count-up 0.6s ease-out",
         "slide-in-right": "slide-in-right 0.5s ease-out",
         "fade-up": "fade-up 0.5s ease-out",
+        "ripple": "ripple 0.6s ease-out forwards",
+        "pulse-ring": "pulse-ring 1.6s cubic-bezier(0.4,0,0.6,1) infinite",
       },
     },
   },
