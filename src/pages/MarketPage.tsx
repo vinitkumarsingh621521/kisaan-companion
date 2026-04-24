@@ -108,3 +108,5 @@ export default function MarketPage() {
       <Footer />
     </div>
   );
+}
+
