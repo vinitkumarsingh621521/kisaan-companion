@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Activity, Sprout, Wallet, Cpu, Layers } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { Skeleton } from "@/components/ui/skeleton";
+import AnimatedCounter from "@/components/AnimatedCounter";
 
 export default function FarmHealthScore() {
   const { ctx, loading } = usePersonalization();
@@ -65,7 +66,7 @@ export default function FarmHealthScore() {
             />
           </svg>
           <div className="absolute text-center">
-            <div className="text-3xl font-display font-bold text-foreground">{farm_health}</div>
+            <AnimatedCounter value={String(farm_health)} className="text-3xl font-display font-bold text-foreground" />
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider">/ 100</div>
           </div>
         </div>
