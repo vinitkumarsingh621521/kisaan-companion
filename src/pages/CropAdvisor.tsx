@@ -4,6 +4,8 @@ import Footer from "@/components/Footer";
 import AIChatWidget from "@/components/dashboard/AIChatWidget";
 import CropRecommendationCard from "@/components/dashboard/CropRecommendationCard";
 import SoilHealthCard from "@/components/dashboard/SoilHealthCard";
+import MultiImageDiseaseScanner from "@/components/cropAdvisor/MultiImageDiseaseScanner";
+import CropCompatibilityMatrix from "@/components/cropAdvisor/CropCompatibilityMatrix";
 import { Camera, Upload, X, AlertTriangle, Loader2, ShieldAlert, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -307,6 +309,12 @@ export default function CropAdvisor() {
 
               <SoilHealthCard />
             </div>
+          </div>
+
+          {/* New Phase 2 mounts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+            <MultiImageDiseaseScanner />
+            <CropCompatibilityMatrix />
           </div>
         </div>
       </main>

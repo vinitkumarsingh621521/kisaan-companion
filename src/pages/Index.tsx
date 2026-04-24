@@ -3,6 +3,8 @@ import HeroSection from "@/components/HeroSection";
 import FeaturesGrid from "@/components/FeaturesGrid";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
+import LiveStatsTicker from "@/components/home/LiveStatsTicker";
+import LanguageHeroSwitcher from "@/components/LanguageHeroSwitcher";
 import { motion } from "framer-motion";
 import { Leaf, Users, Globe, ShieldCheck } from "lucide-react";
 
@@ -18,6 +20,7 @@ export default function Index() {
     <div className="min-h-screen">
       <Navbar />
       <HeroSection />
+      <LiveStatsTicker />
 
       {/* Highlights */}
       <section className="py-16 bg-background">
