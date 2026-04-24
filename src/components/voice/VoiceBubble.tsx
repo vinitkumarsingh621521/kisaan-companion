@@ -1,37 +1,165 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, X, Loader2, Volume2, MicOff } from "lucide-react";
+import { Mic, X, Loader2, Volume2, MicOff, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { usePersonalization } from "@/hooks/usePersonalization";
-
-const VOICE_BOT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-bot`;
+import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; text: string };
+
+// Map app language codes → BCP-47 for SpeechSynthesis / SpeechRecognition
+const LANG_BCP: Record<string, string> = {
+  en: "en-IN",
+  hi: "hi-IN",
+  bn: "bn-IN",
+  ta: "ta-IN",
+  te: "te-IN",
+  kn: "kn-IN",
+  mr: "mr-IN",
+  gu: "gu-IN",
+  pa: "pa-IN",
+  ml: "ml-IN",
+  or: "or-IN",
+  as: "as-IN",
+  ur: "ur-IN",
+};
+
+function getBrowserSTT(): any {
+  if (typeof window === "undefined") return null;
+  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
+}
+
+function pickMimeType(): string {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+  ];
+  if (typeof MediaRecorder === "undefined") return "";
+  for (const c of candidates) {
+    try {
+      if ((MediaRecorder as any).isTypeSupported?.(c)) return c;
+    } catch {}
+  }
+  return "";
+}
 
 export default function VoiceBubble() {
   const { i18n } = useTranslation();
   const { active } = useActiveProfile();
-  const { ctx } = usePersonalization();
   const [open, setOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [history, setHistory] = useState<Msg[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    return () => {
-      mediaRecorder.current?.stream?.getTracks().forEach((t) => t.stop());
-    };
+  const cleanupStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    mediaRecorder.current = null;
   }, []);
 
-  const startRec = async () => {
+  useEffect(() => () => cleanupStream(), [cleanupStream]);
+
+  const speak = (text: string) => {
+    if (!("speechSynthesis" in window)) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = LANG_BCP[i18n.language] || "en-IN";
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch (e) {
+      console.warn("TTS failed", e);
+    }
+  };
+
+  const sendToBot = async (payload: { audio?: string; mime?: string; text?: string }) => {
+    const { data, error } = await supabase.functions.invoke("voice-bot", {
+      body: {
+        ...payload,
+        language: i18n.language,
+        profile: active,
+      },
+    });
+    if (error) throw new Error(error.message || "Voice bot failed");
+    if (!data) throw new Error("No response from voice bot");
+    if ((data as any).error) throw new Error((data as any).error);
+    return data as { transcript: string; reply: string };
+  };
+
+  // ───── Path A: Browser SpeechRecognition (Chrome/Edge desktop, Android) ─────
+  const startBrowserSTT = () => {
+    const SR = getBrowserSTT();
+    if (!SR) return false;
+    try {
+      const rec = new SR();
+      rec.lang = LANG_BCP[i18n.language] || "en-IN";
+      rec.interimResults = false;
+      rec.continuous = false;
+      rec.maxAlternatives = 1;
+
+      let finalText = "";
+      rec.onresult = (ev: any) => {
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
+        }
+      };
+      rec.onerror = (ev: any) => {
+        setRecording(false);
+        recognitionRef.current = null;
+        if (ev.error === "not-allowed") {
+          setError("Microphone permission denied — enable it in browser settings.");
+          toast.error("Microphone permission denied");
+        } else if (ev.error === "no-speech") {
+          toast.message("Didn't hear anything — try again");
+        } else {
+          toast.error(`Voice error: ${ev.error}`);
+        }
+      };
+      rec.onend = async () => {
+        setRecording(false);
+        recognitionRef.current = null;
+        if (!finalText.trim()) return;
+        setProcessing(true);
+        try {
+          const r = await sendToBot({ text: finalText });
+          setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
+          speak(r.reply);
+        } catch (e: any) {
+          toast.error(e?.message || "Could not get reply");
+        } finally {
+          setProcessing(false);
+        }
+      };
+      // start() must be called synchronously inside the user click handler
+      rec.start();
+      recognitionRef.current = rec;
+      setRecording(true);
+      setError(null);
+      return true;
+    } catch (e: any) {
+      console.warn("Browser STT failed to start, falling back to MediaRecorder", e);
+      return false;
+    }
+  };
+
+  // ───── Path B: MediaRecorder → Whisper (Safari, Firefox, others) ─────
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      streamRef.current = stream;
+      const mimeType = pickMimeType();
+      const mr = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorder.current = mr;
       chunks.current = [];
       mr.ondataavailable = (e) => {
@@ -40,66 +168,74 @@ export default function VoiceBubble() {
       mr.onstop = () => handleStop();
       mr.start();
       setRecording(true);
+      setError(null);
     } catch (e: any) {
-      toast.error("Microphone access denied. Enable it in browser settings.");
+      const name = e?.name || "";
+      if (name === "NotAllowedError") {
+        setError("Microphone blocked. Allow it in your browser address bar then retry.");
+        toast.error("Microphone blocked");
+      } else if (name === "NotFoundError") {
+        setError("No microphone found on this device.");
+        toast.error("No microphone found");
+      } else if (name === "NotSupportedError") {
+        setError("Audio recording not supported. Try Chrome on desktop or Android.");
+        toast.error("Recording not supported");
+      } else {
+        setError(e?.message || "Could not access microphone");
+        toast.error("Microphone error");
+      }
     }
   };
 
-  const stopRec = () => {
-    mediaRecorder.current?.stop();
-    mediaRecorder.current?.stream?.getTracks().forEach((t) => t.stop());
-    setRecording(false);
+  const handleStart = () => {
+    setError(null);
+    // Try the gesture-friendly browser STT first
+    if (!startBrowserSTT()) {
+      void startRecording();
+    }
   };
 
   const handleStop = async () => {
+    cleanupStream();
+    setRecording(false);
+    if (chunks.current.length === 0) return;
     setProcessing(true);
     try {
-      const blob = new Blob(chunks.current, { type: "audio/webm" });
-      // Convert to base64
+      const mr = mediaRecorder.current;
+      const mime = mr?.mimeType || "audio/webm";
+      const blob = new Blob(chunks.current, { type: mime });
       const buf = await blob.arrayBuffer();
       const bytes = new Uint8Array(buf);
+      // Chunked btoa to avoid stack overflow on large blobs
       let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+      }
       const b64 = btoa(binary);
 
-      const resp = await fetch(VOICE_BOT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          audio: b64,
-          mime: "audio/webm",
-          language: i18n.language,
-          profile: active,
-          context: ctx,
-        }),
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || `Voice bot failed (${resp.status})`);
-      }
-
-      const data = await resp.json();
-      const userText: string = data.transcript || "(unrecognized)";
-      const reply: string = data.reply || "Sorry, I couldn't understand.";
-
-      setHistory((h) => [...h, { role: "user", text: userText }, { role: "assistant", text: reply }]);
-
-      // Browser TTS for voice playback
-      if ("speechSynthesis" in window) {
-        const u = new SpeechSynthesisUtterance(reply);
-        u.lang = i18n.language === "hi" ? "hi-IN" : i18n.language === "bn" ? "bn-IN" : i18n.language === "ta" ? "ta-IN" : i18n.language === "te" ? "te-IN" : "en-IN";
-        u.rate = 1.0;
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
-      }
+      const r = await sendToBot({ audio: b64, mime });
+      setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
+      speak(r.reply);
     } catch (e: any) {
-      toast.error(e.message || "Voice processing failed");
+      toast.error(e?.message || "Voice processing failed");
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const stopAll = () => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      recognitionRef.current = null;
+      setRecording(false);
+      return;
+    }
+    if (mediaRecorder.current && mediaRecorder.current.state === "recording") {
+      mediaRecorder.current.stop();
+    } else {
+      cleanupStream();
+      setRecording(false);
     }
   };
 
@@ -134,7 +270,7 @@ export default function VoiceBubble() {
                 </div>
                 <div>
                   <div className="font-display font-semibold text-foreground text-sm">Krishi Voice</div>
-                  <div className="text-[10px] text-muted-foreground">Speak in {i18n.language.toUpperCase()}</div>
+                  <div className="text-[10px] text-muted-foreground">Speak in {(LANG_BCP[i18n.language] || "en-IN").toUpperCase()}</div>
                 </div>
               </div>
               <button onClick={() => setOpen(false)} className="p-1 rounded-md hover:bg-muted">
@@ -142,10 +278,17 @@ export default function VoiceBubble() {
               </button>
             </div>
 
+            {error && (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-destructive/10 text-destructive text-[11px] mb-2">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
             <div className="max-h-48 overflow-y-auto space-y-2 mb-3 text-xs">
               {history.length === 0 && (
                 <p className="text-muted-foreground italic text-center py-3">
-                  🎙️ Tap the mic and ask anything about your farm — in any language
+                  🎙️ Tap the mic and ask anything — I speak 13 Indian languages
                 </p>
               )}
               {history.slice(-6).map((m, i) => (
@@ -164,11 +307,11 @@ export default function VoiceBubble() {
             <div className="flex flex-col items-center gap-2">
               {processing ? (
                 <div className="flex items-center gap-2 text-sm text-primary">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+                  <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
                 </div>
               ) : recording ? (
                 <button
-                  onClick={stopRec}
+                  onClick={stopAll}
                   className="w-16 h-16 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg animate-pulse"
                   aria-label="Stop"
                 >
@@ -176,15 +319,15 @@ export default function VoiceBubble() {
                 </button>
               ) : (
                 <button
-                  onClick={startRec}
+                  onClick={handleStart}
                   className="w-16 h-16 rounded-full gradient-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 transition"
                   aria-label="Record"
                 >
                   <Mic className="h-7 w-7" />
                 </button>
               )}
-              <p className="text-[10px] text-muted-foreground">
-                {recording ? "Listening… tap to stop" : processing ? "Wait a moment" : "Tap mic and speak"}
+              <p className="text-[10px] text-muted-foreground text-center">
+                {recording ? "Listening… tap to stop" : processing ? "One moment…" : "Tap mic and speak"}
               </p>
             </div>
           </motion.div>
