@@ -84,8 +84,8 @@ serve(async (req) => {
     const systemPrompt = SYSTEM_PROMPTS[action] || SYSTEM_PROMPTS.chat;
     let apiMessages: any[] = [{ role: "system", content: systemPrompt }];
 
-    // Inject profile context if present (for chat / crop / scheme / weather)
-    if (profileContext && (action === "chat" || action === "crop_recommendation" || action === "scheme_match" || action === "weather_brief")) {
+    // Inject profile context if present
+    if (profileContext && (action === "chat" || action === "crop_recommendation" || action === "scheme_match" || action === "weather_brief" || action === "compat" || action === "mistake_check" || action === "carbon_plan")) {
       apiMessages.push({ role: "system", content: `FARMER CONTEXT (use this to personalize): ${JSON.stringify(profileContext)}` });
     }
 
