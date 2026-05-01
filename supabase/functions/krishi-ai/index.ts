@@ -222,6 +222,9 @@ serve(async (req) => {
       if (action === "crop_recommendation") {
         groqBody.tools = [cropRecTool];
         groqBody.tool_choice = { type: "function", function: { name: "return_crop_recommendations" } };
+      } else if (action === "compat") {
+        groqBody.tools = [compatTool];
+        groqBody.tool_choice = { type: "function", function: { name: "return_compatibility" } };
       } else {
         groqBody.response_format = { type: "json_object" };
       }
