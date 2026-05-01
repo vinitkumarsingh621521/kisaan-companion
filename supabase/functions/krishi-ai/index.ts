@@ -163,10 +163,40 @@ serve(async (req) => {
       },
     };
 
+    const compatTool = {
+      type: "function",
+      function: {
+        name: "return_compatibility",
+        description: "Return crop-pair compatibility verdict.",
+        parameters: {
+          type: "object",
+          properties: {
+            intercrop: { type: "string", enum: ["good", "ok", "bad"] },
+            rotation: { type: "string", enum: ["good", "ok", "bad"] },
+            water: { type: "string", enum: ["good", "ok", "bad"] },
+            nutrient: { type: "string", enum: ["good", "ok", "bad"] },
+            pest: { type: "string", enum: ["good", "ok", "bad"] },
+            overall_score: { type: "number" },
+            recommendation: { type: "string" },
+            best_practice: { type: "string" },
+            warning: { type: "string" },
+            yield_uplift_pct: { type: "number" },
+          },
+          required: ["intercrop", "rotation", "water", "nutrient", "pest", "overall_score", "recommendation", "best_practice", "warning", "yield_uplift_pct"],
+          additionalProperties: false,
+        },
+      },
+    };
+
     const body: any = { model, messages: apiMessages, stream: isStreaming };
     if (action === "crop_recommendation") {
       body.tools = [cropRecTool];
       body.tool_choice = { type: "function", function: { name: "return_crop_recommendations" } };
+      body.stream = false;
+    }
+    if (action === "compat") {
+      body.tools = [compatTool];
+      body.tool_choice = { type: "function", function: { name: "return_compatibility" } };
       body.stream = false;
     }
 
