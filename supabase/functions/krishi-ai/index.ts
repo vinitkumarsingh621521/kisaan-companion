@@ -65,6 +65,12 @@ Return JSON only:
 
   scheme_match: `You are KrishiMitra Schemes Matcher. Given a farmer profile, return the top 6 most relevant government schemes as JSON:
 { "schemes":[{"name":"PM-KISAN","match_score":95,"benefit":"₹6000/yr","why":"why fits THIS farmer","action":"steps to apply"}] }`,
+
+  compat: `You are KrishiMitra Compatibility Expert — an Indian agronomist. The user gives two crops + their farm context. Score 5 dimensions and give a deeply specific verdict for the FARMER's exact context (state, soil, season, irrigation). Be honest if a pair is bad. Always reply via the tool.`,
+
+  mistake_check: `You are KrishiMitra Audit AI. Given a farmer profile and per-crop fertilizer/pesticide usage, identify mistakes (over-fertilization, wrong NPK ratio, pesticide overuse, water mismatch, soil-pH conflict). For each mistake give severity, what they did, why it's wrong, and a specific corrective action with quantities. Always reply via the tool.`,
+
+  carbon_plan: `You are KrishiMitra Carbon Coach. Given the farmer profile and current emissions breakdown, return a personalised emissions-cut plan: 4 specific actions ranked by impact, with kg-CO2 saved, ₹ cost, payback months, and one Bollywood-flavoured motivation line. Always reply via the tool.`,
 };
 
 serve(async (req) => {
