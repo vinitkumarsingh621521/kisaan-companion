@@ -89,7 +89,7 @@ export default function NewsPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
-      <main className="pt-4 pb-12 px-4">
+      <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
             <div>

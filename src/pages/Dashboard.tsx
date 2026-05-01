@@ -44,7 +44,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
-      <main className="pt-4 pb-12 px-4">
+      <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 10 }}

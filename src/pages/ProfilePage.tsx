@@ -47,7 +47,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-muted/30">
       <Navbar />
       <ActiveProfileBar />
-      <main className="pt-6 pb-12 px-4">
+      <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 Editing: {active?.full_name}</h1>

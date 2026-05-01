@@ -65,6 +65,12 @@ Return JSON only:
 
   scheme_match: `You are KrishiMitra Schemes Matcher. Given a farmer profile, return the top 6 most relevant government schemes as JSON:
 { "schemes":[{"name":"PM-KISAN","match_score":95,"benefit":"₹6000/yr","why":"why fits THIS farmer","action":"steps to apply"}] }`,
+
+  compat: `You are KrishiMitra Compatibility Expert — an Indian agronomist. The user gives two crops + their farm context. Score 5 dimensions and give a deeply specific verdict for the FARMER's exact context (state, soil, season, irrigation). Be honest if a pair is bad. Always reply via the tool.`,
+
+  mistake_check: `You are KrishiMitra Audit AI. Given a farmer profile and per-crop fertilizer/pesticide usage, identify mistakes (over-fertilization, wrong NPK ratio, pesticide overuse, water mismatch, soil-pH conflict). For each mistake give severity, what they did, why it's wrong, and a specific corrective action with quantities. Always reply via the tool.`,
+
+  carbon_plan: `You are KrishiMitra Carbon Coach. Given the farmer profile and current emissions breakdown, return a personalised emissions-cut plan: 4 specific actions ranked by impact, with kg-CO2 saved, ₹ cost, payback months, and one Bollywood-flavoured motivation line. Always reply via the tool.`,
 };
 
 serve(async (req) => {
@@ -78,8 +84,8 @@ serve(async (req) => {
     const systemPrompt = SYSTEM_PROMPTS[action] || SYSTEM_PROMPTS.chat;
     let apiMessages: any[] = [{ role: "system", content: systemPrompt }];
 
-    // Inject profile context if present (for chat / crop / scheme / weather)
-    if (profileContext && (action === "chat" || action === "crop_recommendation" || action === "scheme_match" || action === "weather_brief")) {
+    // Inject profile context if present
+    if (profileContext && (action === "chat" || action === "crop_recommendation" || action === "scheme_match" || action === "weather_brief" || action === "compat" || action === "mistake_check" || action === "carbon_plan")) {
       apiMessages.push({ role: "system", content: `FARMER CONTEXT (use this to personalize): ${JSON.stringify(profileContext)}` });
     }
 
@@ -106,6 +112,13 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: `Location: ${location || "India"}. Crops: ${(crops || []).join(", ") || "general"}. Give 7-day briefing.` });
     } else if (action === "scheme_match") {
       apiMessages.push({ role: "user", content: `Match top schemes for the farmer profile above.` });
+    } else if (action === "compat") {
+      const ctx = farmData || {};
+      apiMessages.push({ role: "user", content: `Crops to compare: ${ctx.cropA} + ${ctx.cropB}. Farm context: state=${ctx.state||"?"}, soil=${ctx.soil||"?"}, season=${ctx.season||"?"}, irrigation=${ctx.irrigation||"?"}, area=${ctx.area||"?"} acres, goal=${ctx.goal||"balanced"}. Score 5 dimensions and give a deeply specific verdict via tool.` });
+    } else if (action === "mistake_check") {
+      apiMessages.push({ role: "user", content: `Audit this farmer's inputs: ${JSON.stringify(farmData||{})}. Find mistakes via tool.` });
+    } else if (action === "carbon_plan") {
+      apiMessages.push({ role: "user", content: `Current emissions breakdown: ${JSON.stringify(farmData||{})}. Build personalised cut plan via tool.` });
     } else if (messages) {
       apiMessages = [...apiMessages, ...messages];
     }
@@ -150,10 +163,40 @@ serve(async (req) => {
       },
     };
 
+    const compatTool = {
+      type: "function",
+      function: {
+        name: "return_compatibility",
+        description: "Return crop-pair compatibility verdict.",
+        parameters: {
+          type: "object",
+          properties: {
+            intercrop: { type: "string", enum: ["good", "ok", "bad"] },
+            rotation: { type: "string", enum: ["good", "ok", "bad"] },
+            water: { type: "string", enum: ["good", "ok", "bad"] },
+            nutrient: { type: "string", enum: ["good", "ok", "bad"] },
+            pest: { type: "string", enum: ["good", "ok", "bad"] },
+            overall_score: { type: "number" },
+            recommendation: { type: "string" },
+            best_practice: { type: "string" },
+            warning: { type: "string" },
+            yield_uplift_pct: { type: "number" },
+          },
+          required: ["intercrop", "rotation", "water", "nutrient", "pest", "overall_score", "recommendation", "best_practice", "warning", "yield_uplift_pct"],
+          additionalProperties: false,
+        },
+      },
+    };
+
     const body: any = { model, messages: apiMessages, stream: isStreaming };
     if (action === "crop_recommendation") {
       body.tools = [cropRecTool];
       body.tool_choice = { type: "function", function: { name: "return_crop_recommendations" } };
+      body.stream = false;
+    }
+    if (action === "compat") {
+      body.tools = [compatTool];
+      body.tool_choice = { type: "function", function: { name: "return_compatibility" } };
       body.stream = false;
     }
 
@@ -179,6 +222,9 @@ serve(async (req) => {
       if (action === "crop_recommendation") {
         groqBody.tools = [cropRecTool];
         groqBody.tool_choice = { type: "function", function: { name: "return_crop_recommendations" } };
+      } else if (action === "compat") {
+        groqBody.tools = [compatTool];
+        groqBody.tool_choice = { type: "function", function: { name: "return_compatibility" } };
       } else {
         groqBody.response_format = { type: "json_object" };
       }
