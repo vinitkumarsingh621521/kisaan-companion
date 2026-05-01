@@ -47,9 +47,13 @@ const STATE_MANDIS: Record<string, { name: string; baseDist: number }[]> = {
 export default function MarketPage() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
-  const state = ctx?.location.state || active?.farmer_details?.state || "Jharkhand";
+  const state = ctx?.location.state || active?.farmer_details?.state || "";
   const baseKm = parseFloat(active?.farmer_details?.nearest_mandi_km || "0") || 0;
-  const mandis = STATE_MANDIS[state] || STATE_MANDIS["Jharkhand"];
+  const district = ctx?.location.district || active?.farmer_details?.district || "";
+  const mandis = STATE_MANDIS[state] || [
+    { name: district ? `${district} APMC` : "Local APMC", baseDist: Math.max(5, baseKm) },
+    { name: state ? `${state} Wholesale Mandi` : "Regional Mandi", baseDist: Math.max(15, baseKm + 20) },
+  ];
 
   return (
     <div className="min-h-screen bg-muted/30">
