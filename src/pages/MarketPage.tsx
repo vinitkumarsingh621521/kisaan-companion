@@ -38,7 +38,7 @@ export default function MarketPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
-      <main className="pt-4 pb-12 px-4">
+      <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">📈 Market Intelligence</h1>
