@@ -112,6 +112,13 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: `Location: ${location || "India"}. Crops: ${(crops || []).join(", ") || "general"}. Give 7-day briefing.` });
     } else if (action === "scheme_match") {
       apiMessages.push({ role: "user", content: `Match top schemes for the farmer profile above.` });
+    } else if (action === "compat") {
+      const ctx = farmData || {};
+      apiMessages.push({ role: "user", content: `Crops to compare: ${ctx.cropA} + ${ctx.cropB}. Farm context: state=${ctx.state||"?"}, soil=${ctx.soil||"?"}, season=${ctx.season||"?"}, irrigation=${ctx.irrigation||"?"}, area=${ctx.area||"?"} acres, goal=${ctx.goal||"balanced"}. Score 5 dimensions and give a deeply specific verdict via tool.` });
+    } else if (action === "mistake_check") {
+      apiMessages.push({ role: "user", content: `Audit this farmer's inputs: ${JSON.stringify(farmData||{})}. Find mistakes via tool.` });
+    } else if (action === "carbon_plan") {
+      apiMessages.push({ role: "user", content: `Current emissions breakdown: ${JSON.stringify(farmData||{})}. Build personalised cut plan via tool.` });
     } else if (messages) {
       apiMessages = [...apiMessages, ...messages];
     }
