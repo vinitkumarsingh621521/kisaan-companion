@@ -4,7 +4,9 @@ import FeaturesGrid from "@/components/FeaturesGrid";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import Footer from "@/components/Footer";
 import LiveStatsTicker from "@/components/home/LiveStatsTicker";
-import LanguageHeroSwitcher from "@/components/LanguageHeroSwitcher";
+import SoilScienceLab from "@/components/home/SoilScienceLab";
+import PhotosynthesisSimulator from "@/components/home/PhotosynthesisSimulator";
+import CropProductivityIndex from "@/components/home/CropProductivityIndex";
 import { motion } from "framer-motion";
 import { Leaf, Users, Globe, ShieldCheck } from "lucide-react";
 
@@ -50,6 +52,9 @@ export default function Index() {
       </section>
 
       <FeaturesGrid />
+      <SoilScienceLab />
+      <PhotosynthesisSimulator />
+      <CropProductivityIndex />
       <TestimonialsSection />
       <Footer />
     </div>
