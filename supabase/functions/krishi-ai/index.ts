@@ -304,6 +304,12 @@ serve(async (req) => {
       } else if (action === "compat") {
         groqBody.tools = [compatTool];
         groqBody.tool_choice = { type: "function", function: { name: "return_compatibility" } };
+      } else if (action === "carbon_plan") {
+        groqBody.tools = [carbonPlanTool];
+        groqBody.tool_choice = { type: "function", function: { name: "return_carbon_plan" } };
+      } else if (action === "mistake_check") {
+        groqBody.tools = [mistakeCheckTool];
+        groqBody.tool_choice = { type: "function", function: { name: "return_mistake_audit" } };
       } else {
         groqBody.response_format = { type: "json_object" };
       }
