@@ -45,33 +45,28 @@ function classify(co2: number) {
 
 export default function CarbonFootprintWidget() {
   const { active } = useActiveProfile();
-  const [tip, setTip] = useState<string | null>(null);
-  const [loadingTip, setLoadingTip] = useState(false);
+  const { ctx } = usePersonalization();
+  const [plan, setPlan] = useState<CarbonPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
-  const { co2, breakdown } = useMemo(() => {
+  const { co2, breakdown, fertType, irrig } = useMemo(() => {
     const fd: any = active?.farmer_details || {};
     const acres = parseFloat(fd.total_land || active?.farm_size || "1") || 1;
     const fertType =
       typeof fd.farming_type === "string"
-        ? fd.farming_type.includes("Organic")
-          ? "Organic"
-          : fd.farming_type.includes("Mixed")
-          ? "Mixed"
-          : "Chemical"
+        ? fd.farming_type.includes("Organic") ? "Organic"
+          : fd.farming_type.includes("Mixed") ? "Mixed" : "Chemical"
         : "Mixed";
     const irrig =
       typeof fd.irrigation_type === "string"
-        ? fd.irrigation_type.includes("Drip")
-          ? "Drip"
-          : fd.irrigation_type.includes("Sprinkler")
-          ? "Sprinkler"
-          : fd.irrigation_type.includes("Flood") || fd.irrigation_type.includes("Canal")
-          ? "Flood"
+        ? fd.irrigation_type.includes("Drip") ? "Drip"
+          : fd.irrigation_type.includes("Sprinkler") ? "Sprinkler"
+          : fd.irrigation_type.includes("Flood") || fd.irrigation_type.includes("Canal") ? "Flood"
           : "Rainfed"
         : "Flood";
     const fertCO2 = (FERT_FACTORS[fertType] || 220) * acres;
     const irrigCO2 = (IRRIG_FACTORS[irrig] || 60) * acres;
-    const transportCO2 = 50 * acres; // mandi distance proxy
+    const transportCO2 = 50 * acres;
     return {
       co2: Math.round(fertCO2 + irrigCO2 + transportCO2),
       breakdown: [
@@ -85,25 +80,40 @@ export default function CarbonFootprintWidget() {
   }, [active]);
 
   const cls = classify(co2);
+  const total = breakdown.reduce((s, b) => s + b.value, 0);
 
-  const askTip = async () => {
-    setLoadingTip(true);
+  const askPlan = async () => {
+    setLoadingPlan(true);
     try {
-      const { data } = await supabase.functions.invoke("daily-tip", {
+      const { data, error } = await supabase.functions.invoke("krishi-ai", {
         body: {
-          language: "en",
-          profile: { ...active, prompt_hint: `Carbon footprint ${co2} kg CO2/season. Suggest one specific cut.` },
+          action: "carbon_plan",
+          profileContext: ctx,
+          farmData: {
+            current_total_kg: co2,
+            fertilizer_type: fertType,
+            irrigation_type: irrig,
+            breakdown: breakdown.map((b) => ({ source: b.label, kg: b.value })),
+            acres: parseFloat(active?.farm_size || "1") || 1,
+            state: active?.farmer_details?.state,
+            crops: active?.farmer_details?.current_crops,
+          },
         },
       });
-      setTip((data as any)?.tip || "Switch one acre to drip irrigation to cut 150 kg CO2 next season.");
-    } catch {
-      setTip("Switch one acre to drip irrigation to cut 150 kg CO2 next season.");
+      if (error) throw error;
+      const raw = (data as any)?.result;
+      const parsed: CarbonPlan = typeof raw === "string" ? JSON.parse(raw) : raw;
+      setPlan(parsed);
+      toast.success(`AI plan ready — could cut ${Math.round(co2 - parsed.target_total_kg)} kg CO₂`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not get carbon plan");
     } finally {
-      setLoadingTip(false);
+      setLoadingPlan(false);
     }
   };
 
-  const total = breakdown.reduce((s, b) => s + b.value, 0);
+  const diffColor = (d: string) =>
+    d === "easy" ? "text-primary bg-primary/10" : d === "medium" ? "text-krishi-gold bg-krishi-gold-light" : "text-destructive bg-destructive/10";
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
@@ -123,15 +133,9 @@ export default function CarbonFootprintWidget() {
         <p className="text-xs text-muted-foreground">per season · all sources</p>
       </div>
 
-      {/* Stacked bar */}
       <div className="flex h-3 rounded-full overflow-hidden mb-2">
         {breakdown.map((b) => (
-          <div
-            key={b.label}
-            className={b.color}
-            style={{ width: `${(b.value / total) * 100}%` }}
-            title={`${b.label}: ${b.value} kg`}
-          />
+          <div key={b.label} className={b.color} style={{ width: `${(b.value / total) * 100}%` }} title={`${b.label}: ${b.value} kg`} />
         ))}
       </div>
       <div className="space-y-1 mb-3">
@@ -146,15 +150,43 @@ export default function CarbonFootprintWidget() {
         ))}
       </div>
 
-      {tip && (
-        <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs text-foreground mb-2">
-          <Sparkles className="h-3 w-3 text-primary inline mr-1" /> {tip}
-        </div>
-      )}
+      <AnimatePresence>
+        {plan && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-2 mb-3">
+            <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-muted-foreground">AI target</span>
+                <span className="font-bold text-primary">{Math.round(plan.target_total_kg).toLocaleString()} kg CO₂ <span className="text-[10px] text-muted-foreground">(↓{Math.round(((co2 - plan.target_total_kg) / Math.max(co2, 1)) * 100)}%)</span></span>
+              </div>
+              <p className="italic text-foreground/80 text-[11px]">💚 {plan.motivation}</p>
+            </div>
+            {plan.actions.slice(0, 4).map((a, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.06 }}
+                className="p-2.5 rounded-lg border border-border bg-background/60"
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-xs font-semibold text-foreground leading-tight">{i + 1}. {a.title}</p>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded ${diffColor(a.difficulty)}`}>{a.difficulty}</span>
+                </div>
+                <p className="text-[10.5px] text-muted-foreground leading-snug mb-1.5">{a.description}</p>
+                <div className="flex items-center gap-2.5 text-[10px]">
+                  <span className="flex items-center gap-0.5 text-primary font-medium"><Zap className="h-2.5 w-2.5" />{Math.round(a.co2_saved_kg)} kg saved</span>
+                  <span className="flex items-center gap-0.5 text-muted-foreground"><IndianRupee className="h-2.5 w-2.5" />{a.cost_inr.toLocaleString()}</span>
+                  <span className="flex items-center gap-0.5 text-muted-foreground"><Clock className="h-2.5 w-2.5" />{a.payback_months}mo</span>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={askTip} disabled={loadingTip}>
-        {loadingTip ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <TrendingDown className="h-3.5 w-3.5" />}
-        Get cut-emissions tip
+      <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={askPlan} disabled={loadingPlan}>
+        {loadingPlan ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        {plan ? "Refresh AI plan" : "Generate AI cut-emissions plan"}
       </Button>
     </motion.div>
   );
