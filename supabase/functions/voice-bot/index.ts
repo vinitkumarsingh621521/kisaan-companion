@@ -151,8 +151,9 @@ serve(async (req) => {
     }
 
     const reply = await chatWithGroq(transcript, profile);
+    const tts = await ttsWithGroq(reply, language || "en");
 
-    return new Response(JSON.stringify({ transcript, reply }), {
+    return new Response(JSON.stringify({ transcript, reply, audio: tts?.audio, audioMime: tts?.mime }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
