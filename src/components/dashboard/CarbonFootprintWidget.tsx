@@ -1,10 +1,27 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Leaf, TrendingDown, Sparkles, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Leaf, TrendingDown, Sparkles, Loader2, IndianRupee, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { usePersonalization } from "@/hooks/usePersonalization";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+type CarbonAction = {
+  title: string;
+  category: string;
+  description: string;
+  co2_saved_kg: number;
+  cost_inr: number;
+  payback_months: number;
+  difficulty: "easy" | "medium" | "hard";
+};
+type CarbonPlan = {
+  current_total_kg: number;
+  target_total_kg: number;
+  actions: CarbonAction[];
+  motivation: string;
+};
 
 // Rough emission factors — kg CO2e per acre per season
 const FERT_FACTORS: Record<string, number> = {
