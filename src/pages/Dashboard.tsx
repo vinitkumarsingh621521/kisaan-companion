@@ -17,6 +17,7 @@ import CropSuitabilityWarning from "@/components/dashboard/CropSuitabilityWarnin
 import FarmPulseTicker from "@/components/dashboard/FarmPulseTicker";
 import YieldForecastChart from "@/components/dashboard/YieldForecastChart";
 import CarbonFootprintWidget from "@/components/dashboard/CarbonFootprintWidget";
+import MistakeDetectorWidget from "@/components/dashboard/MistakeDetectorWidget";
 import { motion } from "framer-motion";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
@@ -91,6 +92,7 @@ export default function Dashboard() {
               <WeatherWidget />
               <SoilHealthCard />
               <CarbonFootprintWidget />
+              <MistakeDetectorWidget />
               <AIChatWidget />
             </div>
           </div>

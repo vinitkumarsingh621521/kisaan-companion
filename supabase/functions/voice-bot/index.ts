@@ -51,6 +51,44 @@ async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language
   return j.text || "";
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+  }
+  return btoa(binary);
+}
+
+// Groq PlayAI TTS — only English/Arabic voices currently. For Indian languages we let client use browser TTS.
+async function ttsWithGroq(text: string, language: string): Promise<{ audio: string; mime: string } | null> {
+  const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
+  if (!GROQ_KEY) return null;
+  // Only attempt for English — Groq playai-tts does not yet support Indic languages well
+  if (language && language !== "en") return null;
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "playai-tts",
+        voice: "Fritz-PlayAI",
+        input: text.slice(0, 800),
+        response_format: "wav",
+      }),
+    });
+    if (!r.ok) {
+      console.warn("[voice-bot] Groq TTS failed", r.status);
+      return null;
+    }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    return { audio: bytesToBase64(buf), mime: "audio/wav" };
+  } catch (e) {
+    console.warn("[voice-bot] Groq TTS error", e);
+    return null;
+  }
+}
+
 async function chatWithGroq(userText: string, profile: any): Promise<string> {
   const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
   if (!GROQ_KEY) throw new Error("Groq API key missing");
@@ -113,8 +151,9 @@ serve(async (req) => {
     }
 
     const reply = await chatWithGroq(transcript, profile);
+    const tts = await ttsWithGroq(reply, language || "en");
 
-    return new Response(JSON.stringify({ transcript, reply }), {
+    return new Response(JSON.stringify({ transcript, reply, audio: tts?.audio, audioMime: tts?.mime }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

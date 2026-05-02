@@ -69,19 +69,73 @@ export default function VoiceBubble() {
 
   useEffect(() => () => cleanupStream(), [cleanupStream]);
 
-  const speak = (text: string) => {
+  const pickVoice = (lang: string): SpeechSynthesisVoice | null => {
+    if (!("speechSynthesis" in window)) return null;
+    const voices = speechSynthesis.getVoices();
+    if (!voices.length) return null;
+    const exact = voices.find((v) => v.lang === lang);
+    if (exact) return exact;
+    const root = lang.split("-")[0];
+    // Prefer Google / natural voices for that root language
+    const natural = voices.find((v) => v.lang.startsWith(root) && /google|natural|neural|premium/i.test(v.name));
+    if (natural) return natural;
+    const any = voices.find((v) => v.lang.startsWith(root));
+    return any || null;
+  };
+
+  const speakBrowser = (text: string) => {
     if (!("speechSynthesis" in window)) return;
     try {
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = LANG_BCP[i18n.language] || "en-IN";
-      u.rate = 1.0;
+      const lang = LANG_BCP[i18n.language] || "en-IN";
+      u.lang = lang;
+      const v = pickVoice(lang);
+      if (v) u.voice = v;
+      u.rate = 0.95;
       u.pitch = 1.0;
+      u.volume = 1.0;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     } catch (e) {
       console.warn("TTS failed", e);
     }
   };
+
+  const playServerAudio = async (b64: string, mime: string) => {
+    try {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const audio = audioRef.current || new Audio();
+      audioRef.current = audio;
+      audio.src = url;
+      await audio.play();
+      audio.onended = () => URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn("Server audio playback failed, falling back", e);
+      throw e;
+    }
+  };
+
+  const speak = async (text: string, serverAudio?: { audio?: string; mime?: string }) => {
+    if (serverAudio?.audio && serverAudio?.mime) {
+      try {
+        await playServerAudio(serverAudio.audio, serverAudio.mime);
+        return;
+      } catch {}
+    }
+    speakBrowser(text);
+  };
+
+  // Prime voices list (Chrome loads async)
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const load = () => speechSynthesis.getVoices();
+    load();
+    speechSynthesis.onvoiceschanged = load;
+  }, []);
 
   const sendToBot = async (payload: { audio?: string; mime?: string; text?: string }) => {
     const { data, error } = await supabase.functions.invoke("voice-bot", {
@@ -94,7 +148,7 @@ export default function VoiceBubble() {
     if (error) throw new Error(error.message || "Voice bot failed");
     if (!data) throw new Error("No response from voice bot");
     if ((data as any).error) throw new Error((data as any).error);
-    return data as { transcript: string; reply: string };
+    return data as { transcript: string; reply: string; audio?: string; audioMime?: string };
   };
 
   // ───── Path A: Browser SpeechRecognition (Chrome/Edge desktop, Android) ─────
@@ -134,7 +188,7 @@ export default function VoiceBubble() {
         try {
           const r = await sendToBot({ text: finalText });
           setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
-          speak(r.reply);
+          speak(r.reply, { audio: r.audio, mime: r.audioMime });
         } catch (e: any) {
           toast.error(e?.message || "Could not get reply");
         } finally {
@@ -216,7 +270,7 @@ export default function VoiceBubble() {
 
       const r = await sendToBot({ audio: b64, mime });
       setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
-      speak(r.reply);
+      speak(r.reply, { audio: r.audio, mime: r.audioMime });
     } catch (e: any) {
       toast.error(e?.message || "Voice processing failed");
     } finally {
