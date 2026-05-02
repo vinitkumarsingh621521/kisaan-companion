@@ -188,7 +188,7 @@ export default function VoiceBubble() {
         try {
           const r = await sendToBot({ text: finalText });
           setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
-          speak(r.reply);
+          speak(r.reply, { audio: r.audio, mime: r.audioMime });
         } catch (e: any) {
           toast.error(e?.message || "Could not get reply");
         } finally {
@@ -270,7 +270,7 @@ export default function VoiceBubble() {
 
       const r = await sendToBot({ audio: b64, mime });
       setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
-      speak(r.reply);
+      speak(r.reply, { audio: r.audio, mime: r.audioMime });
     } catch (e: any) {
       toast.error(e?.message || "Voice processing failed");
     } finally {
