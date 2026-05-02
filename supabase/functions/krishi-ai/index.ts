@@ -188,6 +188,75 @@ serve(async (req) => {
       },
     };
 
+    const carbonPlanTool = {
+      type: "function",
+      function: {
+        name: "return_carbon_plan",
+        description: "Return personalised emissions cut plan with 4 ranked actions.",
+        parameters: {
+          type: "object",
+          properties: {
+            current_total_kg: { type: "number" },
+            target_total_kg: { type: "number" },
+            actions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  category: { type: "string", enum: ["fertilizer", "irrigation", "transport", "energy", "soil", "other"] },
+                  description: { type: "string" },
+                  co2_saved_kg: { type: "number" },
+                  cost_inr: { type: "number" },
+                  payback_months: { type: "number" },
+                  difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
+                },
+                required: ["title", "category", "description", "co2_saved_kg", "cost_inr", "payback_months", "difficulty"],
+                additionalProperties: false,
+              },
+            },
+            motivation: { type: "string" },
+          },
+          required: ["current_total_kg", "target_total_kg", "actions", "motivation"],
+          additionalProperties: false,
+        },
+      },
+    };
+
+    const mistakeCheckTool = {
+      type: "function",
+      function: {
+        name: "return_mistake_audit",
+        description: "Return an audit of farming-input mistakes with corrective actions.",
+        parameters: {
+          type: "object",
+          properties: {
+            overall_grade: { type: "string", enum: ["A", "B", "C", "D", "F"] },
+            risk_score: { type: "number" },
+            summary: { type: "string" },
+            mistakes: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  area: { type: "string", enum: ["fertilizer", "pesticide", "irrigation", "soil", "seed", "rotation", "other"] },
+                  severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+                  what_you_did: { type: "string" },
+                  why_wrong: { type: "string" },
+                  correct_action: { type: "string" },
+                  potential_loss_inr: { type: "number" },
+                },
+                required: ["area", "severity", "what_you_did", "why_wrong", "correct_action", "potential_loss_inr"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["overall_grade", "risk_score", "summary", "mistakes"],
+          additionalProperties: false,
+        },
+      },
+    };
+
     const body: any = { model, messages: apiMessages, stream: isStreaming };
     if (action === "crop_recommendation") {
       body.tools = [cropRecTool];
@@ -197,6 +266,16 @@ serve(async (req) => {
     if (action === "compat") {
       body.tools = [compatTool];
       body.tool_choice = { type: "function", function: { name: "return_compatibility" } };
+      body.stream = false;
+    }
+    if (action === "carbon_plan") {
+      body.tools = [carbonPlanTool];
+      body.tool_choice = { type: "function", function: { name: "return_carbon_plan" } };
+      body.stream = false;
+    }
+    if (action === "mistake_check") {
+      body.tools = [mistakeCheckTool];
+      body.tool_choice = { type: "function", function: { name: "return_mistake_audit" } };
       body.stream = false;
     }
 
