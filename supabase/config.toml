@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.daily-tip]
 verify_jwt = false
+
+[functions.farmer-context]
+verify_jwt = false
+
+[functions.pin-lookup]
+verify_jwt = false
