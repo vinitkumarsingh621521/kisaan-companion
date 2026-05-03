@@ -139,10 +139,11 @@ export default function ProfileWizard({ farmerDetails, onChange, onSave, saving 
       );
       case 1: return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <PinLookup d={d} set={set} />
           <SelectField label="State" value={d.state} onChange={v => set("state", v)} options={indianStates} />
           <InputField label="District" value={d.district} onChange={v => set("district", v)} placeholder="Ranchi" />
           <InputField label="Village / Town" value={d.village} onChange={v => set("village", v)} placeholder="Kanke" />
-          <InputField label="GPS Coordinates" value={d.gps_coords} onChange={v => set("gps_coords", v)} placeholder="23.34, 85.31" hint="Optional — improves weather accuracy" />
+          <InputField label="PIN Code" value={d.pincode} onChange={v => set("pincode", v.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit PIN" hint="Used for accurate location, weather, mandi & schemes" />
           <InputField label="Total Land (acres)" value={d.total_land} onChange={v => set("total_land", v)} placeholder="5" type="number" />
           <InputField label="Cultivable Land (acres)" value={d.cultivable_land} onChange={v => set("cultivable_land", v)} placeholder="4" type="number" />
           <InputField label="Irrigated Land (acres)" value={d.irrigated_land} onChange={v => set("irrigated_land", v)} placeholder="3" type="number" />
