@@ -136,15 +136,15 @@ function buildNotifications(opts: {
   }
 
   // ─── Scheme deadline (PM-KISAN quarterly)
-  const today = new Date();
+  const todayDate = new Date();
   const quarterEnds = [
-    new Date(today.getFullYear(), 2, 31), // Mar
-    new Date(today.getFullYear(), 5, 30), // Jun
-    new Date(today.getFullYear(), 8, 30), // Sep
-    new Date(today.getFullYear(), 11, 31), // Dec
+    new Date(todayDate.getFullYear(), 2, 31),
+    new Date(todayDate.getFullYear(), 5, 30),
+    new Date(todayDate.getFullYear(), 8, 30),
+    new Date(todayDate.getFullYear(), 11, 31),
   ];
-  const nextEnd = quarterEnds.find((d) => d >= today) || quarterEnds[0];
-  const daysLeft = Math.max(1, Math.ceil((nextEnd.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)));
+  const nextEnd = quarterEnds.find((d) => d >= todayDate) || quarterEnds[0];
+  const daysLeft = Math.max(1, Math.ceil((nextEnd.getTime() - todayDate.getTime()) / (24 * 60 * 60 * 1000)));
   if (daysLeft <= 30) {
     out.push({
       id: "s-pmkisan",
