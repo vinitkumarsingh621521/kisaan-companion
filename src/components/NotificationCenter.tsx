@@ -228,18 +228,20 @@ export default function NotificationCenter() {
     } catch { setStreak(1); }
   }, []);
 
-  // Load read IDs
+  // Reset read+tip state whenever profile changes
   useEffect(() => {
     try {
-      const ids: string[] = JSON.parse(localStorage.getItem(READ_KEY) || "[]");
+      const ids: string[] = JSON.parse(localStorage.getItem(READ_KEY(active?.id)) || "[]");
       setReadIds(new Set(ids));
-    } catch {}
-  }, []);
+    } catch { setReadIds(new Set()); }
+    setDailyTip(null);
+  }, [active?.id]);
 
-  // Cache daily AI tip
+  // Cache daily AI tip per profile
   useEffect(() => {
+    if (!active?.id) return;
     try {
-      const raw = localStorage.getItem(DAILY_TIP_KEY);
+      const raw = localStorage.getItem(DAILY_TIP_KEY(active.id));
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Date.now() - parsed.ts < 24 * 60 * 60 * 1000) {
@@ -247,13 +249,12 @@ export default function NotificationCenter() {
           return;
         }
       }
-      // Fetch a fresh tip (best-effort, fail silently)
       supabase.functions
         .invoke("daily-tip", { body: { language: i18n.language, profile: active } })
         .then(({ data }) => {
           if ((data as any)?.tip) {
             const obj = { tip: (data as any).tip, ts: Date.now() };
-            localStorage.setItem(DAILY_TIP_KEY, JSON.stringify(obj));
+            localStorage.setItem(DAILY_TIP_KEY(active.id), JSON.stringify(obj));
             setDailyTip(obj);
           }
         })
@@ -273,13 +274,13 @@ export default function NotificationCenter() {
   const markAllRead = () => {
     const ids = items.map((n) => n.id);
     const all = new Set([...Array.from(readIds), ...ids]);
-    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(all)));
+    localStorage.setItem(READ_KEY(active?.id), JSON.stringify(Array.from(all)));
     setReadIds(all);
   };
 
   const markOneRead = (id: string) => {
     const all = new Set([...Array.from(readIds), id]);
-    localStorage.setItem(READ_KEY, JSON.stringify(Array.from(all)));
+    localStorage.setItem(READ_KEY(active?.id), JSON.stringify(Array.from(all)));
     setReadIds(all);
   };
 
