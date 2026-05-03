@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Save, Loader2, User, MapPin, Droplets, Sprout, Wallet, Wrench, Settings, Target, GraduationCap, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, Loader2, User, MapPin, Droplets, Sprout, Wallet, Wrench, Settings, Target, GraduationCap, Sparkles, Search } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface FarmerDetails {
   [key: string]: string;
@@ -30,7 +32,56 @@ const steps = [
   { id: "preferences", label: "How You Like It", icon: Settings, emoji: "⚙️" },
 ];
 
-const indianStates = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"];
+const indianStates = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Puducherry", "Andaman and Nicobar Islands", "Lakshadweep", "Dadra and Nagar Haveli and Daman and Diu"];
+
+function PinLookup({ d, set }: { d: FarmerDetails; set: (k: string, v: string) => void }) {
+  const [pin, setPin] = useState(d.pincode || "");
+  const [loading, setLoading] = useState(false);
+  const lookup = async () => {
+    if (!/^\d{6}$/.test(pin)) { toast.error("Enter a valid 6-digit PIN"); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pin-lookup", { body: { pincode: pin } });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Lookup failed");
+      const r: any = data;
+      set("pincode", pin);
+      if (r.state) set("state", r.state);
+      if (r.district) set("district", r.district);
+      if (r.village && !d.village) set("village", r.village);
+      if (r.lat) set("pincode_lat", String(r.lat));
+      if (r.lon) set("pincode_lon", String(r.lon));
+      if (r.annual_rainfall && !d.annual_rainfall) set("annual_rainfall", String(r.annual_rainfall));
+      if (r.soil_hint && !d.soil_color) set("soil_color", r.soil_hint);
+      toast.success(`📍 ${r.district}, ${r.state} — auto-filled from PIN ${pin}`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally { setLoading(false); }
+  };
+  return (
+    <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+      <Label className="text-xs mb-1.5 block text-foreground font-semibold flex items-center gap-1.5">
+        <Search className="h-3.5 w-3.5 text-primary" /> Quick start: enter your 6-digit PIN code
+      </Label>
+      <div className="flex gap-2">
+        <Input
+          className="h-9"
+          inputMode="numeric"
+          maxLength={6}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          placeholder="e.g. 110001, 560001, 700001…"
+        />
+        <Button type="button" size="sm" onClick={lookup} disabled={loading} className="h-9 gap-1.5 whitespace-nowrap">
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+          {loading ? "Looking up…" : "Auto-fill"}
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
+        Auto-fills state, district, coordinates, rainfall and soil hint. You can still edit anything below.
+      </p>
+    </div>
+  );
+}
 
 function SelectField({ label, value, onChange, options, placeholder, hint }: { label: string; value: string; onChange: (v: string) => void; options: string[]; placeholder?: string; hint?: string }) {
   return (
@@ -62,7 +113,7 @@ export default function ProfileWizard({ farmerDetails, onChange, onSave, saving 
 
   // Personalization power
   const allFields = ["age","gender","education","family_size","farming_experience","tractor_name","farm_movie",
-    "state","district","village","total_land","cultivable_land","irrigated_land","ownership_type","gps_coords",
+    "state","district","village","pincode","total_land","cultivable_land","irrigated_land","ownership_type",
     "soil_ph","nitrogen","phosphorus","potassium","organic_carbon","water_source","irrigation_type","annual_rainfall","soil_color",
     "current_crops","previous_crops","preferred_season","farming_type","livestock","crop_area_distribution","favorite_crop","crop_failure_story",
     "annual_income","monthly_investment","existing_loans","bank_account","insurance_status","budget_per_acre","money_dream",
@@ -88,10 +139,11 @@ export default function ProfileWizard({ farmerDetails, onChange, onSave, saving 
       );
       case 1: return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <PinLookup d={d} set={set} />
           <SelectField label="State" value={d.state} onChange={v => set("state", v)} options={indianStates} />
           <InputField label="District" value={d.district} onChange={v => set("district", v)} placeholder="Ranchi" />
           <InputField label="Village / Town" value={d.village} onChange={v => set("village", v)} placeholder="Kanke" />
-          <InputField label="GPS Coordinates" value={d.gps_coords} onChange={v => set("gps_coords", v)} placeholder="23.34, 85.31" hint="Optional — improves weather accuracy" />
+          <InputField label="PIN Code" value={d.pincode} onChange={v => set("pincode", v.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit PIN" hint="Used for accurate location, weather, mandi & schemes" />
           <InputField label="Total Land (acres)" value={d.total_land} onChange={v => set("total_land", v)} placeholder="5" type="number" />
           <InputField label="Cultivable Land (acres)" value={d.cultivable_land} onChange={v => set("cultivable_land", v)} placeholder="4" type="number" />
           <InputField label="Irrigated Land (acres)" value={d.irrigated_land} onChange={v => set("irrigated_land", v)} placeholder="3" type="number" />

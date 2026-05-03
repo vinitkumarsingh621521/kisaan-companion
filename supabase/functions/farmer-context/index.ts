@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Simple state → climate zone + monsoon stage mapping + capital coords (for weather fallback)
+// State/UT → climate + capital coords. Covers all 28 states + 8 UTs.
 const STATE_CLIMATE: Record<string, { zone: string; rainfall: string; soils: string[]; majorCrops: string[]; lat: number; lon: number }> = {
   "Punjab": { zone: "Sub-tropical semi-arid", rainfall: "400-700mm", soils: ["Alluvial", "Sandy loam"], majorCrops: ["Wheat", "Rice", "Cotton", "Sugarcane"], lat: 30.73, lon: 76.78 },
   "Haryana": { zone: "Semi-arid", rainfall: "350-650mm", soils: ["Alluvial", "Sandy"], majorCrops: ["Wheat", "Rice", "Mustard", "Bajra"], lat: 28.45, lon: 77.02 },
@@ -28,6 +28,21 @@ const STATE_CLIMATE: Record<string, { zone: string; rainfall: string; soils: str
   "Himachal Pradesh": { zone: "Temperate", rainfall: "1000-1500mm", soils: ["Mountain", "Brown"], majorCrops: ["Apple", "Wheat", "Maize", "Potato"], lat: 31.10, lon: 77.17 },
   "Uttarakhand": { zone: "Sub-tropical to temperate", rainfall: "1000-2500mm", soils: ["Alluvial", "Mountain"], majorCrops: ["Rice", "Wheat", "Sugarcane", "Pulses"], lat: 30.32, lon: 78.03 },
   "Goa": { zone: "Tropical humid", rainfall: "2500-3500mm", soils: ["Laterite"], majorCrops: ["Rice", "Coconut", "Cashew", "Areca nut"], lat: 15.49, lon: 73.83 },
+  "Manipur": { zone: "Sub-tropical", rainfall: "1500mm", soils: ["Red Loamy"], majorCrops: ["Rice", "Maize", "Pulses"], lat: 24.81, lon: 93.94 },
+  "Meghalaya": { zone: "Sub-tropical humid", rainfall: "4000mm+", soils: ["Laterite"], majorCrops: ["Rice", "Maize", "Potato", "Ginger"], lat: 25.57, lon: 91.88 },
+  "Mizoram": { zone: "Sub-tropical", rainfall: "2500mm", soils: ["Red Loamy"], majorCrops: ["Rice", "Maize", "Ginger", "Bamboo"], lat: 23.73, lon: 92.71 },
+  "Nagaland": { zone: "Sub-tropical", rainfall: "2000mm", soils: ["Forest"], majorCrops: ["Rice", "Maize", "Pulses"], lat: 25.67, lon: 94.11 },
+  "Tripura": { zone: "Sub-tropical humid", rainfall: "2000mm", soils: ["Alluvial"], majorCrops: ["Rice", "Jute", "Tea"], lat: 23.84, lon: 91.28 },
+  "Arunachal Pradesh": { zone: "Temperate", rainfall: "2800mm", soils: ["Mountain"], majorCrops: ["Rice", "Maize", "Millets"], lat: 27.10, lon: 93.62 },
+  "Sikkim": { zone: "Temperate", rainfall: "2500mm", soils: ["Mountain"], majorCrops: ["Cardamom", "Maize", "Rice", "Ginger"], lat: 27.33, lon: 88.61 },
+  "Jammu and Kashmir": { zone: "Temperate", rainfall: "650-1100mm", soils: ["Mountain", "Alluvial"], majorCrops: ["Apple", "Saffron", "Rice", "Maize"], lat: 34.08, lon: 74.80 },
+  "Ladakh": { zone: "Cold arid", rainfall: "100mm", soils: ["Cold desert"], majorCrops: ["Barley", "Wheat", "Apricot", "Vegetables"], lat: 34.16, lon: 77.58 },
+  "Delhi": { zone: "Semi-arid", rainfall: "700mm", soils: ["Alluvial"], majorCrops: ["Wheat", "Vegetables", "Mustard"], lat: 28.61, lon: 77.21 },
+  "Chandigarh": { zone: "Sub-tropical", rainfall: "1000mm", soils: ["Alluvial"], majorCrops: ["Wheat", "Rice", "Vegetables"], lat: 30.73, lon: 76.78 },
+  "Puducherry": { zone: "Tropical", rainfall: "1300mm", soils: ["Alluvial"], majorCrops: ["Rice", "Sugarcane", "Coconut"], lat: 11.93, lon: 79.83 },
+  "Andaman and Nicobar Islands": { zone: "Tropical humid", rainfall: "3000mm", soils: ["Forest"], majorCrops: ["Rice", "Coconut", "Areca nut"], lat: 11.62, lon: 92.72 },
+  "Lakshadweep": { zone: "Tropical", rainfall: "1600mm", soils: ["Coral sandy"], majorCrops: ["Coconut"], lat: 10.57, lon: 72.64 },
+  "Dadra and Nagar Haveli and Daman and Diu": { zone: "Tropical humid", rainfall: "2000mm", soils: ["Coastal alluvium"], majorCrops: ["Rice", "Ragi", "Pulses"], lat: 20.27, lon: 73.02 },
 };
 
 function monsoonStage(): string {
@@ -111,14 +126,26 @@ serve(async (req) => {
     const state = d.state || "";
     const climate = STATE_CLIMATE[state] || { zone: "Unknown", rainfall: "Unknown", soils: [], majorCrops: [], lat: 0, lon: 0 };
 
-    // Resolve coords: try geocode of district→state, fallback to state capital coords
+    // Resolve coords. Priority:
+    // 1. pincode_lat/lon (set by pin-lookup),
+    // 2. parsed gps_coords field "lat,lon",
+    // 3. geocode farm_location / district / state,
+    // 4. state-capital fallback.
     let lat = climate.lat, lon = climate.lon;
-    const district = d.district || "";
-    const farmLoc = profile?.farm_location || "";
-    const queries = [farmLoc, district && state ? `${district}, ${state}, India` : "", state ? `${state}, India` : ""].filter(Boolean);
-    for (const q of queries) {
-      const hit = await geocode(q);
-      if (hit) { lat = hit.lat; lon = hit.lon; break; }
+    const pinLat = parseFloat(d.pincode_lat), pinLon = parseFloat(d.pincode_lon);
+    if (!isNaN(pinLat) && !isNaN(pinLon) && pinLat !== 0) {
+      lat = pinLat; lon = pinLon;
+    } else if (typeof d.gps_coords === "string" && /-?\d+\.?\d*\s*,\s*-?\d+\.?\d*/.test(d.gps_coords)) {
+      const [a, b] = d.gps_coords.split(",").map((x: string) => parseFloat(x.trim()));
+      if (!isNaN(a) && !isNaN(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180) { lat = a; lon = b; }
+    } else {
+      const district = d.district || "";
+      const farmLoc = profile?.farm_location || "";
+      const queries = [farmLoc, district && state ? `${district}, ${state}, India` : "", state ? `${state}, India` : ""].filter(Boolean);
+      for (const q of queries) {
+        const hit = await geocode(q);
+        if (hit) { lat = hit.lat; lon = hit.lon; break; }
+      }
     }
 
     const weather = (lat && lon) ? await fetchWeather(lat, lon) : null;
