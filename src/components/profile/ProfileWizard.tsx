@@ -113,7 +113,7 @@ export default function ProfileWizard({ farmerDetails, onChange, onSave, saving 
 
   // Personalization power
   const allFields = ["age","gender","education","family_size","farming_experience","tractor_name","farm_movie",
-    "state","district","village","total_land","cultivable_land","irrigated_land","ownership_type","gps_coords",
+    "state","district","village","pincode","total_land","cultivable_land","irrigated_land","ownership_type",
     "soil_ph","nitrogen","phosphorus","potassium","organic_carbon","water_source","irrigation_type","annual_rainfall","soil_color",
     "current_crops","previous_crops","preferred_season","farming_type","livestock","crop_area_distribution","favorite_crop","crop_failure_story",
     "annual_income","monthly_investment","existing_loans","bank_account","insurance_status","budget_per_acre","money_dream",
