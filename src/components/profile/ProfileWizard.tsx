@@ -32,7 +32,56 @@ const steps = [
   { id: "preferences", label: "How You Like It", icon: Settings, emoji: "⚙️" },
 ];
 
-const indianStates = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"];
+const indianStates = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Puducherry", "Andaman and Nicobar Islands", "Lakshadweep", "Dadra and Nagar Haveli and Daman and Diu"];
+
+function PinLookup({ d, set }: { d: FarmerDetails; set: (k: string, v: string) => void }) {
+  const [pin, setPin] = useState(d.pincode || "");
+  const [loading, setLoading] = useState(false);
+  const lookup = async () => {
+    if (!/^\d{6}$/.test(pin)) { toast.error("Enter a valid 6-digit PIN"); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pin-lookup", { body: { pincode: pin } });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Lookup failed");
+      const r: any = data;
+      set("pincode", pin);
+      if (r.state) set("state", r.state);
+      if (r.district) set("district", r.district);
+      if (r.village && !d.village) set("village", r.village);
+      if (r.lat) set("pincode_lat", String(r.lat));
+      if (r.lon) set("pincode_lon", String(r.lon));
+      if (r.annual_rainfall && !d.annual_rainfall) set("annual_rainfall", String(r.annual_rainfall));
+      if (r.soil_hint && !d.soil_color) set("soil_color", r.soil_hint);
+      toast.success(`📍 ${r.district}, ${r.state} — auto-filled from PIN ${pin}`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally { setLoading(false); }
+  };
+  return (
+    <div className="sm:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+      <Label className="text-xs mb-1.5 block text-foreground font-semibold flex items-center gap-1.5">
+        <Search className="h-3.5 w-3.5 text-primary" /> Quick start: enter your 6-digit PIN code
+      </Label>
+      <div className="flex gap-2">
+        <Input
+          className="h-9"
+          inputMode="numeric"
+          maxLength={6}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          placeholder="e.g. 110001, 560001, 700001…"
+        />
+        <Button type="button" size="sm" onClick={lookup} disabled={loading} className="h-9 gap-1.5 whitespace-nowrap">
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+          {loading ? "Looking up…" : "Auto-fill"}
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
+        Auto-fills state, district, coordinates, rainfall and soil hint. You can still edit anything below.
+      </p>
+    </div>
+  );
+}
 
 function SelectField({ label, value, onChange, options, placeholder, hint }: { label: string; value: string; onChange: (v: string) => void; options: string[]; placeholder?: string; hint?: string }) {
   return (
