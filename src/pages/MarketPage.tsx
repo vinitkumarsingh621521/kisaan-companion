@@ -123,6 +123,10 @@ export default function MarketPage() {
             </div>
           </div>
 
+          <div className="mb-5">
+            <FreightArbitrageCalc mandis={mandis} baseKm={baseKm} />
+          </div>
+
           <MultiMandiCompare />
         </div>
       </main>
