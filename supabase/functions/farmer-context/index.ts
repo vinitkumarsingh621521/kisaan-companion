@@ -126,14 +126,26 @@ serve(async (req) => {
     const state = d.state || "";
     const climate = STATE_CLIMATE[state] || { zone: "Unknown", rainfall: "Unknown", soils: [], majorCrops: [], lat: 0, lon: 0 };
 
-    // Resolve coords: try geocode of district→state, fallback to state capital coords
+    // Resolve coords. Priority:
+    // 1. pincode_lat/lon (set by pin-lookup),
+    // 2. parsed gps_coords field "lat,lon",
+    // 3. geocode farm_location / district / state,
+    // 4. state-capital fallback.
     let lat = climate.lat, lon = climate.lon;
-    const district = d.district || "";
-    const farmLoc = profile?.farm_location || "";
-    const queries = [farmLoc, district && state ? `${district}, ${state}, India` : "", state ? `${state}, India` : ""].filter(Boolean);
-    for (const q of queries) {
-      const hit = await geocode(q);
-      if (hit) { lat = hit.lat; lon = hit.lon; break; }
+    const pinLat = parseFloat(d.pincode_lat), pinLon = parseFloat(d.pincode_lon);
+    if (!isNaN(pinLat) && !isNaN(pinLon) && pinLat !== 0) {
+      lat = pinLat; lon = pinLon;
+    } else if (typeof d.gps_coords === "string" && /-?\d+\.?\d*\s*,\s*-?\d+\.?\d*/.test(d.gps_coords)) {
+      const [a, b] = d.gps_coords.split(",").map((x: string) => parseFloat(x.trim()));
+      if (!isNaN(a) && !isNaN(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180) { lat = a; lon = b; }
+    } else {
+      const district = d.district || "";
+      const farmLoc = profile?.farm_location || "";
+      const queries = [farmLoc, district && state ? `${district}, ${state}, India` : "", state ? `${state}, India` : ""].filter(Boolean);
+      for (const q of queries) {
+        const hit = await geocode(q);
+        if (hit) { lat = hit.lat; lon = hit.lon; break; }
+      }
     }
 
     const weather = (lat && lon) ? await fetchWeather(lat, lon) : null;
