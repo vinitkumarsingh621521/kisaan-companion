@@ -4,6 +4,7 @@ import MarketPriceWidget from "@/components/dashboard/MarketPriceWidget";
 import MultiMandiCompare from "@/components/market/MultiMandiCompare";
 import PriceSparkline from "@/components/market/PriceSparkline";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import FreightArbitrageCalc from "@/components/market/FreightArbitrageCalc";
 import { motion } from "framer-motion";
 import { MapPin, Navigation, Truck, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
