@@ -22,8 +22,8 @@ type Notif = {
 };
 
 const PREFS_KEY = "km.notif.prefs";
-const READ_KEY = "km.notif.read";
-const DAILY_TIP_KEY = "km.notif.dailyTip";
+const READ_KEY = (pid?: string) => `km.notif.read.${pid || "anon"}`;
+const DAILY_TIP_KEY = (pid?: string) => `km.notif.dailyTip.${pid || "anon"}`;
 const STREAK_KEY = "km.notif.streak";
 
 const ICONS: Record<NotifType, any> = {
