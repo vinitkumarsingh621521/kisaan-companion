@@ -56,39 +56,48 @@ function buildNotifications(opts: {
   const out: Notif[] = [];
   const now = Date.now();
 
-  // ─── Weather alerts
-  const season = ctx?.climate?.current_season?.toLowerCase() || "";
+  // ─── Weather alerts (use real forecast)
   const district = ctx?.location?.district || active?.farmer_details?.district || "your district";
-  if (season.includes("kharif") || season.includes("monsoon")) {
-    out.push({
-      id: "w-monsoon",
-      type: "weather",
-      title: "🌧 Monsoon spray window",
-      body: `Heavy rain expected in ${district} within 48h. Spray fungicide today, not after.`,
-      time: timeAgo(now - 2 * 60 * 60 * 1000),
-      unread: true,
-      priority: 100,
-    });
-  } else if (season.includes("rabi") || season.includes("winter")) {
-    out.push({
-      id: "w-frost",
-      type: "weather",
-      title: "❄️ Frost advisory",
-      body: `Min temp may drop below 5°C in ${district}. Cover seedlings + light smoke fires before sunrise.`,
-      time: timeAgo(now - 3 * 60 * 60 * 1000),
-      unread: true,
-      priority: 95,
-    });
-  } else if (season.includes("zaid") || season.includes("summer")) {
-    out.push({
-      id: "w-heat",
-      type: "weather",
-      title: "🔥 Heat advisory",
-      body: `Max temp 40°C+ this week. Irrigate at 5am or 7pm, not midday.`,
-      time: timeAgo(now - 4 * 60 * 60 * 1000),
-      unread: true,
-      priority: 90,
-    });
+  const state = ctx?.location?.state || "";
+  const today = ctx?.weather?.forecast?.[0];
+  const tomorrow = ctx?.weather?.forecast?.[1];
+  if (today) {
+    if (today.rain_pct >= 60) {
+      out.push({
+        id: `w-rain-${today.date}`,
+        type: "weather",
+        title: `🌧 ${today.rain_pct}% rain in ${district} today`,
+        body: `${today.rain_mm}mm expected · ${today.temp_low}–${today.temp_high}°C. Postpone spraying & check drainage in ${state}.`,
+        time: timeAgo(now - 60 * 60 * 1000),
+        unread: true, priority: 100,
+      });
+    } else if (today.temp_high >= 38) {
+      out.push({
+        id: `w-heat-${today.date}`,
+        type: "weather",
+        title: `🔥 Heat alert ${today.temp_high}°C in ${district}`,
+        body: `Irrigate before 9 AM or after 5 PM. Mulch saves 30% water on hot days like today.`,
+        time: timeAgo(now - 2 * 60 * 60 * 1000),
+        unread: true, priority: 95,
+      });
+    } else if (today.wind_kph >= 25) {
+      out.push({
+        id: `w-wind-${today.date}`,
+        type: "weather",
+        title: `💨 Strong wind ${today.wind_kph} km/h in ${district}`,
+        body: `Avoid pesticide spraying — drift loss high. Tie up tall crops (maize/sugarcane).`,
+        time: timeAgo(now - 90 * 60 * 1000), unread: true, priority: 85,
+      });
+    }
+    if (tomorrow && tomorrow.rain_pct >= 70) {
+      out.push({
+        id: `w-tomorrow-${tomorrow.date}`,
+        type: "weather",
+        title: `⛈ Heavy rain tomorrow (${tomorrow.day})`,
+        body: `${tomorrow.rain_mm}mm forecast in ${district}. Harvest mature crops today, cover stored grain.`,
+        time: timeAgo(now - 30 * 60 * 1000), unread: true, priority: 90,
+      });
+    }
   }
 
   // ─── Price spike (use user's actual crops)
