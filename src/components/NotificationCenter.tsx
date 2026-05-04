@@ -300,10 +300,127 @@ export default function NotificationCenter() {
     localStorage.setItem(PREFS_KEY, JSON.stringify(np));
   };
 
+  const panel = (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-[90] bg-foreground/20 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            className="fixed top-0 right-0 bottom-0 z-[100] w-full sm:w-[400px] bg-card border-l border-border shadow-2xl flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                <h2 className="font-display font-semibold text-foreground">Notifications</h2>
+                {unreadCount > 0 && (
+                  <span className="krishi-badge bg-destructive/10 text-destructive text-[10px]">{unreadCount} new</span>
+                )}
+              </div>
+              <div className="flex gap-1">
+                <button onClick={() => setShowSettings(!showSettings)} className="p-1.5 rounded-md hover:bg-muted" title="Preferences">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-muted">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+
+            {!showSettings && streak >= 1 && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-krishi-gold/10 to-primary/10 border-b border-border">
+                <Sparkles className="h-5 w-5 text-krishi-gold" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{streak}-day streak 🔥</p>
+                  <p className="text-[11px] text-muted-foreground">{items.length} live updates · {dailyTip ? "fresh AI tip" : "loading tip…"}</p>
+                </div>
+              </div>
+            )}
+
+            {showSettings ? (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <h3 className="font-display font-semibold text-sm text-foreground mb-2">Alert preferences</h3>
+                {[
+                  { k: "weather", label: "Weather warnings", icon: Cloud },
+                  { k: "price", label: "Price spikes", icon: TrendingUp },
+                  { k: "scheme", label: "Scheme deadlines", icon: FileText },
+                  { k: "achievement", label: "Streaks & badges", icon: Trophy },
+                  { k: "tip", label: "Daily AI tips", icon: Lightbulb },
+                ].map((p) => (
+                  <div key={p.k} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <p.icon className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-foreground">{p.label}</span>
+                    </div>
+                    <Switch checked={prefs[p.k] ?? true} onCheckedChange={() => togglePref(p.k)} />
+                  </div>
+                ))}
+                <p className="text-[11px] text-muted-foreground italic px-1 pt-2">Toggling off hides that category from the bell.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto">
+                  {items.length === 0 ? (
+                    <p className="text-center text-muted-foreground text-sm italic p-8">All caught up 🌾<br/>Open a section to get fresh alerts.</p>
+                  ) : (
+                    items.map((n) => {
+                      const Icon = ICONS[n.type];
+                      const Tag: any = n.url ? "a" : "div";
+                      const linkProps = n.url ? { href: n.url } : {};
+                      return (
+                        <Tag key={n.id} {...linkProps} onClick={() => markOneRead(n.id)}
+                          className={`block p-4 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer ${n.unread ? "bg-primary/5" : ""}`}>
+                          <div className="flex gap-3">
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              n.priority >= 90 ? "bg-destructive/10" : n.priority >= 70 ? "bg-krishi-gold-light" : "bg-primary/10"
+                            }`}>
+                              <Icon className={`h-4 w-4 ${
+                                n.priority >= 90 ? "text-destructive" : n.priority >= 70 ? "text-krishi-gold" : "text-primary"
+                              }`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="font-medium text-sm text-foreground">{n.title}</h4>
+                                {n.unread && <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{n.body}</p>
+                              <p className="text-[10px] text-muted-foreground/70 mt-1">{n.time}</p>
+                            </div>
+                          </div>
+                        </Tag>
+                      );
+                    })
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <div className="p-3 border-t border-border">
+                    <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={markAllRead}>
+                      <Check className="h-3.5 w-3.5" /> Mark all as read
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
   return (
     <>
       <button
-        onClick={() => setOpen(!open)}
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
         className="relative p-2 rounded-lg hover:bg-muted transition-colors"
         aria-label="Notifications"
       >
@@ -319,138 +436,8 @@ export default function NotificationCenter() {
           </motion.span>
         )}
       </button>
-
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              className="fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[400px] bg-card border-l border-border shadow-2xl flex flex-col"
-            >
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-primary" />
-                  <h2 className="font-display font-semibold text-foreground">Notifications</h2>
-                  {unreadCount > 0 && (
-                    <span className="krishi-badge bg-destructive/10 text-destructive text-[10px]">
-                      {unreadCount} new
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className="p-1.5 rounded-md hover:bg-muted"
-                    title="Preferences"
-                  >
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                  <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-muted">
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Streak summary banner */}
-              {!showSettings && streak >= 1 && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-krishi-gold/10 to-primary/10 border-b border-border">
-                  <Sparkles className="h-5 w-5 text-krishi-gold" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">{streak}-day streak 🔥</p>
-                    <p className="text-[11px] text-muted-foreground">{items.length} live updates · {dailyTip ? "fresh AI tip" : "loading tip…"}</p>
-                  </div>
-                </div>
-              )}
-
-              {showSettings ? (
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  <h3 className="font-display font-semibold text-sm text-foreground mb-2">Alert preferences</h3>
-                  {[
-                    { k: "weather", label: "Weather warnings", icon: Cloud },
-                    { k: "price", label: "Price spikes", icon: TrendingUp },
-                    { k: "scheme", label: "Scheme deadlines", icon: FileText },
-                    { k: "achievement", label: "Streaks & badges", icon: Trophy },
-                    { k: "tip", label: "Daily AI tips", icon: Lightbulb },
-                  ].map((p) => (
-                    <div key={p.k} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-3">
-                        <p.icon className="h-4 w-4 text-primary" />
-                        <span className="text-sm text-foreground">{p.label}</span>
-                      </div>
-                      <Switch
-                        checked={prefs[p.k] ?? true}
-                        onCheckedChange={() => togglePref(p.k)}
-                      />
-                    </div>
-                  ))}
-                  <p className="text-[11px] text-muted-foreground italic px-1 pt-2">
-                    Toggling off hides that category from the bell. You'll still see them in their respective pages.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 overflow-y-auto">
-                    {items.length === 0 ? (
-                      <p className="text-center text-muted-foreground text-sm italic p-8">All caught up 🌾<br/>Open a section to get fresh alerts.</p>
-                    ) : (
-                      items.map((n) => {
-                        const Icon = ICONS[n.type];
-                        const Tag: any = n.url ? "a" : "div";
-                        const linkProps = n.url ? { href: n.url } : {};
-                        return (
-                          <Tag
-                            key={n.id}
-                            {...linkProps}
-                            onClick={() => markOneRead(n.id)}
-                            className={`block p-4 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer ${
-                              n.unread ? "bg-primary/5" : ""
-                            }`}
-                          >
-                            <div className="flex gap-3">
-                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                n.priority >= 90 ? "bg-destructive/10" : n.priority >= 70 ? "bg-krishi-gold-light" : "bg-primary/10"
-                              }`}>
-                                <Icon className={`h-4 w-4 ${
-                                  n.priority >= 90 ? "text-destructive" : n.priority >= 70 ? "text-krishi-gold" : "text-primary"
-                                }`} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className="font-medium text-sm text-foreground">{n.title}</h4>
-                                  {n.unread && <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-0.5">{n.body}</p>
-                                <p className="text-[10px] text-muted-foreground/70 mt-1">{n.time}</p>
-                              </div>
-                            </div>
-                          </Tag>
-                        );
-                      })
-                    )}
-                  </div>
-                  {unreadCount > 0 && (
-                    <div className="p-3 border-t border-border">
-                      <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={markAllRead}>
-                        <Check className="h-3.5 w-3.5" /> Mark all as read
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {typeof document !== "undefined" ? createPortal(panel, document.body) : null}
     </>
   );
 }
+
