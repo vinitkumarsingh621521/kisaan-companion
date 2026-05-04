@@ -233,11 +233,8 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="hidden md:flex items-center gap-1 flex-shrink-0">
-          {/* ⌘K hint */}
-          <kbd className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-[10px] text-muted-foreground bg-muted/30">
-            <span className="text-xs">⌘</span>K
-          </kbd>
+        <div className="hidden md:flex items-center gap-1.5 flex-shrink-0">
+          <SearchBar />
 
           {canInstall && !installed && (
             <Button
