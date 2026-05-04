@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.pin-lookup]
 verify_jwt = false
+
+[functions.dowry-estimate]
+verify_jwt = false

@@ -20,8 +20,10 @@ import OfflineBanner from "./components/OfflineBanner";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 import { AuthProvider } from "./hooks/useAuth";
 import { PWAInstallProvider } from "./hooks/usePWAInstall";
+import { DowryUnlockProvider } from "./hooks/useDowryUnlock";
 
 const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
+const DowryEstimatorPage = lazy(() => import("./pages/DowryEstimatorPage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -84,6 +86,7 @@ function AnimatedRoutes() {
           <Route path="/tools/iot" element={<PageTransition><AuthGuard>{lazyRoute(<IoTPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/achievements" element={<PageTransition><AuthGuard>{lazyRoute(<AchievementsPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/offline" element={<PageTransition>{lazyRoute(<OfflinePage />)}</PageTransition>} />
+          <Route path="/dowry-estimator" element={<PageTransition><AuthGuard>{lazyRoute(<DowryEstimatorPage />)}</AuthGuard></PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
@@ -101,15 +104,17 @@ const App = () => (
           <AuthProvider>
             <PWAInstallProvider>
               <ActiveProfileProvider>
-                <OfflineBanner />
-                <ErrorBoundary>
-                  <AnimatedRoutes />
-                </ErrorBoundary>
-                <CommandPalette />
-                <BackToTop />
-                <Suspense fallback={null}>
-                  <VoiceBubble />
-                </Suspense>
+                <DowryUnlockProvider>
+                  <OfflineBanner />
+                  <ErrorBoundary>
+                    <AnimatedRoutes />
+                  </ErrorBoundary>
+                  <CommandPalette />
+                  <BackToTop />
+                  <Suspense fallback={null}>
+                    <VoiceBubble />
+                  </Suspense>
+                </DowryUnlockProvider>
               </ActiveProfileProvider>
             </PWAInstallProvider>
           </AuthProvider>
