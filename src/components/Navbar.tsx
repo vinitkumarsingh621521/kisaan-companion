@@ -317,6 +317,7 @@ export default function Navbar() {
             className="md:hidden bg-card/95 backdrop-blur-xl border-b border-border max-h-[70vh] overflow-y-auto"
           >
             <div className="px-4 py-3 space-y-1">
+              <div className="pb-2"><SearchBar /></div>
               {navItems.map((item) => (
                 <Link
                   key={item.path}
