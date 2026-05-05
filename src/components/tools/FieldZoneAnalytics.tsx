@@ -86,7 +86,7 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
     );
   }
 
-  const fmt₹ = (n: number) => n >= 100000 ? `₹${(n/100000).toFixed(2)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
+  const fmtRupee = (n: number) => n >= 100000 ? `₹${(n/100000).toFixed(2)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -114,7 +114,7 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
                 <Stat icon={<Droplets className="h-3 w-3 text-krishi-sky" />} label="Water / season" value={`${(r.water_kl/1000).toFixed(1)} ML`} />
                 <Stat icon={<Beaker  className="h-3 w-3 text-krishi-gold" />} label="N-P-K (kg)" value={`${Math.round(r.N_kg)}-${Math.round(r.P_kg)}-${Math.round(r.K_kg)}`} />
                 <Stat icon={<TrendingUp className="h-3 w-3 text-primary" />} label="Yield (est.)" value={`${r.yield_t.toFixed(1)} t`} />
-                <Stat icon={<Wallet  className="h-3 w-3 text-primary" />} label="Revenue (gross)" value={fmt₹(r.revenue)} />
+                <Stat icon={<Wallet  className="h-3 w-3 text-primary" />} label="Revenue (gross)" value={fmtRupee(r.revenue)} />
               </div>
               <div className="mt-2 text-[10px] text-muted-foreground">
                 <Sun className="h-3 w-3 inline mr-1" /> {r.ref.duration_d} day cycle · {r.ref.water_mm} mm crop water requirement (CWR)
@@ -127,7 +127,7 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
           <Stat label="Total water" value={`${(totals.water_kl/1000).toFixed(1)} ML`} />
           <Stat label="Total NPK" value={`${Math.round(totals.N_kg+totals.P_kg+totals.K_kg)} kg`} />
           <Stat label="Total yield" value={`${totals.yield_t.toFixed(1)} t`} />
-          <Stat label="Gross revenue" value={fmt₹(totals.revenue)} />
+          <Stat label="Gross revenue" value={fmtRupee(totals.revenue)} />
         </div>
       </div>
 
