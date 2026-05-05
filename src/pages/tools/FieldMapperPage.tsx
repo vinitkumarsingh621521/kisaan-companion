@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useFarmZones } from "@/hooks/useFarmZones";
 import { NDVILegend } from "@/components/tools/NDVIOverlay";
+import FieldZoneAnalytics from "@/components/tools/FieldZoneAnalytics";
 import type { LatLng } from "leaflet";
 
 const FieldMap = lazy(() => import("@/components/tools/FieldMap"));
@@ -314,10 +315,12 @@ export default function FieldMapperPage() {
                 )}
               </div>
 
+              <FieldZoneAnalytics zones={zones} profile={active} />
+
               <div className="glass-card p-4 text-xs text-muted-foreground space-y-2">
-                <p>☁️ <strong>Cloud sync:</strong> Zones now sync to your account. Switch devices, see the same fields.</p>
-                <p>🛰️ <strong>NDVI:</strong> Toggle satellite crop-health on. Updated every 16 days from NASA MODIS.</p>
-                <p>📡 <strong>Pro tip:</strong> Higher-res Sentinel-2 NDVI available — wire up a free Sentinel Hub key.</p>
+                <p>☁️ <strong>Cloud sync:</strong> Zones sync to your account across devices.</p>
+                <p>🛰️ <strong>NDVI:</strong> Toggle satellite crop-health overlay (NASA MODIS, 16-day).</p>
+                <p>🧪 <strong>Agronomy panel:</strong> uses your soil pH ({active?.farmer_details?.soil_ph || "default 6.5"}) + irrigation type to compute live water/NPK/yield.</p>
               </div>
             </div>
           </div>
