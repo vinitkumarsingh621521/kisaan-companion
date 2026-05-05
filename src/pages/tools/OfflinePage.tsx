@@ -1,24 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Smartphone, WifiOff, Download, CheckCircle2, RefreshCw, Share2, Copy, QrCode } from "lucide-react";
+import { Smartphone, WifiOff, Download, CheckCircle2, RefreshCw, Share2, Copy, QrCode, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { buildPersonalisedGuides, downloadGuide, type OfflineGuide } from "@/lib/offlineGuides";
 
-const offlineGuides = [
-  { title: "Rice cultivation guide", size: "2.4 MB" },
-  { title: "Wheat sowing calendar", size: "1.1 MB" },
-  { title: "Top 50 pest treatments", size: "3.8 MB" },
-  { title: "Government schemes 2025-26", size: "0.9 MB" },
-  { title: "Soil pH correction", size: "0.6 MB" },
-  { title: "Drip irrigation setup", size: "1.7 MB" },
-];
-
-// Captures the browser's PWA install prompt event so we can fire it later from a button.
 type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 
 export default function OfflinePage() {
+  const { active } = useActiveProfile();
   const [online, setOnline] = useState(navigator.onLine);
   const [downloaded, setDownloaded] = useState<Set<string>>(new Set());
   const [installEvent, setInstallEvent] = useState<BIPEvent | null>(null);
@@ -27,21 +20,28 @@ export default function OfflinePage() {
 
   const shareUrl = typeof window !== "undefined" ? window.location.origin : "https://kisaan-companion.lovable.app";
 
+  const guides = useMemo<OfflineGuide[]>(() => buildPersonalisedGuides(active), [active]);
+
+  // Restore previously cached guides
+  useEffect(() => {
+    const set = new Set<string>();
+    guides.forEach((g) => {
+      if (localStorage.getItem(`offline.guide.${g.id}`)) set.add(g.id);
+    });
+    setDownloaded(set);
+  }, [guides]);
+
   useEffect(() => {
     const on = () => setOnline(true);
     const off = () => setOnline(false);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
 
-    const onBIP = (e: Event) => {
-      e.preventDefault();
-      setInstallEvent(e as BIPEvent);
-    };
+    const onBIP = (e: Event) => { e.preventDefault(); setInstallEvent(e as BIPEvent); };
     const onInstalled = () => { setInstalled(true); setInstallEvent(null); toast.success("✓ KrishiMitra installed!"); };
     window.addEventListener("beforeinstallprompt", onBIP);
     window.addEventListener("appinstalled", onInstalled);
 
-    // Detect if already running as installed PWA
     if (window.matchMedia?.("(display-mode: standalone)").matches) setInstalled(true);
 
     return () => {
@@ -52,9 +52,24 @@ export default function OfflinePage() {
     };
   }, []);
 
-  const download = (title: string) => {
-    setDownloaded(prev => { const s = new Set(prev); s.add(title); return s; });
-    toast.success(`✓ Downloaded: ${title}`);
+  const handleDownload = (g: OfflineGuide) => {
+    try {
+      downloadGuide(g);
+      setDownloaded((prev) => { const s = new Set(prev); s.add(g.id); return s; });
+      toast.success(`✓ ${g.title}`, { description: "Saved to your downloads & cached for offline reading" });
+    } catch (e) {
+      console.error(e);
+      toast.error("Download failed — please try again");
+    }
+  };
+
+  const downloadAll = () => {
+    let i = 0;
+    guides.forEach((g) => {
+      setTimeout(() => handleDownload(g), i * 250);
+      i++;
+    });
+    toast.message(`📦 Downloading ${guides.length} guides…`);
   };
 
   const handleInstall = async () => {
@@ -72,21 +87,12 @@ export default function OfflinePage() {
   };
 
   const handleShare = async () => {
-    const data = {
-      title: "KrishiMitra — AI Farming Companion",
-      text: "Smart, free farming advice in your language. Try KrishiMitra:",
-      url: shareUrl,
-    };
+    const data = { title: "KrishiMitra — AI Farming Companion", text: "Smart, free farming advice in your language. Try KrishiMitra:", url: shareUrl };
     if (navigator.share) {
-      try { await navigator.share(data); toast.success("Shared! 🌾"); return; } catch { /* user cancelled */ }
+      try { await navigator.share(data); toast.success("Shared! 🌾"); return; } catch {}
     }
-    // Fallback: copy + show QR
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied! Paste it in WhatsApp 📱");
-    } catch {
-      toast.error("Could not copy link");
-    }
+    try { await navigator.clipboard.writeText(shareUrl); toast.success("Link copied! Paste it in WhatsApp 📱"); }
+    catch { toast.error("Could not copy link"); }
     setShowQR(true);
   };
 
@@ -95,8 +101,9 @@ export default function OfflinePage() {
     catch { toast.error("Could not copy link"); }
   };
 
-  // Free QR code generator (no dependency)
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}`;
+
+  const totalMB = guides.reduce((s, g) => s + parseFloat(g.size), 0).toFixed(1);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -122,22 +129,14 @@ export default function OfflinePage() {
             </div>
           </div>
 
-          {/* Install + Share — the new headline section */}
+          {/* Install + Share */}
           <div className="glass-card p-5 mb-5">
-            <h3 className="font-display font-semibold text-foreground mb-1 flex items-center gap-2">
-              📱 Install KrishiMitra on your phone
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              One tap to install. Works in 2G areas. Share with fellow farmers via WhatsApp.
-            </p>
+            <h3 className="font-display font-semibold text-foreground mb-1 flex items-center gap-2">📱 Install KrishiMitra on your phone</h3>
+            <p className="text-sm text-muted-foreground mb-4">One tap to install. Works in 2G areas. Share with fellow farmers via WhatsApp.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button
-                className="gradient-primary border-0 text-primary-foreground gap-2 h-12"
-                onClick={handleInstall}
-                disabled={installed}
-              >
+              <Button className="gradient-primary border-0 text-primary-foreground gap-2 h-12" onClick={handleInstall} disabled={installed}>
                 <Download className="h-4 w-4" />
-                {installed ? "Already installed ✓" : installEvent ? "Install App" : "Install App"}
+                {installed ? "Already installed ✓" : "Install App"}
               </Button>
               <Button variant="outline" className="gap-2 h-12" onClick={handleShare}>
                 <Share2 className="h-4 w-4" /> Share App
@@ -145,11 +144,7 @@ export default function OfflinePage() {
             </div>
 
             {showQR && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4 p-4 rounded-xl bg-muted/40 border border-border/50"
-              >
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 p-4 rounded-xl bg-muted/40 border border-border/50">
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   <img src={qrSrc} alt="Scan to open KrishiMitra" className="w-[180px] h-[180px] rounded-lg bg-background p-2" loading="lazy" />
                   <div className="flex-1 text-center sm:text-left">
@@ -157,41 +152,79 @@ export default function OfflinePage() {
                       <QrCode className="h-4 w-4 text-primary" /> Scan to open
                     </div>
                     <div className="text-xs text-muted-foreground break-all mb-3">{shareUrl}</div>
-                    <Button size="sm" variant="outline" onClick={copyLink} className="gap-1.5">
-                      <Copy className="h-3.5 w-3.5" /> Copy link
-                    </Button>
+                    <Button size="sm" variant="outline" onClick={copyLink} className="gap-1.5"><Copy className="h-3.5 w-3.5" /> Copy link</Button>
                   </div>
                 </div>
               </motion.div>
             )}
+          </div>
+
+          {/* Personalised guides */}
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+              <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Your Personalised Library
+              </h3>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={downloadAll} disabled={downloaded.size === guides.length}>
+                <Download className="h-3.5 w-3.5" /> Download all ({totalMB} MB)
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {guides.length} guides built from <strong>{active?.full_name || "your"}</strong> profile
+              {active?.farmer_details?.state ? ` in ${active.farmer_details.district || ""} ${active.farmer_details.state}` : ""}.
+              Each download is a real Markdown file you can open in any reader, share on WhatsApp, or print.
+            </p>
+
+            <div className="space-y-2">
+              {guides.map((g) => {
+                const got = downloaded.has(g.id);
+                return (
+                  <motion.div
+                    key={g.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-transparent hover:border-primary/20 transition-colors"
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <span className="text-xl shrink-0" aria-hidden>{g.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm text-foreground truncate">{g.title}</div>
+                        <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span>{g.size}</span>
+                          <span className="text-primary/80">• {g.reason}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {got ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-primary text-xs flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</span>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => handleDownload(g)} title="Re-download">
+                          <RefreshCw className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => handleDownload(g)} className="shrink-0 gap-1">
+                        <Download className="h-3 w-3" /> Download
+                      </Button>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground flex items-start gap-2">
+              <FileText className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <span>
+                Files save to your phone's <strong>Downloads</strong> folder as <code>.md</code> (Markdown).
+                Open with any text app, Google Docs, or share via WhatsApp. Update your profile to refresh this library.
+              </span>
+            </div>
 
             <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-4 mt-4">
               <li><strong>Android (Chrome):</strong> tap "Install App" above, or menu → "Add to Home Screen"</li>
               <li><strong>iPhone (Safari):</strong> Share button → "Add to Home Screen"</li>
               <li>Open from home screen — works without browser bar, even on slow connections</li>
             </ol>
-          </div>
-
-          <div className="glass-card p-5">
-            <h3 className="font-display font-semibold text-foreground mb-3">📦 Cache Crop Guides for Offline Use</h3>
-            <div className="space-y-2">
-              {offlineGuides.map(g => {
-                const got = downloaded.has(g.title);
-                return (
-                  <div key={g.title} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div>
-                      <div className="font-medium text-sm text-foreground">{g.title}</div>
-                      <div className="text-xs text-muted-foreground">{g.size}</div>
-                    </div>
-                    {got ? (
-                      <span className="text-primary text-sm flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Saved</span>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => download(g.title)}><Download className="h-3 w-3 mr-1" /> Download</Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       </main>
