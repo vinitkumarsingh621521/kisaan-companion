@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import AuthGuard from "./components/AuthGuard";
+import AdminGuard from "./components/AdminGuard";
 import PageTransition from "./components/PageTransition";
 import BackToTop from "./components/BackToTop";
 import ActiveProfileBar from "./components/ActiveProfileBar";
@@ -77,8 +78,8 @@ function AnimatedRoutes() {
           <Route path="/community" element={<PageTransition><AuthGuard>{lazyRoute(<CommunityPage />)}</AuthGuard></PageTransition>} />
           <Route path="/profile" element={<PageTransition><AuthGuard>{lazyRoute(<ProfilePage />)}</AuthGuard></PageTransition>} />
           <Route path="/news" element={<PageTransition>{lazyRoute(<NewsPage />)}</PageTransition>} />
-          <Route path="/research" element={<PageTransition>{lazyRoute(<ResearchPage />)}</PageTransition>} />
-          <Route path="/team" element={<PageTransition>{lazyRoute(<TeamPage />)}</PageTransition>} />
+          <Route path="/research" element={<PageTransition><AuthGuard><AdminGuard>{lazyRoute(<ResearchPage />)}</AdminGuard></AuthGuard></PageTransition>} />
+          <Route path="/team" element={<PageTransition><AuthGuard><AdminGuard>{lazyRoute(<TeamPage />)}</AdminGuard></AuthGuard></PageTransition>} />
           <Route path="/admin/team" element={<PageTransition><AuthGuard>{lazyRoute(<AdminTeamPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard>{lazyRoute(<FieldMapperPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/reports" element={<PageTransition><AuthGuard>{lazyRoute(<ReportsPage />)}</AuthGuard></PageTransition>} />
