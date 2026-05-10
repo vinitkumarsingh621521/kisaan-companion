@@ -41,6 +41,13 @@ export default function TeamSection({ compact = false }: { compact?: boolean }) 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
           </div>
+        ) : members.length === 0 ? (
+          <div className="max-w-md mx-auto glass-card p-6 text-center">
+            <p className="text-sm text-muted-foreground mb-3">No team members yet. Add your teammates to showcase them here.</p>
+            <a href="/admin/team" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+              + Add your team
+            </a>
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 max-w-5xl mx-auto">
             {members.map((m, i) => (
