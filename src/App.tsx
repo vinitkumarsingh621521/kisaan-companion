@@ -78,8 +78,8 @@ function AnimatedRoutes() {
           <Route path="/community" element={<PageTransition><AuthGuard>{lazyRoute(<CommunityPage />)}</AuthGuard></PageTransition>} />
           <Route path="/profile" element={<PageTransition><AuthGuard>{lazyRoute(<ProfilePage />)}</AuthGuard></PageTransition>} />
           <Route path="/news" element={<PageTransition>{lazyRoute(<NewsPage />)}</PageTransition>} />
-          <Route path="/research" element={<PageTransition><AuthGuard><AdminGuard>{lazyRoute(<ResearchPage />)}</AdminGuard></AuthGuard></PageTransition>} />
-          <Route path="/team" element={<PageTransition><AuthGuard><AdminGuard>{lazyRoute(<TeamPage />)}</AdminGuard></AuthGuard></PageTransition>} />
+          <Route path="/research" element={<PageTransition><AuthGuard>{lazyRoute(<ResearchPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/team" element={<PageTransition><AuthGuard>{lazyRoute(<TeamPage />)}</AuthGuard></PageTransition>} />
           <Route path="/admin/team" element={<PageTransition><AuthGuard>{lazyRoute(<AdminTeamPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard>{lazyRoute(<FieldMapperPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/reports" element={<PageTransition><AuthGuard>{lazyRoute(<ReportsPage />)}</AuthGuard></PageTransition>} />
