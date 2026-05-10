@@ -44,7 +44,7 @@ export default function TeamPage() {
           <TeamSection compact />
 
           <div className="text-center mt-10">
-            <Link to="/admin/team"><Button variant="outline">Edit Team (Admin)</Button></Link>
+            <Link to="/admin/team"><Button variant="outline">Manage My Team</Button></Link>
           </div>
         </div>
       </main>
