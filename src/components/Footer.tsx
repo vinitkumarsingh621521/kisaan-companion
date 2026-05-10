@@ -4,11 +4,13 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import logo from "@/assets/logo.png";
 import TeamSection from "@/components/TeamSection";
 import { toast } from "sonner";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const SHARE_URL = typeof window !== "undefined" ? window.location.origin : "https://kisaan-companion.lovable.app";
 const SHARE_TEXT = "🌾 KrishiMitra — AI-powered farming assistant for India. Crop advice, weather, market prices & schemes in 13 languages. Try it:";
 
 const Footer = forwardRef<HTMLElement>((_, ref) => {
+  const { isAdmin } = useIsAdmin();
   const onShare = (network: "whatsapp" | "twitter" | "linkedin") => {
     const u = encodeURIComponent(SHARE_URL);
     const t = encodeURIComponent(SHARE_TEXT);
@@ -31,7 +33,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
   return (
     <>
-      <TeamSection compact />
+      {isAdmin && <TeamSection compact />}
       <footer ref={ref} className="bg-foreground text-background py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
