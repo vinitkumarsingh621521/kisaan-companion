@@ -40,7 +40,7 @@ export default function Navbar() {
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
     { label: t("nav.news"), path: "/news" },
-    ...(isAdmin ? [{ label: t("nav.research"), path: "/research" }] : []),
+    { label: t("nav.research"), path: "/research" },
     { label: t("nav.community"), path: "/community" },
     { label: t("nav.fieldMapper"), path: "/tools/field-mapper" },
     { label: t("nav.reports"), path: "/tools/reports" },
@@ -48,7 +48,7 @@ export default function Navbar() {
     { label: t("nav.iot"), path: "/tools/iot" },
     { label: t("nav.achievements"), path: "/tools/achievements" },
     { label: t("nav.offline"), path: "/tools/offline" },
-    ...(isAdmin ? [{ label: t("nav.team"), path: "/team" }] : []),
+    { label: t("nav.team"), path: "/team" },
     ...(dowryUnlocked ? [{ label: "🤡 Dowry Reality Check", path: "/dowry-estimator", badge: "🔓" }] : []),
   ] as { label: string; path: string; badge?: string }[];
 
