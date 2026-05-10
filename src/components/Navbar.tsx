@@ -12,6 +12,7 @@ import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useDowryUnlock } from "@/hooks/useDowryUnlock";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import SearchBar from "@/components/SearchBar";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ export default function Navbar() {
   const { session, signOut } = useAuth();
   const { canInstall, installed, promptInstall } = usePWAInstall();
   const { unlocked: dowryUnlocked } = useDowryUnlock();
+  const { isAdmin } = useIsAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showScrollLeft, setShowScrollLeft] = useState(false);
   const [showScrollRight, setShowScrollRight] = useState(false);
@@ -38,7 +40,7 @@ export default function Navbar() {
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
     { label: t("nav.news"), path: "/news" },
-    { label: t("nav.research"), path: "/research" },
+    ...(isAdmin ? [{ label: t("nav.research"), path: "/research" }] : []),
     { label: t("nav.community"), path: "/community" },
     { label: t("nav.fieldMapper"), path: "/tools/field-mapper" },
     { label: t("nav.reports"), path: "/tools/reports" },
@@ -46,7 +48,7 @@ export default function Navbar() {
     { label: t("nav.iot"), path: "/tools/iot" },
     { label: t("nav.achievements"), path: "/tools/achievements" },
     { label: t("nav.offline"), path: "/tools/offline" },
-    { label: t("nav.team"), path: "/team" },
+    ...(isAdmin ? [{ label: t("nav.team"), path: "/team" }] : []),
     ...(dowryUnlocked ? [{ label: "🤡 Dowry Reality Check", path: "/dowry-estimator", badge: "🔓" }] : []),
   ] as { label: string; path: string; badge?: string }[];
 
