@@ -230,8 +230,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { audio, mime, language, profile, text: directText, transcribeOnly } = body;
+    const { audio, mime, language, profile, text: directText, transcribeOnly, tts: ttsRequested } = body;
     const lang = (language || "en").toString();
+    const wantsTTS = ttsRequested !== false; // default ON when OPENAI_API_KEY exists
 
     let transcript = "";
     let sttProvider = "browser";
@@ -251,7 +252,6 @@ serve(async (req) => {
       });
     }
 
-    // Critical: never throw 500 on empty transcript — return diagnostics so UI can guide the user.
     if (!transcript.trim()) {
       return new Response(JSON.stringify({
         transcript: "",
@@ -269,10 +269,20 @@ serve(async (req) => {
 
     const { reply, provider: chatProvider } = await chatWithFallback(transcript, profile, lang);
 
+    // ChatGPT-quality voice (best-effort; never blocks reply)
+    let audio_reply: string | null = null;
+    let ttsProvider: string | null = null;
+    if (wantsTTS && reply) {
+      const tts = await synthesizeWithOpenAI(reply, lang);
+      if (tts) { audio_reply = tts.audioBase64; ttsProvider = `openai:${tts.voice}`; }
+    }
+
     return new Response(JSON.stringify({
       transcript,
       reply,
-      diagnostics: { sttProvider, sttError, chatProvider, audioMime: mime, language: lang },
+      audio_reply,            // base64 mp3 or null — client plays via data URI
+      audio_mime: audio_reply ? "audio/mpeg" : null,
+      diagnostics: { sttProvider, sttError, chatProvider, ttsProvider, audioMime: mime, language: lang },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("voice-bot error:", e?.message || e);
