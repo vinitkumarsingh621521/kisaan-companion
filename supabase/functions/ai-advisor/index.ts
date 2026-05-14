@@ -2,199 +2,354 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM = `You are KrishiMitra AI Advisor — the most comprehensive agri-consultant for Indian farmers. You receive a deep farmer profile (location, soil, crops, crop-wise acres, inputs, finance, goals) and return specific, actionable insights in STRUCTURED output via the provided tool. No prose. Use ₹ for money, t/ha or q/acre for yield, kg/acre for fertilizer/pesticide, and litres or mm for water. For every selected/planned crop, calculate seed need per acre + total seed, water need per acre, fertilizer dosage per acre, pesticide/IPM dosage per acre, season compatibility, and land-allocation advice. Reference the farmer's own numbers (district, soil pH, budget, acres) inside reason fields. Be honest about incompatibility and red flags.`;
+// ───── Crop reference table (per-acre baseline; sources: ICAR, KVK extension) ─────
+type CropRef = {
+  emoji: string;
+  seasons: ("Kharif" | "Rabi" | "Zaid")[];
+  seed_kg_acre: [number, number];
+  water_mm: number;            // total crop water requirement
+  N_kg_acre: number; P_kg_acre: number; K_kg_acre: number;
+  pesticide_lt_acre: [number, number];
+  ph_low: number; ph_high: number;
+  duration_d: number;
+  yield_qtl_acre: [number, number];
+  msp_per_qtl: number;
+  sowing_months: number[];     // month numbers 1-12
+  notes: string;
+};
 
-const INSIGHT_TOOL = {
-  type: "function",
-  function: {
-    name: "return_full_advisory",
-    description: "Return 25 comprehensive farm insights.",
-    parameters: {
-      type: "object",
-      properties: {
-        status: { type: "string", enum: ["ok", "partial"] },
-        summary: { type: "string", description: "2-3 sentence personalized headline" },
-        crop_suitability: {
-          type: "object",
-          properties: {
-            chosen_crop: { type: "string" },
-            score: { type: "number", description: "0-100" },
-            verdict: { type: "string", enum: ["excellent", "good", "marginal", "poor"] },
-            reason: { type: "string" },
-          },
-          required: ["chosen_crop", "score", "verdict", "reason"],
-        },
-        alternative_crops: {
-          type: "array",
-          description: "Top 5 alternatives",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              emoji: { type: "string" },
-              score: { type: "number" },
-              profit_per_acre: { type: "string" },
-              reason: { type: "string" },
-            },
-            required: ["name", "emoji", "score", "profit_per_acre", "reason"],
-          },
-        },
-        climate_risk: {
-          type: "object",
-          properties: {
-            overall: { type: "string", enum: ["low", "medium", "high"] },
-            heat: { type: "string" },
-            frost: { type: "string" },
-            flood: { type: "string" },
-            drought: { type: "string" },
-          },
-          required: ["overall", "heat", "frost", "flood", "drought"],
-        },
-        input_requirements: {
-          type: "array",
-          description: "For every planned/current crop: exact per-acre and total input requirements.",
-          items: {
-            type: "object",
-            properties: {
-              crop: { type: "string" },
-              area_acres: { type: "number" },
-              seed_per_acre: { type: "string" },
-              total_seed: { type: "string" },
-              water_per_acre: { type: "string" },
-              fertilizer_per_acre: { type: "string" },
-              pesticide_per_acre: { type: "string" },
-              irrigation_schedule: { type: "string" },
-              notes: { type: "string" },
-            },
-            required: ["crop", "area_acres", "seed_per_acre", "total_seed", "water_per_acre", "fertilizer_per_acre", "pesticide_per_acre", "irrigation_schedule", "notes"],
-          },
-        },
-        land_allocation_review: {
-          type: "object",
-          properties: {
-            total_planned_acres: { type: "number" },
-            unallocated_acres: { type: "number" },
-            summary: { type: "string" },
-            recommendations: { type: "array", items: { type: "string" } },
-          },
-          required: ["total_planned_acres", "unallocated_acres", "summary", "recommendations"],
-        },
-        compatibility_notes: { type: "array", description: "Season, soil, water and rotation compatibility warnings or confirmations.", items: { type: "string" } },
-        soil_plan: { type: "object", properties: { action: { type: "string" }, dosage: { type: "string" }, why: { type: "string" } }, required: ["action", "dosage", "why"] },
-        irrigation_plan: { type: "object", properties: { method: { type: "string" }, schedule: { type: "string" }, water_saving_pct: { type: "number" } }, required: ["method", "schedule", "water_saving_pct"] },
-        fertilizer_plan: { type: "object", properties: { npk_kg_per_acre: { type: "string" }, timing: { type: "string" }, brands: { type: "array", items: { type: "string" } }, organic_alt: { type: "string" } }, required: ["npk_kg_per_acre", "timing", "brands", "organic_alt"] },
-        pesticide_plan: { type: "object", properties: { needed: { type: "boolean" }, products: { type: "array", items: { type: "string" } }, ipm_alternative: { type: "string" } }, required: ["needed", "products", "ipm_alternative"] },
-        cost_breakdown: {
-          type: "object",
-          properties: {
-            seed: { type: "string" },
-            labour: { type: "string" },
-            machinery: { type: "string" },
-            transport: { type: "string" },
-            total_per_acre: { type: "string" },
-            total: { type: "string" },
-          },
-          required: ["seed", "labour", "machinery", "transport", "total_per_acre", "total"],
-        },
-        yield_forecast: { type: "object", properties: { low: { type: "string" }, expected: { type: "string" }, high: { type: "string" } }, required: ["low", "expected", "high"] },
-        revenue_forecast: { type: "object", properties: { gross: { type: "string" }, net_profit: { type: "string" }, roi_pct: { type: "number" }, break_even_per_quintal: { type: "string" } }, required: ["gross", "net_profit", "roi_pct", "break_even_per_quintal"] },
-        sowing_window: { type: "string" },
-        harvest_window: { type: "string" },
-        market_strategy: { type: "object", properties: { channel: { type: "string" }, best_month: { type: "string" }, reason: { type: "string" } }, required: ["channel", "best_month", "reason"] },
-        schemes: { type: "array", items: { type: "object", properties: { name: { type: "string" }, benefit: { type: "string" }, fit_reason: { type: "string" } }, required: ["name", "benefit", "fit_reason"] } },
-        insurance: { type: "object", properties: { recommended: { type: "string" }, sum_insured: { type: "string" }, premium: { type: "string" } }, required: ["recommended", "sum_insured", "premium"] },
-        sustainability: { type: "object", properties: { score: { type: "number" }, improvement: { type: "string" } }, required: ["score", "improvement"] },
-        water_footprint: { type: "string" },
-        tips: { type: "array", description: "5 ranked actionable tips", items: { type: "string" } },
-        red_flags: { type: "array", items: { type: "string" } },
-      },
-      required: [
-        "status", "summary", "crop_suitability", "alternative_crops", "climate_risk", "input_requirements", "land_allocation_review", "compatibility_notes", "soil_plan",
-        "irrigation_plan", "fertilizer_plan", "pesticide_plan", "cost_breakdown", "yield_forecast",
-        "revenue_forecast", "sowing_window", "harvest_window", "market_strategy", "schemes",
-        "insurance", "sustainability", "water_footprint", "tips", "red_flags",
-      ],
-      additionalProperties: false,
+const CROPS: Record<string, CropRef> = {
+  rice:       { emoji: "🌾", seasons: ["Kharif"], seed_kg_acre: [8, 12], water_mm: 1200, N_kg_acre: 48, P_kg_acre: 24, K_kg_acre: 24, pesticide_lt_acre: [1.5, 2.5], ph_low: 5.5, ph_high: 7.0, duration_d: 120, yield_qtl_acre: [18, 25], msp_per_qtl: 2300, sowing_months: [6, 7], notes: "Needs standing water; SRI saves 30% water." },
+  wheat:      { emoji: "🌾", seasons: ["Rabi"],   seed_kg_acre: [40, 50], water_mm: 500,  N_kg_acre: 48, P_kg_acre: 24, K_kg_acre: 16, pesticide_lt_acre: [0.8, 1.2], ph_low: 6.0, ph_high: 7.5, duration_d: 130, yield_qtl_acre: [15, 22], msp_per_qtl: 2275, sowing_months: [11, 12], notes: "First irrigation 21 DAS (CRI stage) is critical." },
+  maize:      { emoji: "🌽", seasons: ["Kharif", "Rabi"], seed_kg_acre: [8, 10], water_mm: 600, N_kg_acre: 60, P_kg_acre: 30, K_kg_acre: 20, pesticide_lt_acre: [1.0, 1.8], ph_low: 5.8, ph_high: 7.0, duration_d: 110, yield_qtl_acre: [22, 32], msp_per_qtl: 2090, sowing_months: [6, 7, 11], notes: "Watch for fall armyworm at 15-30 DAS." },
+  cotton:     { emoji: "🌿", seasons: ["Kharif"], seed_kg_acre: [1.5, 2], water_mm: 800, N_kg_acre: 48, P_kg_acre: 24, K_kg_acre: 24, pesticide_lt_acre: [3, 5], ph_low: 6.0, ph_high: 8.0, duration_d: 180, yield_qtl_acre: [6, 10], msp_per_qtl: 7100, sowing_months: [5, 6], notes: "Bt cotton needs refugia row of non-Bt." },
+  sugarcane:  { emoji: "🎋", seasons: ["Rabi"],   seed_kg_acre: [3000, 4000], water_mm: 2000, N_kg_acre: 100, P_kg_acre: 37, K_kg_acre: 37, pesticide_lt_acre: [2, 3], ph_low: 6.5, ph_high: 7.5, duration_d: 365, yield_qtl_acre: [300, 400], msp_per_qtl: 340, sowing_months: [10, 11, 2, 3], notes: "Drip cuts water 40% vs flood." },
+  pulses:     { emoji: "🫘", seasons: ["Rabi", "Zaid"], seed_kg_acre: [8, 12], water_mm: 400, N_kg_acre: 8, P_kg_acre: 24, K_kg_acre: 16, pesticide_lt_acre: [0.6, 1.0], ph_low: 6.0, ph_high: 7.5, duration_d: 100, yield_qtl_acre: [4, 7], msp_per_qtl: 6600, sowing_months: [10, 3], notes: "Rhizobium seed treatment fixes 40-60 kg N/ha free." },
+  soybean:    { emoji: "🫛", seasons: ["Kharif"], seed_kg_acre: [25, 32], water_mm: 500, N_kg_acre: 12, P_kg_acre: 30, K_kg_acre: 16, pesticide_lt_acre: [0.8, 1.2], ph_low: 6.0, ph_high: 7.5, duration_d: 105, yield_qtl_acre: [8, 12], msp_per_qtl: 4892, sowing_months: [6, 7], notes: "Must inoculate seed with Rhizobium." },
+  mustard:    { emoji: "🌼", seasons: ["Rabi"],   seed_kg_acre: [1.5, 2.5], water_mm: 350, N_kg_acre: 32, P_kg_acre: 16, K_kg_acre: 16, pesticide_lt_acre: [0.5, 1.0], ph_low: 6.0, ph_high: 7.5, duration_d: 130, yield_qtl_acre: [6, 10], msp_per_qtl: 5650, sowing_months: [10, 11], notes: "Sulphur 10 kg/acre boosts oil content." },
+  potato:     { emoji: "🥔", seasons: ["Rabi"],   seed_kg_acre: [800, 1000], water_mm: 500, N_kg_acre: 60, P_kg_acre: 32, K_kg_acre: 50, pesticide_lt_acre: [2, 3], ph_low: 5.5, ph_high: 6.5, duration_d: 100, yield_qtl_acre: [80, 120], msp_per_qtl: 1200, sowing_months: [10, 11], notes: "Late blight risk Dec-Jan; spray mancozeb prophylactically." },
+  onion:      { emoji: "🧅", seasons: ["Rabi", "Kharif"], seed_kg_acre: [3, 4], water_mm: 450, N_kg_acre: 48, P_kg_acre: 24, K_kg_acre: 32, pesticide_lt_acre: [1.5, 2.5], ph_low: 6.0, ph_high: 7.5, duration_d: 130, yield_qtl_acre: [80, 130], msp_per_qtl: 1500, sowing_months: [11, 12, 6], notes: "Stop irrigation 15 days before harvest for storage." },
+  vegetables: { emoji: "🥬", seasons: ["Kharif", "Rabi", "Zaid"], seed_kg_acre: [0.2, 1], water_mm: 450, N_kg_acre: 60, P_kg_acre: 32, K_kg_acre: 40, pesticide_lt_acre: [1, 2], ph_low: 6.0, ph_high: 7.5, duration_d: 90, yield_qtl_acre: [70, 200], msp_per_qtl: 1800, sowing_months: [6, 10, 2], notes: "Drip + mulch cuts water 50%." },
+  millet:     { emoji: "🌾", seasons: ["Kharif"], seed_kg_acre: [3, 4], water_mm: 350, N_kg_acre: 24, P_kg_acre: 12, K_kg_acre: 12, pesticide_lt_acre: [0.3, 0.6], ph_low: 5.5, ph_high: 8.0, duration_d: 100, yield_qtl_acre: [8, 14], msp_per_qtl: 2625, sowing_months: [6, 7], notes: "Climate-resilient, low input — perfect for dryland." },
+};
+
+const ALIASES: Record<string, string> = {
+  paddy: "rice", basmati: "rice",
+  bajra: "millet", jowar: "millet", "finger millet": "millet", ragi: "millet",
+  arhar: "pulses", tur: "pulses", chana: "pulses", gram: "pulses", moong: "pulses", urad: "pulses", masur: "pulses", "moong dal": "pulses",
+  "sarson": "mustard", rai: "mustard",
+  brinjal: "vegetables", tomato: "vegetables", chilli: "vegetables", okra: "vegetables", cauliflower: "vegetables", cabbage: "vegetables",
+  ganna: "sugarcane",
+  kapas: "cotton",
+};
+
+function normalizeCrop(name: string): { key: string; ref: CropRef } | null {
+  if (!name) return null;
+  const k = name.trim().toLowerCase();
+  const direct = CROPS[k];
+  if (direct) return { key: k, ref: direct };
+  const alias = ALIASES[k];
+  if (alias && CROPS[alias]) return { key: alias, ref: CROPS[alias] };
+  // partial match
+  for (const [crop, ref] of Object.entries(CROPS)) {
+    if (k.includes(crop) || crop.includes(k)) return { key: crop, ref };
+  }
+  for (const [a, target] of Object.entries(ALIASES)) {
+    if (k.includes(a)) return { key: target, ref: CROPS[target] };
+  }
+  return null;
+}
+
+function inferSeason(sowing?: string, harvest?: string): "Kharif" | "Rabi" | "Zaid" | "Unknown" {
+  if (!sowing) return "Unknown";
+  const m = new Date(sowing).getMonth() + 1;
+  if (m >= 6 && m <= 9) return "Kharif";
+  if (m >= 10 || m <= 2) return "Rabi";
+  if (m >= 3 && m <= 5) return "Zaid";
+  return "Unknown";
+}
+
+function fmtINR(n: number): string {
+  if (!isFinite(n)) return "—";
+  if (n >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+function buildBaseline(inputs: any) {
+  const allocations: { crop: string; acres: number; season?: string; variety?: string; sowing_date?: string; expected_harvest?: string }[] = inputs.crop_allocations?.length
+    ? inputs.crop_allocations
+    : (inputs.intended_crop ? [{ crop: inputs.intended_crop, acres: inputs.land_size_acres || 1, sowing_date: inputs.sowing_date, expected_harvest: inputs.expected_harvest }]
+       : (inputs.current_crops || []).map((c: string) => ({ crop: c, acres: (inputs.land_size_acres || 1) / Math.max(inputs.current_crops.length, 1) })));
+
+  const ph = Number(inputs.soil_ph) || 6.5;
+  const irrig = (inputs.irrigation_source || "rainfed").toLowerCase();
+  const irrigEff = irrig.includes("drip") ? 0.9 : irrig.includes("sprinkler") ? 0.75 : irrig.includes("rainfed") ? 0.35 : 0.45;
+
+  const compatibility_notes: string[] = [];
+  const red_flags: string[] = [];
+
+  const requirements = allocations.map((a) => {
+    const norm = normalizeCrop(a.crop || "");
+    const acres = Math.max(0.1, Number(a.acres) || 1);
+    if (!norm) {
+      red_flags.push(`Unknown crop "${a.crop}" — cannot compute exact baseline; using mixed-vegetable defaults.`);
+      const ref = CROPS.vegetables;
+      return crunch(a, ref, "vegetables", acres, ph, irrigEff, compatibility_notes, red_flags);
+    }
+    return crunch(a, norm.ref, norm.key, acres, ph, irrigEff, compatibility_notes, red_flags);
+  });
+
+  const totalAcres = requirements.reduce((s, r) => s + r.area_acres, 0);
+  const land = Number(inputs.land_size_acres) || totalAcres;
+  const totalCost = requirements.reduce((s, r) => s + r._cost, 0);
+  const totalRevenue = requirements.reduce((s, r) => s + r._revenue, 0);
+  const totalYieldT = requirements.reduce((s, r) => s + r._yieldT, 0);
+  const totalWaterKL = requirements.reduce((s, r) => s + r._waterKL, 0);
+  const totalNPK = requirements.reduce((s, r) => s + r._N + r._P + r._K, 0);
+  const netProfit = totalRevenue - totalCost;
+
+  const top = requirements[0];
+  const baseline = {
+    status: "ok" as const,
+    summary: top
+      ? `Baseline plan for ${top.crop} on ${top.area_acres} acres in ${inputs.district || inputs.state || "your area"} — soil pH ${ph}, ${irrig}. Estimated net ${fmtINR(netProfit)} from ${requirements.length} crop${requirements.length > 1 ? "s" : ""}.`
+      : "Add at least one crop with acres to see a personalized agronomy plan.",
+    crop_suitability: top ? {
+      chosen_crop: top.crop,
+      score: top._fitScore,
+      verdict: top._fitScore >= 85 ? "excellent" : top._fitScore >= 70 ? "good" : top._fitScore >= 50 ? "marginal" : "poor",
+      reason: top._fitReason,
+    } : { chosen_crop: "—", score: 0, verdict: "marginal", reason: "No crop selected." },
+    alternative_crops: suggestAlternatives(top?.crop, ph, requirements.map(r => r.crop)),
+    climate_risk: {
+      overall: irrig.includes("rainfed") ? "high" : "medium",
+      heat: "Mulching + early irrigation reduces heat stress.",
+      frost: inputs.frost_risk || "low",
+      flood: inputs.drainage === "poor" ? "Drainage poor — install field drains" : "moderate",
+      drought: irrig.includes("rainfed") ? "Plan for 1 protective irrigation at flowering" : "low",
     },
-  },
-};
+    input_requirements: requirements.map((r) => ({
+      crop: r.crop, area_acres: r.area_acres,
+      seed_per_acre: r.seed_per_acre, total_seed: r.total_seed,
+      water_per_acre: r.water_per_acre, fertilizer_per_acre: r.fertilizer_per_acre,
+      pesticide_per_acre: r.pesticide_per_acre, irrigation_schedule: r.irrigation_schedule, notes: r.notes,
+    })),
+    land_allocation_review: {
+      total_planned_acres: Number(totalAcres.toFixed(2)),
+      unallocated_acres: Math.max(0, Number((land - totalAcres).toFixed(2))),
+      summary: totalAcres > land
+        ? `You allocated ${totalAcres.toFixed(2)} ac but your land is ${land} ac — ${(totalAcres - land).toFixed(2)} ac extra. Reduce one crop.`
+        : totalAcres < land * 0.9
+          ? `${(land - totalAcres).toFixed(2)} acres unused. Consider adding a short-cycle crop like moong (Zaid) or fodder.`
+          : `Good allocation — ${(totalAcres / land * 100).toFixed(0)}% of your land is planted.`,
+      recommendations: [
+        totalAcres > land ? "Drop the smallest crop or reduce its acres." : "Add a legume on unused land to fix nitrogen.",
+        "Keep ≥10% of land for crop rotation flexibility.",
+        "Group same-water-need crops into adjacent plots to save irrigation cost.",
+      ],
+    },
+    compatibility_notes,
+    soil_plan: phPlan(ph, top?.crop || ""),
+    irrigation_plan: {
+      method: irrig.includes("drip") ? "Drip with mulch" : irrig.includes("sprinkler") ? "Sprinkler" : "Furrow / flood",
+      schedule: top ? top.irrigation_schedule : "Stage-wise based on crop",
+      water_saving_pct: irrig.includes("drip") ? 45 : irrig.includes("sprinkler") ? 25 : 0,
+    },
+    fertilizer_plan: {
+      npk_kg_per_acre: top ? `${Math.round(top._N / top.area_acres)}-${Math.round(top._P / top.area_acres)}-${Math.round(top._K / top.area_acres)} kg N-P-K/acre` : "—",
+      timing: "Basal: 50% N + full P+K at sowing. Top-dress 25% N at tillering, 25% N at flowering.",
+      brands: ["IFFCO Urea + DAP + MOP", "Coromandel Gromor", "Nano-DAP (foliar)"],
+      organic_alt: "FYM 4-5 t/acre + vermicompost 250 kg/acre + Azotobacter seed treatment.",
+    },
+    pesticide_plan: {
+      needed: requirements.some(r => r.crop === "rice" || r.crop === "cotton" || r.crop === "vegetables"),
+      products: top && top.crop === "rice" ? ["Cartap hydrochloride 4G (stem borer)", "Tricyclazole (blast)"]
+        : top && top.crop === "cotton" ? ["Imidacloprid (sucking pests)", "Emamectin benzoate (bollworm)"]
+        : ["Need-based spray after scouting; avoid prophylactic use."],
+      ipm_alternative: "Yellow sticky traps + neem oil 5 ml/L + Trichogramma releases at 7-day intervals.",
+    },
+    cost_breakdown: {
+      seed: fmtINR(requirements.reduce((s, r) => s + r._seedCost, 0)),
+      labour: fmtINR(totalAcres * 8000),
+      machinery: fmtINR(totalAcres * 3500),
+      transport: fmtINR(totalAcres * 1500),
+      total_per_acre: totalAcres > 0 ? fmtINR(totalCost / totalAcres) : "—",
+      total: fmtINR(totalCost),
+    },
+    yield_forecast: top ? {
+      low: `${(top._yieldT * 0.8).toFixed(1)} t`,
+      expected: `${top._yieldT.toFixed(1)} t`,
+      high: `${(top._yieldT * 1.2).toFixed(1)} t`,
+    } : { low: "—", expected: "—", high: "—" },
+    revenue_forecast: {
+      gross: fmtINR(totalRevenue),
+      net_profit: fmtINR(netProfit),
+      roi_pct: totalCost > 0 ? Math.round((netProfit / totalCost) * 100) : 0,
+      break_even_per_quintal: top ? fmtINR(totalCost / Math.max(top._yieldT * 10 * top.area_acres, 1)) : "—",
+    },
+    sowing_window: top ? `${monthName(top._ref.sowing_months[0])} – ${monthName(top._ref.sowing_months[top._ref.sowing_months.length - 1])}` : "—",
+    harvest_window: top ? `${top._ref.duration_d} days from sowing (~${monthName(((top._ref.sowing_months[0] + Math.round(top._ref.duration_d / 30)) - 1) % 12 + 1)})` : "—",
+    market_strategy: {
+      channel: inputs.market_preference === "fpo" ? "Sell through FPO for better aggregation price"
+        : inputs.market_preference === "contract" ? "Lock contract price before sowing"
+        : "Local mandi + online (eNAM)",
+      best_month: top ? monthName(((top._ref.sowing_months[0] + Math.round(top._ref.duration_d / 30) + 1) - 1) % 12 + 1) : "Post-harvest",
+      reason: "Prices typically firm 4-6 weeks after peak arrivals — store if possible.",
+    },
+    schemes: [
+      { name: "PM-KISAN", benefit: "₹6,000/year direct cash", fit_reason: "Eligible for all landholding farmers." },
+      { name: "PMFBY (Crop Insurance)", benefit: "Premium 1.5-5% only", fit_reason: "Covers ${top?.crop || 'your crop'} against weather + pest losses." },
+      { name: "KCC (Kisan Credit Card)", benefit: "4% interest crop loan", fit_reason: "For input financing this season." },
+      { name: "Soil Health Card", benefit: "Free soil testing", fit_reason: "Tunes your NPK doses to your actual soil." },
+    ],
+    insurance: { recommended: "PMFBY", sum_insured: fmtINR(totalRevenue), premium: fmtINR(totalRevenue * 0.02) },
+    sustainability: {
+      score: irrig.includes("drip") ? 80 : irrig.includes("rainfed") ? 50 : 65,
+      improvement: "Adopt drip + cover cropping + Rhizobium seed treatment to gain 15-20 sustainability points.",
+    },
+    water_footprint: `${(totalWaterKL / 1000).toFixed(1)} ML this season (≈ ${Math.round(totalWaterKL / Math.max(totalYieldT, 0.1))} kL per tonne).`,
+    tips: buildTips(requirements, ph, irrig, inputs),
+    red_flags,
+  };
+  return baseline;
+
+  function crunch(a: any, ref: CropRef, key: string, acres: number, ph: number, irrigEff: number, compatNotes: string[], reds: string[]) {
+    const seedMin = ref.seed_kg_acre[0], seedMax = ref.seed_kg_acre[1];
+    const yMin = ref.yield_qtl_acre[0], yMax = ref.yield_qtl_acre[1];
+    const phFit = ph >= ref.ph_low && ph <= ref.ph_high ? 1 : Math.max(0.55, 1 - Math.min(Math.abs(ph - ref.ph_low), Math.abs(ph - ref.ph_high)) / 2.5);
+    const inferredSeason = inferSeason(a.sowing_date || inputs.sowing_date, a.expected_harvest || inputs.expected_harvest);
+    const declared = (a.season || inputs.monsoon_stage || "").toString();
+    const fitsSeason = inferredSeason !== "Unknown" ? ref.seasons.includes(inferredSeason as any) : true;
+    if (inferredSeason !== "Unknown" && !fitsSeason) {
+      const allowed = ref.seasons.join(" / ");
+      reds.push(`⚠ ${a.crop}: your sowing date implies ${inferredSeason} season, but this crop is best in ${allowed}.`);
+      compatNotes.push(`Change either the sowing date (use ${ref.seasons.map(s => seasonMonths(s)).join(" or ")}) or pick a ${inferredSeason}-suitable crop instead.`);
+    } else if (inferredSeason !== "Unknown") {
+      compatNotes.push(`✓ ${a.crop} fits the ${inferredSeason} season based on your sowing date.`);
+    }
+    if (phFit < 0.85) compatNotes.push(`Soil pH ${ph} is sub-optimal for ${a.crop} (best ${ref.ph_low}-${ref.ph_high}). Apply ${ph < ref.ph_low ? "lime 200 kg/acre" : "gypsum 250 kg/acre"} 30 days before sowing.`);
+
+    const fitScore = Math.round((phFit * 60) + (fitsSeason ? 30 : 10) + (irrigEff * 10));
+    const seedKg = ((seedMin + seedMax) / 2);
+    const totalSeedKg = seedKg * acres;
+    const waterKL = (ref.water_mm * 10 * acres) / irrigEff;     // 1mm × 1ha = 10 kL
+    const N = ref.N_kg_acre * acres, P = ref.P_kg_acre * acres, K = ref.K_kg_acre * acres;
+    const pestLt = ((ref.pesticide_lt_acre[0] + ref.pesticide_lt_acre[1]) / 2) * acres;
+    const yieldQtl = ((yMin + yMax) / 2) * acres * phFit;
+    const yieldT = yieldQtl / 10;
+    const revenue = yieldQtl * ref.msp_per_qtl;
+    const seedCost = totalSeedKg * (key === "sugarcane" ? 4 : key === "potato" ? 12 : 80);
+    const fertCost = (N + P + K) * 35;
+    const pestCost = pestLt * 600;
+    const labourCost = acres * 8000;
+    const cost = seedCost + fertCost + pestCost + labourCost + acres * 5000;
+
+    return {
+      crop: a.crop, area_acres: acres,
+      seed_per_acre: `${seedMin}-${seedMax} kg/acre`,
+      total_seed: `${totalSeedKg.toFixed(1)} kg`,
+      water_per_acre: `${(ref.water_mm * 10 / irrigEff).toFixed(0)} kL/acre (${ref.water_mm} mm CWR @ ${Math.round(irrigEff * 100)}% efficiency)`,
+      fertilizer_per_acre: `N ${ref.N_kg_acre} · P ${ref.P_kg_acre} · K ${ref.K_kg_acre} kg/acre (Urea ${Math.round(ref.N_kg_acre / 0.46)} kg + DAP ${Math.round(ref.P_kg_acre / 0.46)} kg + MOP ${Math.round(ref.K_kg_acre / 0.6)} kg)`,
+      pesticide_per_acre: `${ref.pesticide_lt_acre[0]}-${ref.pesticide_lt_acre[1]} L/acre (scout-based, IPM preferred)`,
+      irrigation_schedule: irrigationSchedule(key, ref.duration_d),
+      notes: ref.notes,
+      _ref: ref, _fitScore: fitScore,
+      _fitReason: `pH fit ${(phFit * 100).toFixed(0)}%, ${fitsSeason ? "season OK" : "WRONG SEASON"}, irrigation efficiency ${Math.round(irrigEff * 100)}%.`,
+      _N: N, _P: P, _K: K, _waterKL: waterKL, _yieldT: yieldT, _revenue: revenue, _cost: cost, _seedCost: seedCost,
+    };
+  }
+}
+
+function seasonMonths(s: string) {
+  return s === "Kharif" ? "Jun-Jul sowing" : s === "Rabi" ? "Oct-Dec sowing" : "Mar-May sowing";
+}
+function monthName(m: number) { return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][((m - 1) % 12 + 12) % 12]; }
+function phPlan(ph: number, crop: string) {
+  if (ph < 6) return { action: "Apply lime", dosage: "200-300 kg/acre 30 days before sowing", why: `pH ${ph} is acidic — limits P availability for ${crop || "most crops"}.` };
+  if (ph > 8) return { action: "Apply gypsum + organic matter", dosage: "250 kg gypsum/acre + FYM 4 t/acre", why: `pH ${ph} is alkaline — micronutrient deficiencies likely.` };
+  return { action: "Maintain pH with organic matter", dosage: "FYM 4 t/acre annually", why: `pH ${ph} is in good range — protect with organic inputs.` };
+}
+function irrigationSchedule(crop: string, duration: number) {
+  if (crop === "rice") return "Maintain 5 cm standing water from transplant to milk stage; drain 10 days before harvest.";
+  if (crop === "wheat") return "6 irrigations: CRI (21 DAS), tillering (40), jointing (60), flowering (80), milk (100), dough (115).";
+  if (crop === "cotton") return "Critical at squaring (45 DAS) and boll formation (90-120 DAS); avoid stress.";
+  return `Stage-based: pre-sowing, vegetative, flowering, grain-fill — typically ${Math.round(duration / 25)} irrigations.`;
+}
+function suggestAlternatives(current: string | undefined, ph: number, used: string[]) {
+  const out: { name: string; emoji: string; score: number; profit_per_acre: string; reason: string }[] = [];
+  for (const [k, ref] of Object.entries(CROPS)) {
+    if (used.includes(k)) continue;
+    const phFit = ph >= ref.ph_low && ph <= ref.ph_high ? 1 : 0.7;
+    const profit = ((ref.yield_qtl_acre[0] + ref.yield_qtl_acre[1]) / 2) * ref.msp_per_qtl - 25000;
+    out.push({
+      name: k.charAt(0).toUpperCase() + k.slice(1),
+      emoji: ref.emoji,
+      score: Math.round(phFit * 70 + (profit > 30000 ? 25 : 15)),
+      profit_per_acre: fmtINR(profit) + "/acre",
+      reason: `Suits pH ${ref.ph_low}-${ref.ph_high}; ${ref.notes}`,
+    });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, 5);
+}
+function buildTips(reqs: any[], ph: number, irrig: string, inputs: any): string[] {
+  const tips: string[] = [];
+  if (irrig.includes("flood")) tips.push("Switch from flood to drip — saves 40-50% water and boosts yield 10-15%.");
+  if (ph < 6) tips.push(`Soil pH ${ph} is acidic — apply lime 200 kg/acre to unlock locked-up phosphorus.`);
+  if (ph > 7.8) tips.push(`Soil pH ${ph} is alkaline — apply gypsum + green manure to improve micronutrient uptake.`);
+  if (reqs.some(r => r.crop === "rice")) tips.push("Try SRI / DSR for rice — saves 25-30% water and reduces methane.");
+  tips.push("Get free soil testing every 3 years through your nearest KVK to fine-tune your NPK doses.");
+  return tips.slice(0, 5);
+}
+
+// ───── AI enrichment (best-effort; never fails the response) ─────
+async function enrichWithAI(baseline: any, inputs: any, profileContext: any): Promise<any> {
+  const KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!KEY) return baseline;
+
+  try {
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "You are KrishiMitra. Improve the SUMMARY and TIPS of a baseline farm advisory using the farmer's actual context. Reply with strict JSON: {summary: string, tips: string[5], extra_notes: string[]}." },
+          { role: "user", content: `BASELINE:\n${JSON.stringify({ summary: baseline.summary, requirements: baseline.input_requirements, allocation: baseline.land_allocation_review, red_flags: baseline.red_flags })}\n\nINPUTS:\n${JSON.stringify(inputs)}\n\nCONTEXT:\n${JSON.stringify(profileContext || {})}` },
+        ],
+        temperature: 0.5,
+        max_tokens: 600,
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!r.ok) return baseline;
+    const j = await r.json();
+    const txt = j.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(txt);
+    if (parsed.summary) baseline.summary = parsed.summary;
+    if (Array.isArray(parsed.tips) && parsed.tips.length) baseline.tips = parsed.tips.slice(0, 5);
+    if (Array.isArray(parsed.extra_notes)) baseline.compatibility_notes = [...(baseline.compatibility_notes || []), ...parsed.extra_notes];
+  } catch (e) {
+    console.warn("[ai-advisor] enrichment skipped:", e);
+  }
+  return baseline;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   try {
-    const { inputs, profileContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    const messages = [
-      { role: "system", content: SYSTEM },
-      { role: "system", content: `FARMER CONTEXT: ${JSON.stringify(profileContext || {})}` },
-      { role: "user", content: `Generate the full 25-field advisory for this farmer. USER INPUTS: ${JSON.stringify(inputs || {})}` },
-    ];
-
-    const callLovable = (model: string) =>
-      fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages,
-          tools: [INSIGHT_TOOL],
-          tool_choice: { type: "function", function: { name: "return_full_advisory" } },
-        }),
-      });
-
-    const callGroq = () =>
-      fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages,
-          tools: [INSIGHT_TOOL],
-          tool_choice: { type: "function", function: { name: "return_full_advisory" } },
-        }),
-      });
-
-    // Try Lovable AI primary → secondary, then Groq fallback
-    let resp = await callLovable("google/gemini-2.5-pro");
-    if (!resp.ok && resp.status !== 402) {
-      console.warn(`[ai-advisor] gemini-2.5-pro ${resp.status} — trying gpt-5-mini`);
-      resp = await callLovable("openai/gpt-5-mini");
-    }
-    if (!resp.ok && resp.status !== 402 && GROQ_KEY) {
-      console.warn(`[ai-advisor] Lovable AI ${resp.status} — falling back to Groq`);
-      resp = await callGroq();
-    }
-
-    if (!resp.ok) {
-      if (resp.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (resp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Please top up." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const t = await resp.text();
-      console.error("ai-advisor gateway error:", resp.status, t);
-      return new Response(JSON.stringify({ error: `AI service unavailable (${resp.status})` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const data = await resp.json();
-    const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!args) {
-      // Last resort: try to use raw content if it's already JSON
-      const content = data.choices?.[0]?.message?.content || "";
-      try {
-        JSON.parse(content);
-        return new Response(content, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      } catch {
-        throw new Error("No structured output returned");
-      }
-    }
-    return new Response(args, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) {
-    console.error("ai-advisor error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { inputs, profileContext } = await req.json().catch(() => ({}));
+    const baseline = buildBaseline(inputs || {});
+    const enriched = await enrichWithAI(baseline, inputs || {}, profileContext);
+    return new Response(JSON.stringify(enriched), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (e: any) {
+    console.error("ai-advisor fatal:", e);
+    return new Response(JSON.stringify({ error: e?.message || "advisor failed" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
