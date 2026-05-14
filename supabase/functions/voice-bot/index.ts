@@ -198,7 +198,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { audio, mime, language, profile, text: directText } = body;
+    const { audio, mime, language, profile, text: directText, transcribeOnly } = body;
 
     let transcript = "";
 
@@ -220,6 +220,12 @@ serve(async (req) => {
         JSON.stringify({ transcript: "", reply: "Sorry, I didn't catch that. Please try again." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    if (transcribeOnly) {
+      return new Response(JSON.stringify({ transcript }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const reply = await chatWithFallback(transcript, profile);
