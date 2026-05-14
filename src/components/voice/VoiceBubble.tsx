@@ -152,18 +152,10 @@ export default function VoiceBubble() {
   };
 
   // ───── Path A: Browser SpeechRecognition (Chrome/Edge desktop, Android) ─────
-  const startBrowserSTT = async () => {
+  const startBrowserSTT = () => {
     const SR = getBrowserSTT();
     if (!SR) return false;
     try {
-      if (navigator.permissions?.query) {
-        const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
-        if (status.state === "denied") {
-          setError("Microphone is blocked. Enable it from the browser address bar, then try again.");
-          toast.error("Microphone blocked");
-          return true;
-        }
-      }
       const rec = new SR();
       rec.lang = LANG_BCP[i18n.language] || "en-IN";
       rec.interimResults = false;
@@ -257,11 +249,10 @@ export default function VoiceBubble() {
     }
   };
 
-  const handleStart = async () => {
+  const handleStart = () => {
     setError(null);
     // Try the gesture-friendly browser STT first
-    const handled = await startBrowserSTT();
-    if (!handled) {
+    if (!startBrowserSTT()) {
       void startRecording();
     }
   };
