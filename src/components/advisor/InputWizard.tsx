@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, MapPin, Mountain, Leaf, FlaskConical, IndianRupee, Target, Locate } from "lucide-react";
+import { ChevronDown, MapPin, Mountain, Leaf, FlaskConical, IndianRupee, Target, Locate, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +64,13 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
 
   const set = <K extends keyof AdvisorInput>(k: K, val: AdvisorInput[K]) => setV((p) => ({ ...p, [k]: val }));
   const toggle = (id: SectionId) => setOpen((p) => ({ ...p, [id]: !p[id] }));
+  const allocations = v.crop_allocations || [];
+  const totalAllocated = allocations.reduce((sum, item) => sum + (Number(item.acres) || 0), 0);
+  const addAllocation = () => set("crop_allocations", [...allocations, { crop: "", acres: 1 }] as any);
+  const updateAllocation = (index: number, patch: Partial<{ crop: string; acres: number; season: string; variety: string }>) => {
+    set("crop_allocations", allocations.map((item, i) => (i === index ? { ...item, ...patch } : item)) as any);
+  };
+  const removeAllocation = (index: number) => set("crop_allocations", allocations.filter((_, i) => i !== index) as any);
 
   const getGPS = () => {
     if (!navigator.geolocation) return toast.error("Geolocation not supported");
@@ -151,6 +158,26 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
                 {id === "crops" && (
                   <>
                     <Field label="Current crops (comma-separated)" full><Input value={asArr(v.current_crops).join(", ")} onChange={(e) => set("current_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
+                    <div className="sm:col-span-2 rounded-xl bg-card/50 p-3 space-y-2 border border-border/50">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Crop-wise land allocation</Label>
+                          <div className="text-xs text-muted-foreground">Planned: {totalAllocated.toFixed(1)} / {v.land_size_acres ?? "?"} acres</div>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={addAllocation} className="gap-1"><Plus className="h-3 w-3" /> Add</Button>
+                      </div>
+                      {allocations.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Add each crop and acres so AI can check season fit, seed, water, fertilizer and pesticide totals.</p>
+                      ) : allocations.map((item, i) => (
+                        <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                          <Input className="col-span-4" placeholder="Crop" value={item.crop} onChange={(e) => updateAllocation(i, { crop: e.target.value })} />
+                          <Input className="col-span-2" type="number" step="0.1" placeholder="Acres" value={item.acres ?? ""} onChange={(e) => updateAllocation(i, { acres: parseFloat(e.target.value) || 0 })} />
+                          <Input className="col-span-3" placeholder="Season" value={item.season || ""} onChange={(e) => updateAllocation(i, { season: e.target.value })} />
+                          <Input className="col-span-2" placeholder="Variety" value={item.variety || ""} onChange={(e) => updateAllocation(i, { variety: e.target.value })} />
+                          <Button type="button" variant="ghost" size="icon" className="col-span-1" onClick={() => removeAllocation(i)}><Trash2 className="h-4 w-4 text-muted-foreground" /></Button>
+                        </div>
+                      ))}
+                    </div>
                     <Field label="Previous crops" full><Input value={asArr(v.previous_crops).join(", ")} onChange={(e) => set("previous_crops", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></Field>
                     <Field label="Intended crop"><Input value={v.intended_crop || ""} onChange={(e) => set("intended_crop", e.target.value)} /></Field>
                     <Field label="Sowing date"><Input type="date" value={v.sowing_date || ""} onChange={(e) => set("sowing_date", e.target.value)} /></Field>
