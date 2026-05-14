@@ -207,7 +207,7 @@ serve(async (req) => {
       transcript = directText.trim();
     } else if (audio) {
       const bytes = base64ToBytes(audio);
-      transcript = await transcribeWithGroq(bytes, mime || "audio/webm", language || "en");
+      transcript = await transcribeAudio(bytes, mime || "audio/webm", language || "en");
     } else {
       return new Response(JSON.stringify({ error: "Provide either 'audio' (base64) or 'text'" }), {
         status: 400,
@@ -222,7 +222,7 @@ serve(async (req) => {
       );
     }
 
-    const reply = await chatWithGroq(transcript, profile);
+    const reply = await chatWithFallback(transcript, profile);
     const tts = await ttsWithGroq(reply, language || "en");
 
     return new Response(JSON.stringify({ transcript, reply, audio: tts?.audio, audioMime: tts?.mime }), {
