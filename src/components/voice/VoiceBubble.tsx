@@ -91,8 +91,8 @@ export default function VoiceBubble() {
       u.lang = lang;
       const v = pickVoice(lang);
       if (v) u.voice = v;
-      u.rate = 0.95;
-      u.pitch = 1.0;
+      u.rate = lang.startsWith("en") ? 0.88 : 0.9;
+      u.pitch = 1.06;
       u.volume = 1.0;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
@@ -152,10 +152,18 @@ export default function VoiceBubble() {
   };
 
   // ───── Path A: Browser SpeechRecognition (Chrome/Edge desktop, Android) ─────
-  const startBrowserSTT = () => {
+  const startBrowserSTT = async () => {
     const SR = getBrowserSTT();
     if (!SR) return false;
     try {
+      if (navigator.permissions?.query) {
+        const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+        if (status.state === "denied") {
+          setError("Microphone is blocked. Enable it from the browser address bar, then try again.");
+          toast.error("Microphone blocked");
+          return true;
+        }
+      }
       const rec = new SR();
       rec.lang = LANG_BCP[i18n.language] || "en-IN";
       rec.interimResults = false;
@@ -174,8 +182,12 @@ export default function VoiceBubble() {
         if (ev.error === "not-allowed") {
           setError("Microphone permission denied — enable it in browser settings.");
           toast.error("Microphone permission denied");
-        } else if (ev.error === "no-speech") {
-          toast.message("Didn't hear anything — try again");
+        } else if (ev.error === "no-speech" || ev.error === "audio-capture") {
+          toast.message("Didn't hear clearly — opening recorder mode");
+          void startRecording();
+        } else if (ev.error === "network" || ev.error === "service-not-allowed") {
+          toast.message("Browser speech service failed — using Krishi recorder");
+          void startRecording();
         } else {
           toast.error(`Voice error: ${ev.error}`);
         }
@@ -241,10 +253,11 @@ export default function VoiceBubble() {
     }
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     setError(null);
     // Try the gesture-friendly browser STT first
-    if (!startBrowserSTT()) {
+    const handled = await startBrowserSTT();
+    if (!handled) {
       void startRecording();
     }
   };
@@ -272,6 +285,7 @@ export default function VoiceBubble() {
       setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
       speak(r.reply, { audio: r.audio, mime: r.audioMime });
     } catch (e: any) {
+      setError("Voice network failed. I saved your mic access; please try once more in a few seconds.");
       toast.error(e?.message || "Voice processing failed");
     } finally {
       setProcessing(false);
