@@ -137,6 +137,10 @@ export default function AIChatWidget() {
 
   const startRecorderFallback = async () => {
     try {
+      if (typeof MediaRecorder === "undefined") {
+        toast.error("Voice recording is not supported in this browser");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
