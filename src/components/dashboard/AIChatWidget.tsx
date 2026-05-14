@@ -154,7 +154,7 @@ export default function AIChatWidget() {
           const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
           const audio = await blobToBase64(blob);
           const { data, error } = await supabase.functions.invoke("voice-bot", {
-            body: { audio, mime: blob.type, language: (navigator.language || "en-IN").split("-")[0], profile: active },
+            body: { audio, mime: blob.type, language: (navigator.language || "en-IN").split("-")[0], profile: active, transcribeOnly: true },
           });
           if (error) throw error;
           const transcript = (data as any)?.transcript?.trim();
