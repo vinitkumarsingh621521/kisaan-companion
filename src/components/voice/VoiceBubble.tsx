@@ -171,6 +171,7 @@ export default function VoiceBubble() {
       rec.maxAlternatives = 1;
 
       let finalText = "";
+      let usingRecorderFallback = false;
       rec.onresult = (ev: any) => {
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
           if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
@@ -183,9 +184,11 @@ export default function VoiceBubble() {
           setError("Microphone permission denied — enable it in browser settings.");
           toast.error("Microphone permission denied");
         } else if (ev.error === "no-speech" || ev.error === "audio-capture") {
+          usingRecorderFallback = true;
           toast.message("Didn't hear clearly — opening recorder mode");
           void startRecording();
         } else if (ev.error === "network" || ev.error === "service-not-allowed") {
+          usingRecorderFallback = true;
           toast.message("Browser speech service failed — using Krishi recorder");
           void startRecording();
         } else {
@@ -193,6 +196,7 @@ export default function VoiceBubble() {
         }
       };
       rec.onend = async () => {
+        if (usingRecorderFallback) return;
         setRecording(false);
         recognitionRef.current = null;
         if (!finalText.trim()) return;
