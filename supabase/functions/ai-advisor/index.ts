@@ -344,9 +344,12 @@ async function enrichWithAI(baseline: any, inputs: any, profileContext: any): Pr
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { inputs, profileContext } = await req.json().catch(() => ({}));
-    const baseline = buildBaseline(inputs || {});
-    const enriched = await enrichWithAI(baseline, inputs || {}, profileContext);
+    const body = await req.json().catch(() => ({}));
+    // Accept either { inputs, profileContext } or a flat payload
+    const inputs = body?.inputs ?? body ?? {};
+    const profileContext = body?.profileContext;
+    const baseline = buildBaseline(inputs);
+    const enriched = await enrichWithAI(baseline, inputs, profileContext);
     return new Response(JSON.stringify(enriched), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("ai-advisor fatal:", e);
