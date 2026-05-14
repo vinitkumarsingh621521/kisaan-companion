@@ -118,6 +118,72 @@ async function transcribeAudio(audioBytes: Uint8Array, mime: string, language: s
   return { text: "", provider: "none", error: `${o.error || ""} | ${a.error || ""} | ${b.error || ""}` };
 }
 
+// Wrap raw PCM (signed 16-bit little-endian, mono) in a WAV container
+function pcmToWavBase64(pcm: Uint8Array, sampleRate = 24000): string {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+  const blockAlign = numChannels * bitsPerSample / 8;
+  const dataSize = pcm.byteLength;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); view.setUint32(4, 36 + dataSize, true); w(8, "WAVE");
+  w(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  w(36, "data"); view.setUint32(40, dataSize, true);
+  new Uint8Array(buffer, 44).set(pcm);
+  const bytes = new Uint8Array(buffer);
+  let bin = ""; const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  return btoa(bin);
+}
+
+// Google Gemini native TTS — natural human voice, free tier on AI Studio key
+async function synthesizeWithGemini(text: string, language: string): Promise<{ audioBase64: string; mime: string; voice: string } | null> {
+  const KEY = Deno.env.get("GOOGLE_AI_STUDIO_API_KEY") || Deno.env.get("Gemini_API_Key_Rahul");
+  if (!KEY || !text.trim()) return null;
+  // Warm, friendly female voice. Other options: Puck, Charon, Fenrir, Aoede, Leda, Orus, Zephyr.
+  const voice = "Aoede";
+  const styled = `Say in a warm, friendly, caring village-elder tone, with natural pauses: ${text.slice(0, 4000)}`;
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: styled }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+          },
+        }),
+      },
+    );
+    if (!r.ok) {
+      console.warn("[voice-bot] Gemini TTS failed:", r.status, (await r.text()).slice(0, 200));
+      return null;
+    }
+    const j = await r.json();
+    const part = j?.candidates?.[0]?.content?.parts?.find((p: any) => p?.inlineData?.data);
+    const b64 = part?.inlineData?.data;
+    const mime = part?.inlineData?.mimeType || "audio/L16;rate=24000";
+    if (!b64) { console.warn("[voice-bot] Gemini TTS: no audio in response"); return null; }
+    // Gemini returns raw PCM (e.g. "audio/L16;rate=24000"). Wrap in WAV for browser.
+    const rateMatch = /rate=(\d+)/.exec(mime);
+    const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+    const pcm = base64ToBytes(b64);
+    const wav = pcmToWavBase64(pcm, sampleRate);
+    return { audioBase64: wav, mime: "audio/wav", voice: `gemini:${voice}` };
+  } catch (e) {
+    console.warn("[voice-bot] Gemini TTS exception:", e);
+    return null;
+  }
+}
+
 // ChatGPT-style TTS via OpenAI tts-1-hd (returns base64 mp3)
 async function synthesizeWithOpenAI(text: string, language: string): Promise<{ audioBase64: string; voice: string } | null> {
   const KEY = Deno.env.get("OPENAI_API_KEY");
