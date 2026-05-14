@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -33,6 +34,10 @@ export default function AIChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -116,22 +121,101 @@ export default function AIChatWidget() {
     }
   };
 
-  const handleVoice = () => {
+  const stopRecorder = () => {
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    else setIsListening(false);
+  };
+
+  const blobToBase64 = async (blob: Blob) => {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + 0x8000)));
+    }
+    return btoa(binary);
+  };
+
+  const startRecorderFallback = async () => {
+    try {
+      if (typeof MediaRecorder === "undefined") {
+        toast.error("Voice recording is not supported in this browser");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        setIsListening(false);
+        if (!chunksRef.current.length) return;
+        try {
+          toast.info("Understanding your voice…");
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          const audio = await blobToBase64(blob);
+          const { data, error } = await supabase.functions.invoke("voice-bot", {
+            body: { audio, mime: blob.type, language: (navigator.language || "en-IN").split("-")[0], profile: active, transcribeOnly: true },
+          });
+          if (error) throw error;
+          const transcript = (data as any)?.transcript?.trim();
+          if (!transcript) throw new Error("No speech recognized");
+          await sendMessage(transcript);
+        } catch (e: any) {
+          toast.error(e?.message || "Could not recognize speech");
+        }
+      };
+      recorder.start();
+      setIsListening(true);
+      toast.info("🎤 Recording… tap the mic again to send");
+    } catch (e: any) {
+      setIsListening(false);
+      toast.error(e?.name === "NotAllowedError" ? "Microphone blocked" : "Could not access microphone");
+    }
+  };
+
+  const handleVoice = async () => {
+    if (isListening) {
+      try { recognitionRef.current?.stop?.(); } catch {}
+      stopRecorder();
+      return;
+    }
     const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error("Speech recognition not supported in this browser");
+      await startRecorderFallback();
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = "hi-IN";
+    recognitionRef.current = recognition;
+    recognition.lang = navigator.language || "en-IN";
     recognition.continuous = false;
     recognition.interimResults = false;
+    let startedFallback = false;
 
     recognition.onstart = () => { setIsListening(true); toast.info("🎤 Listening... Speak now!"); };
-    recognition.onresult = (e: any) => { setInput(e.results[0][0].transcript); setIsListening(false); };
-    recognition.onerror = () => { setIsListening(false); toast.error("Could not recognize speech"); };
-    recognition.onend = () => setIsListening(false);
-    recognition.start();
+    recognition.onresult = (e: any) => {
+      const transcript = e.results?.[0]?.[0]?.transcript?.trim();
+      setIsListening(false);
+      if (transcript) void sendMessage(transcript);
+      else void startRecorderFallback();
+    };
+    recognition.onerror = (e: any) => {
+      setIsListening(false);
+      if (["no-speech", "network", "audio-capture", "service-not-allowed"].includes(e?.error)) {
+        startedFallback = true;
+        toast.info("Browser speech failed — trying Krishi recorder");
+        void startRecorderFallback();
+      } else if (e?.error === "not-allowed") {
+        toast.error("Microphone permission denied");
+      } else {
+        toast.error("Could not recognize speech");
+      }
+    };
+    recognition.onend = () => { recognitionRef.current = null; if (!startedFallback) setIsListening(false); };
+    try { recognition.start(); } catch { await startRecorderFallback(); }
   };
 
   const clearChat = () => {

@@ -55,6 +55,33 @@ export default function InsightGrid({ r }: { r: AdvisoryResult }) {
           <p className="text-xs text-muted-foreground">{r.soil_plan.why}</p>
         </InsightCard>
 
+        {r.land_allocation_review && (
+          <InsightCard title="Land Allocation Check" icon="🧭" accent="emerald" delay={0.18}>
+            <p className="text-sm"><b>{r.land_allocation_review.total_planned_acres} acres planned</b> · {r.land_allocation_review.unallocated_acres} acres open</p>
+            <p className="text-xs text-muted-foreground">{r.land_allocation_review.summary}</p>
+            <ul className="text-xs list-disc list-inside mt-1">
+              {r.land_allocation_review.recommendations.slice(0, 3).map((x, i) => <li key={i}>{x}</li>)}
+            </ul>
+          </InsightCard>
+        )}
+
+        {r.input_requirements && r.input_requirements.length > 0 && (
+          <InsightCard title="Seed, Water & Chemical Needs" icon="🧾" accent="cyan" delay={0.19}>
+            <div className="space-y-2">
+              {r.input_requirements.slice(0, 4).map((item) => (
+                <div key={item.crop} className="rounded-lg bg-muted/40 p-2 text-xs">
+                  <div className="font-bold text-foreground">{item.crop} · {item.area_acres} acres</div>
+                  <div>Seed: {item.seed_per_acre} → <b>{item.total_seed}</b></div>
+                  <div>Water: {item.water_per_acre}</div>
+                  <div>Fertilizer: {item.fertilizer_per_acre}</div>
+                  <div>Pesticide/IPM: {item.pesticide_per_acre}</div>
+                  <div className="text-muted-foreground">{item.irrigation_schedule}</div>
+                </div>
+              ))}
+            </div>
+          </InsightCard>
+        )}
+
         <InsightCard title="Irrigation Plan" icon="💧" accent="cyan" delay={0.2}>
           <p><b>{r.irrigation_plan.method}</b></p>
           <p className="text-xs">{r.irrigation_plan.schedule}</p>
@@ -145,6 +172,14 @@ export default function InsightGrid({ r }: { r: AdvisoryResult }) {
         <InsightCard title="Red Flags — What Could Go Wrong" icon="🚩" accent="rose" delay={0.9}>
           <ul className="list-disc list-inside space-y-1 text-sm">
             {r.red_flags.map((t, i) => <li key={i}>{t}</li>)}
+          </ul>
+        </InsightCard>
+      )}
+
+      {r.compatibility_notes && r.compatibility_notes.length > 0 && (
+        <InsightCard title="Season & Crop Compatibility" icon="🧩" accent="sky" delay={0.95}>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            {r.compatibility_notes.map((t, i) => <li key={i}>{t}</li>)}
           </ul>
         </InsightCard>
       )}

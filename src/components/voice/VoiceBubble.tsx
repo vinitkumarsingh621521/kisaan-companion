@@ -91,8 +91,8 @@ export default function VoiceBubble() {
       u.lang = lang;
       const v = pickVoice(lang);
       if (v) u.voice = v;
-      u.rate = 0.95;
-      u.pitch = 1.0;
+      u.rate = lang.startsWith("en") ? 0.88 : 0.9;
+      u.pitch = 1.06;
       u.volume = 1.0;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
@@ -163,6 +163,7 @@ export default function VoiceBubble() {
       rec.maxAlternatives = 1;
 
       let finalText = "";
+      let usingRecorderFallback = false;
       rec.onresult = (ev: any) => {
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
           if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
@@ -174,13 +175,20 @@ export default function VoiceBubble() {
         if (ev.error === "not-allowed") {
           setError("Microphone permission denied — enable it in browser settings.");
           toast.error("Microphone permission denied");
-        } else if (ev.error === "no-speech") {
-          toast.message("Didn't hear anything — try again");
+        } else if (ev.error === "no-speech" || ev.error === "audio-capture") {
+          usingRecorderFallback = true;
+          toast.message("Didn't hear clearly — opening recorder mode");
+          void startRecording();
+        } else if (ev.error === "network" || ev.error === "service-not-allowed") {
+          usingRecorderFallback = true;
+          toast.message("Browser speech service failed — using Krishi recorder");
+          void startRecording();
         } else {
           toast.error(`Voice error: ${ev.error}`);
         }
       };
       rec.onend = async () => {
+        if (usingRecorderFallback) return;
         setRecording(false);
         recognitionRef.current = null;
         if (!finalText.trim()) return;
@@ -272,6 +280,7 @@ export default function VoiceBubble() {
       setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
       speak(r.reply, { audio: r.audio, mime: r.audioMime });
     } catch (e: any) {
+      setError("Voice network failed. I saved your mic access; please try once more in a few seconds.");
       toast.error(e?.message || "Voice processing failed");
     } finally {
       setProcessing(false);

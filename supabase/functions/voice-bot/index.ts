@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM = `You are KrishiMitra Voice — a warm, witty agricultural advisor for Indian farmers. The user spoke to you. Reply in the EXACT same language they used. Keep replies short (2-4 sentences) since they will be SPOKEN aloud. Be specific, practical, and friendly. Reference the farmer's profile data when given.`;
+const SYSTEM = `You are KrishiMitra Voice — a warm, human, village-wise agricultural advisor for Indian farmers. The user spoke to you. Reply in the EXACT same language they used. Keep replies short (2-4 sentences) because they will be spoken aloud. Sound like a caring real person: calm, practical, lightly encouraging, never robotic. Give one specific next step with quantities/timing when possible. Reference the farmer's profile data when given.`;
 
 function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -49,6 +49,32 @@ async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language
   }
   const j = await r.json();
   return j.text || "";
+}
+
+async function transcribeWithHuggingFace(audioBytes: Uint8Array, mime: string): Promise<string> {
+  const HF_KEY = Deno.env.get("Hugging_face_token");
+  if (!HF_KEY) throw new Error("Hugging Face token missing");
+
+  const r = await fetch("https://api-inference.huggingface.co/models/openai/whisper-large-v3", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": mime || "audio/webm" },
+    body: audioBytes,
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`HF transcription failed (${r.status}): ${t.slice(0, 200)}`);
+  }
+  const j = await r.json();
+  return j.text || j?.[0]?.text || "";
+}
+
+async function transcribeAudio(audioBytes: Uint8Array, mime: string, language: string): Promise<string> {
+  try {
+    return await transcribeWithGroq(audioBytes, mime, language);
+  } catch (e) {
+    console.warn("[voice-bot] Groq transcription failed, trying Hugging Face", e);
+    return await transcribeWithHuggingFace(audioBytes, mime);
+  }
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -121,12 +147,58 @@ async function chatWithGroq(userText: string, profile: any): Promise<string> {
   return j.choices?.[0]?.message?.content || "";
 }
 
+async function chatWithLovable(userText: string, profile: any): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("Lovable AI key missing");
+
+  const profileLine = profile
+    ? `Farmer: ${profile.full_name || "Friend"}, ${profile.farm_location || "India"}. Soil: ${profile.soil_type || profile?.farmer_details?.soil_type || "?"}. Crops: ${profile?.farmer_details?.current_crops || "?"}.`
+    : "";
+
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: `${SYSTEM}\n\n${profileLine}` },
+        { role: "user", content: userText },
+      ],
+      temperature: 0.65,
+      max_tokens: 280,
+    }),
+  });
+
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`Lovable AI failed (${r.status}): ${t.slice(0, 300)}`);
+  }
+  const j = await r.json();
+  return j.choices?.[0]?.message?.content || "";
+}
+
+async function chatWithFallback(userText: string, profile: any): Promise<string> {
+  try {
+    const reply = await chatWithLovable(userText, profile);
+    if (reply.trim()) return reply;
+  } catch (e) {
+    console.warn("[voice-bot] Lovable AI chat failed, trying Groq", e);
+  }
+  try {
+    const reply = await chatWithGroq(userText, profile);
+    if (reply.trim()) return reply;
+  } catch (e) {
+    console.warn("[voice-bot] Groq chat failed", e);
+  }
+  return "I heard you, but my AI network is weak right now. For safety, check today’s crop, soil moisture, and weather first — then ask me again in a minute, dost.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { audio, mime, language, profile, text: directText } = body;
+    const { audio, mime, language, profile, text: directText, transcribeOnly } = body;
 
     let transcript = "";
 
@@ -135,7 +207,7 @@ serve(async (req) => {
       transcript = directText.trim();
     } else if (audio) {
       const bytes = base64ToBytes(audio);
-      transcript = await transcribeWithGroq(bytes, mime || "audio/webm", language || "en");
+      transcript = await transcribeAudio(bytes, mime || "audio/webm", language || "en");
     } else {
       return new Response(JSON.stringify({ error: "Provide either 'audio' (base64) or 'text'" }), {
         status: 400,
@@ -150,7 +222,13 @@ serve(async (req) => {
       );
     }
 
-    const reply = await chatWithGroq(transcript, profile);
+    if (transcribeOnly) {
+      return new Response(JSON.stringify({ transcript }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const reply = await chatWithFallback(transcript, profile);
     const tts = await ttsWithGroq(reply, language || "en");
 
     return new Response(JSON.stringify({ transcript, reply, audio: tts?.audio, audioMime: tts?.mime }), {

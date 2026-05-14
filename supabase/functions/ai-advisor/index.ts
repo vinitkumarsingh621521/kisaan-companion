@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM = `You are KrishiMitra AI Advisor — the most comprehensive agri-consultant for Indian farmers. You receive a deep farmer profile (location, soil, crops, inputs, finance, goals) and return 25 specific, actionable insights in STRUCTURED output via the provided tool. No prose. Use ₹ for money, t/ha or q/acre for yield, kg/acre for fertilizer. Reference the farmer's own numbers (district, soil pH, budget) inside "reason" fields. Be honest about red flags.`;
+const SYSTEM = `You are KrishiMitra AI Advisor — the most comprehensive agri-consultant for Indian farmers. You receive a deep farmer profile (location, soil, crops, crop-wise acres, inputs, finance, goals) and return specific, actionable insights in STRUCTURED output via the provided tool. No prose. Use ₹ for money, t/ha or q/acre for yield, kg/acre for fertilizer/pesticide, and litres or mm for water. For every selected/planned crop, calculate seed need per acre + total seed, water need per acre, fertilizer dosage per acre, pesticide/IPM dosage per acre, season compatibility, and land-allocation advice. Reference the farmer's own numbers (district, soil pH, budget, acres) inside reason fields. Be honest about incompatibility and red flags.`;
 
 const INSIGHT_TOOL = {
   type: "function",
@@ -53,6 +53,36 @@ const INSIGHT_TOOL = {
           },
           required: ["overall", "heat", "frost", "flood", "drought"],
         },
+        input_requirements: {
+          type: "array",
+          description: "For every planned/current crop: exact per-acre and total input requirements.",
+          items: {
+            type: "object",
+            properties: {
+              crop: { type: "string" },
+              area_acres: { type: "number" },
+              seed_per_acre: { type: "string" },
+              total_seed: { type: "string" },
+              water_per_acre: { type: "string" },
+              fertilizer_per_acre: { type: "string" },
+              pesticide_per_acre: { type: "string" },
+              irrigation_schedule: { type: "string" },
+              notes: { type: "string" },
+            },
+            required: ["crop", "area_acres", "seed_per_acre", "total_seed", "water_per_acre", "fertilizer_per_acre", "pesticide_per_acre", "irrigation_schedule", "notes"],
+          },
+        },
+        land_allocation_review: {
+          type: "object",
+          properties: {
+            total_planned_acres: { type: "number" },
+            unallocated_acres: { type: "number" },
+            summary: { type: "string" },
+            recommendations: { type: "array", items: { type: "string" } },
+          },
+          required: ["total_planned_acres", "unallocated_acres", "summary", "recommendations"],
+        },
+        compatibility_notes: { type: "array", description: "Season, soil, water and rotation compatibility warnings or confirmations.", items: { type: "string" } },
         soil_plan: { type: "object", properties: { action: { type: "string" }, dosage: { type: "string" }, why: { type: "string" } }, required: ["action", "dosage", "why"] },
         irrigation_plan: { type: "object", properties: { method: { type: "string" }, schedule: { type: "string" }, water_saving_pct: { type: "number" } }, required: ["method", "schedule", "water_saving_pct"] },
         fertilizer_plan: { type: "object", properties: { npk_kg_per_acre: { type: "string" }, timing: { type: "string" }, brands: { type: "array", items: { type: "string" } }, organic_alt: { type: "string" } }, required: ["npk_kg_per_acre", "timing", "brands", "organic_alt"] },
@@ -82,7 +112,7 @@ const INSIGHT_TOOL = {
         red_flags: { type: "array", items: { type: "string" } },
       },
       required: [
-        "status", "summary", "crop_suitability", "alternative_crops", "climate_risk", "soil_plan",
+        "status", "summary", "crop_suitability", "alternative_crops", "climate_risk", "input_requirements", "land_allocation_review", "compatibility_notes", "soil_plan",
         "irrigation_plan", "fertilizer_plan", "pesticide_plan", "cost_breakdown", "yield_forecast",
         "revenue_forecast", "sowing_window", "harvest_window", "market_strategy", "schemes",
         "insurance", "sustainability", "water_footprint", "tips", "red_flags",
