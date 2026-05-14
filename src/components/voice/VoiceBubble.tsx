@@ -161,7 +161,12 @@ export default function VoiceBubble() {
     const d = data as any;
     setDiag((prev) => ({ ...prev, ...(d.diagnostics || {}), lastStatus: "ok" }));
     if (d.error && !d.reply) throw new Error(d.error);
-    return d as { transcript: string; reply: string; audio?: string; audioMime?: string };
+    return {
+      transcript: d.transcript,
+      reply: d.reply,
+      audio: d.audio_reply || d.audio,
+      audioMime: d.audio_mime || d.audioMime,
+    } as { transcript: string; reply: string; audio?: string; audioMime?: string };
   };
 
   // ───── Path A: Browser SpeechRecognition (Chrome/Edge desktop, Android) ─────
