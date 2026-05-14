@@ -248,7 +248,7 @@ export default function InputWizard({ initial, onSubmit, loading }: Props) {
 
       <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
         <Button
-          onClick={() => onSubmit(v)}
+          onClick={() => onSubmit({ ...v, crop_allocations: allocations.filter((a) => a.crop.trim() && Number(a.acres) > 0) })}
           disabled={loading}
           className="w-full h-12 gradient-primary border-0 text-primary-foreground font-semibold text-base"
         >
