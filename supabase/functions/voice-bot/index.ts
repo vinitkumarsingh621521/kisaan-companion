@@ -33,6 +33,29 @@ function extFor(mime: string): string {
 
 type STTResult = { text: string; provider: string; error?: string };
 
+// OpenAI Whisper — best quality, especially for Indian languages
+async function transcribeWithOpenAI(audioBytes: Uint8Array, mime: string, language: string): Promise<STTResult> {
+  const KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!KEY) return { text: "", provider: "openai", error: "OpenAI key missing" };
+  const ext = extFor(mime);
+  const fd = new FormData();
+  fd.append("file", new Blob([audioBytes], { type: mime || "audio/webm" }), `audio.${ext}`);
+  fd.append("model", "whisper-1");
+  if (language && language !== "auto") fd.append("language", language);
+
+  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${KEY}` },
+    body: fd,
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    return { text: "", provider: "openai", error: `OpenAI ${r.status}: ${t.slice(0, 180)}` };
+  }
+  const j = await r.json();
+  return { text: j.text || "", provider: "openai-whisper" };
+}
+
 async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language: string): Promise<STTResult> {
   const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
   if (!GROQ_KEY) return { text: "", provider: "groq", error: "Groq API key missing" };
@@ -57,16 +80,13 @@ async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language
   return { text: j.text || "", provider: "groq" };
 }
 
-// HF Inference Router (the new endpoint that actually works)
 async function transcribeWithHuggingFace(audioBytes: Uint8Array, mime: string): Promise<STTResult> {
   const HF_KEY = Deno.env.get("Hugging_face_token");
   if (!HF_KEY) return { text: "", provider: "huggingface", error: "Hugging Face token missing" };
-
   const urls = [
     "https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3",
     "https://api-inference.huggingface.co/models/openai/whisper-large-v3",
   ];
-
   let lastErr = "";
   for (const url of urls) {
     try {
@@ -75,28 +95,61 @@ async function transcribeWithHuggingFace(audioBytes: Uint8Array, mime: string): 
         headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": mime || "audio/webm" },
         body: audioBytes,
       });
-      if (!r.ok) {
-        lastErr = `HF ${r.status} @ ${url}`;
-        continue;
-      }
+      if (!r.ok) { lastErr = `HF ${r.status} @ ${url}`; continue; }
       const j = await r.json();
       const text = j.text || j?.[0]?.text || "";
       if (text) return { text, provider: "huggingface" };
-    } catch (e: any) {
-      lastErr = `HF exception: ${e?.message || e}`;
-    }
+    } catch (e: any) { lastErr = `HF exception: ${e?.message || e}`; }
   }
   return { text: "", provider: "huggingface", error: lastErr || "HF transcription failed" };
 }
 
 async function transcribeAudio(audioBytes: Uint8Array, mime: string, language: string): Promise<STTResult> {
+  // Priority: OpenAI Whisper → Groq → Hugging Face
+  const o = await transcribeWithOpenAI(audioBytes, mime, language);
+  if (o.text) return o;
+  console.warn("[voice-bot] OpenAI STT failed:", o.error);
   const a = await transcribeWithGroq(audioBytes, mime, language);
   if (a.text) return a;
   console.warn("[voice-bot] Groq STT failed:", a.error);
   const b = await transcribeWithHuggingFace(audioBytes, mime);
   if (b.text) return b;
   console.warn("[voice-bot] HF STT failed:", b.error);
-  return { text: "", provider: "none", error: `${a.error || ""} | ${b.error || ""}` };
+  return { text: "", provider: "none", error: `${o.error || ""} | ${a.error || ""} | ${b.error || ""}` };
+}
+
+// ChatGPT-style TTS via OpenAI tts-1-hd (returns base64 mp3)
+async function synthesizeWithOpenAI(text: string, language: string): Promise<{ audioBase64: string; voice: string } | null> {
+  const KEY = Deno.env.get("OPENAI_API_KEY");
+  if (!KEY || !text.trim()) return null;
+  // Pick a warm voice. "shimmer" is calm/feminine, "onyx" deep/masculine, "nova" friendly. Default: nova.
+  const voice = "nova";
+  try {
+    const r = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "tts-1-hd",
+        voice,
+        input: text.slice(0, 4000),
+        format: "mp3",
+        speed: 0.95,
+      }),
+    });
+    if (!r.ok) {
+      console.warn("[voice-bot] OpenAI TTS failed:", r.status, (await r.text()).slice(0, 160));
+      return null;
+    }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    // chunked base64 to avoid stack overflow
+    let bin = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < buf.length; i += CHUNK) bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+    return { audioBase64: btoa(bin), voice };
+  } catch (e) {
+    console.warn("[voice-bot] OpenAI TTS exception:", e);
+    return null;
+  }
 }
 
 async function chatWithLovable(userText: string, profile: any, language: string): Promise<string> {
@@ -177,8 +230,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { audio, mime, language, profile, text: directText, transcribeOnly } = body;
+    const { audio, mime, language, profile, text: directText, transcribeOnly, tts: ttsRequested } = body;
     const lang = (language || "en").toString();
+    const wantsTTS = ttsRequested !== false; // default ON when OPENAI_API_KEY exists
 
     let transcript = "";
     let sttProvider = "browser";
@@ -198,7 +252,6 @@ serve(async (req) => {
       });
     }
 
-    // Critical: never throw 500 on empty transcript — return diagnostics so UI can guide the user.
     if (!transcript.trim()) {
       return new Response(JSON.stringify({
         transcript: "",
@@ -216,10 +269,20 @@ serve(async (req) => {
 
     const { reply, provider: chatProvider } = await chatWithFallback(transcript, profile, lang);
 
+    // ChatGPT-quality voice (best-effort; never blocks reply)
+    let audio_reply: string | null = null;
+    let ttsProvider: string | null = null;
+    if (wantsTTS && reply) {
+      const tts = await synthesizeWithOpenAI(reply, lang);
+      if (tts) { audio_reply = tts.audioBase64; ttsProvider = `openai:${tts.voice}`; }
+    }
+
     return new Response(JSON.stringify({
       transcript,
       reply,
-      diagnostics: { sttProvider, sttError, chatProvider, audioMime: mime, language: lang },
+      audio_reply,            // base64 mp3 or null — client plays via data URI
+      audio_mime: audio_reply ? "audio/mpeg" : null,
+      diagnostics: { sttProvider, sttError, chatProvider, ttsProvider, audioMime: mime, language: lang },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("voice-bot error:", e?.message || e);
