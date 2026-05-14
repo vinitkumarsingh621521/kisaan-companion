@@ -136,7 +136,7 @@ export default function FieldMapperPage() {
     toast.info("All zones cleared");
   };
 
-  const totalAcres = Number(active?.farmer_details?.land_size_acres) || 0;
+  const totalAcres = Number((active?.farmer_details as any)?.total_land ?? (active?.farmer_details as any)?.land_size_acres) || 0;
 
   const totals = useMemo(() => {
     const ha = zones.reduce((s, z) => s + z.hectares, 0);
