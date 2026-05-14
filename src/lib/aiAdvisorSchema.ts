@@ -29,6 +29,12 @@ export const advisorInputSchema = z.object({
 
   // Crops & history
   current_crops: z.array(z.string()).optional(),
+  crop_allocations: z.array(z.object({
+    crop: z.string(),
+    acres: z.number().positive(),
+    season: z.string().optional(),
+    variety: z.string().optional(),
+  })).optional(),
   previous_crops: z.array(z.string()).optional(),
   intended_crop: z.string().optional(),
   sowing_date: z.string().optional(),
@@ -78,6 +84,9 @@ export interface AdvisoryResult {
   alternative_crops: { name: string; emoji: string; score: number; profit_per_acre: string; reason: string }[];
   climate_risk: { overall: string; heat: string; frost: string; flood: string; drought: string };
   soil_plan: { action: string; dosage: string; why: string };
+  input_requirements?: { crop: string; area_acres: number; seed_per_acre: string; total_seed: string; water_per_acre: string; fertilizer_per_acre: string; pesticide_per_acre: string; irrigation_schedule: string; notes: string }[];
+  land_allocation_review?: { total_planned_acres: number; unallocated_acres: number; summary: string; recommendations: string[] };
+  compatibility_notes?: string[];
   irrigation_plan: { method: string; schedule: string; water_saving_pct: number };
   fertilizer_plan: { npk_kg_per_acre: string; timing: string; brands: string[]; organic_alt: string };
   pesticide_plan: { needed: boolean; products: string[]; ipm_alternative: string };
