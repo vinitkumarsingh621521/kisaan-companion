@@ -189,6 +189,7 @@ export default function AIChatWidget() {
     recognition.lang = navigator.language || "en-IN";
     recognition.continuous = false;
     recognition.interimResults = false;
+    let startedFallback = false;
 
     recognition.onstart = () => { setIsListening(true); toast.info("🎤 Listening... Speak now!"); };
     recognition.onresult = (e: any) => {
@@ -200,6 +201,7 @@ export default function AIChatWidget() {
     recognition.onerror = (e: any) => {
       setIsListening(false);
       if (["no-speech", "network", "audio-capture", "service-not-allowed"].includes(e?.error)) {
+        startedFallback = true;
         toast.info("Browser speech failed — trying Krishi recorder");
         void startRecorderFallback();
       } else if (e?.error === "not-allowed") {
@@ -208,7 +210,7 @@ export default function AIChatWidget() {
         toast.error("Could not recognize speech");
       }
     };
-    recognition.onend = () => { recognitionRef.current = null; setIsListening(false); };
+    recognition.onend = () => { recognitionRef.current = null; if (!startedFallback) setIsListening(false); };
     try { recognition.start(); } catch { await startRecorderFallback(); }
   };
 
