@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM = `You are KrishiMitra AI Advisor — the most comprehensive agri-consultant for Indian farmers. You receive a deep farmer profile (location, soil, crops, inputs, finance, goals) and return 25 specific, actionable insights in STRUCTURED output via the provided tool. No prose. Use ₹ for money, t/ha or q/acre for yield, kg/acre for fertilizer. Reference the farmer's own numbers (district, soil pH, budget) inside "reason" fields. Be honest about red flags.`;
+const SYSTEM = `You are KrishiMitra AI Advisor — the most comprehensive agri-consultant for Indian farmers. You receive a deep farmer profile (location, soil, crops, crop-wise acres, inputs, finance, goals) and return specific, actionable insights in STRUCTURED output via the provided tool. No prose. Use ₹ for money, t/ha or q/acre for yield, kg/acre for fertilizer/pesticide, and litres or mm for water. For every selected/planned crop, calculate seed need per acre + total seed, water need per acre, fertilizer dosage per acre, pesticide/IPM dosage per acre, season compatibility, and land-allocation advice. Reference the farmer's own numbers (district, soil pH, budget, acres) inside reason fields. Be honest about incompatibility and red flags.`;
 
 const INSIGHT_TOOL = {
   type: "function",
