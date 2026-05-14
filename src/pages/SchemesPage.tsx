@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -11,14 +11,16 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { Skeleton } from "@/components/ui/skeleton";
 import SchemeEligibilityQuiz from "@/components/schemes/SchemeEligibilityQuiz";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Scheme { name: string; match_score: number; benefit: string; why: string; action: string }
+type ToolKind = "loan" | "insurance" | "tax" | "export";
 
 const tools = [
-  { icon: FileText, title: "Loan Application Helper", desc: "Generate documents needed for bank agricultural loans" },
-  { icon: Shield, title: "Insurance Claim Assistant", desc: "Automated crop damage documentation with photos" },
-  { icon: Calculator, title: "Tax Calculator", desc: "Calculate agricultural income with exemptions" },
-  { icon: Download, title: "Export Reports", desc: "Download farm data as PDF or Excel" },
+  { kind: "loan" as const, icon: FileText, title: "Loan Application Helper", desc: "Generate documents needed for bank agricultural loans" },
+  { kind: "insurance" as const, icon: Shield, title: "Insurance Claim Assistant", desc: "Automated crop damage documentation with photos" },
+  { kind: "tax" as const, icon: Calculator, title: "Tax Calculator", desc: "Calculate agricultural income with exemptions" },
+  { kind: "export" as const, icon: Download, title: "Export Reports", desc: "Download farm data as PDF or Excel" },
 ];
 
 export default function SchemesPage() {
@@ -26,6 +28,36 @@ export default function SchemesPage() {
   const { ctx } = usePersonalization();
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTool, setActiveTool] = useState<(typeof tools)[number] | null>(null);
+
+  const toolText = useMemo(() => activeTool ? buildToolText(activeTool.kind, active, ctx, schemes) : "", [activeTool, active, ctx, schemes]);
+
+  const downloadText = () => {
+    if (!activeTool) return;
+    const blob = new Blob([toolText], { type: activeTool.kind === "export" ? "application/json" : "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeTool.title.toLowerCase().replace(/\s+/g, "-")}.${activeTool.kind === "export" ? "json" : "txt"}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Document downloaded");
+  };
+
+  const downloadPdf = async () => {
+    if (!activeTool) return;
+    const { jsPDF } = await import("jspdf");
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.text(activeTool.title, 40, 44);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    const lines = pdf.splitTextToSize(toolText, 515);
+    pdf.text(lines, 40, 72);
+    pdf.save(`${activeTool.title.toLowerCase().replace(/\s+/g, "-")}.pdf`);
+    toast.success("PDF ready");
+  };
 
   useEffect(() => {
     if (!active || !ctx) return;
@@ -120,7 +152,7 @@ export default function SchemesPage() {
                       <div className="font-medium text-sm text-foreground">{t.title}</div>
                       <div className="text-xs text-muted-foreground line-clamp-1">{t.desc}</div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => toast.info(`Opening ${t.title}…`)}>Open</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTool(t)}>Open</Button>
                   </div>
                 ))}
               </div>
@@ -130,7 +162,44 @@ export default function SchemesPage() {
           </Tabs>
         </div>
       </main>
+      <Dialog open={!!activeTool} onOpenChange={(open) => !open && setActiveTool(null)}>
+        <DialogContent className="max-w-2xl bg-card">
+          <DialogHeader>
+            <DialogTitle>{activeTool?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[55vh] overflow-y-auto rounded-lg bg-muted/40 p-4 text-sm text-foreground whitespace-pre-wrap border border-border/50">
+            {toolText}
+          </div>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button variant="outline" onClick={() => { navigator.clipboard.writeText(toolText); toast.success("Copied"); }}>Copy</Button>
+            <Button variant="outline" onClick={downloadText}>Download Text/Data</Button>
+            <Button className="gradient-primary border-0 text-primary-foreground" onClick={downloadPdf}>Download PDF</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Footer />
     </div>
   );
+}
+
+function buildToolText(kind: ToolKind, active: any, ctx: any, schemes: Scheme[]) {
+  const d = active?.farmer_details || {};
+  const name = active?.full_name || ctx?.farmer_name || "Farmer";
+  const location = [d.village || ctx?.location?.village, d.district || ctx?.location?.district, d.state || ctx?.location?.state].filter(Boolean).join(", ") || "India";
+  const crops = Array.isArray(d.current_crops) ? d.current_crops.join(", ") : d.current_crops || ctx?.crops?.current?.join(", ") || "Not specified";
+  const land = d.total_land || d.land_size_acres || "Not specified";
+  const soil = d.soil_type || ctx?.climate?.soils?.join(", ") || "Not specified";
+
+  if (kind === "loan") return `AGRICULTURAL LOAN APPLICATION CHECKLIST\n\nApplicant: ${name}\nFarm location: ${location}\nLand holding: ${land} acres\nCurrent crops: ${crops}\nSoil: ${soil}\n\nDocuments to attach:\n1. Aadhaar and PAN copy\n2. Land ownership / lease document\n3. Latest land record or Khasra-Khatauni\n4. Bank passbook copy\n5. Crop plan and estimated input cost\n6. Existing loan statement, if any\n\nSuggested loan purpose:\nSeasonal crop input finance for seeds, fertilizer, pesticide, irrigation, labour and transport.\n\nBank note:\nThe applicant is cultivating ${crops} at ${location}. Based on profile data, recommended schemes to mention are: ${schemes.slice(0, 3).map(s => s.name).join(", ") || "KCC / PM-KISAN / PMFBY"}.`;
+
+  if (kind === "insurance") return `CROP INSURANCE / DAMAGE CLAIM HELPER\n\nFarmer: ${name}\nLocation: ${location}\nCrop affected: ${crops}\nApprox land: ${land} acres\n\nBefore filing claim:\n1. Take 6 clear photos: whole field, close crop damage, water/pest mark, boundary, date/location screenshot, farmer with field.\n2. Note date and approximate time of damage.\n3. Estimate affected area in acres and expected yield loss %.\n4. Keep seed/fertilizer bills and insurance policy/KCC details ready.\n\nClaim summary template:\nI, ${name}, request crop damage assessment for ${crops} cultivated at ${location}. Damage was observed on ____ due to ____. Approx affected area is ____ acres with estimated loss of ____%. Please arrange survey and claim processing under applicable crop insurance rules.`;
+
+  if (kind === "tax") return `AGRICULTURAL INCOME TAX CALCULATOR\n\nFarmer: ${name}\nLocation: ${location}\nCrops: ${crops}\n\nImportant India note:\nPure agricultural income is generally exempt from central income tax, but it can be considered for rate calculation if the farmer also has non-agricultural income above the basic exemption limit.\n\nSimple worksheet:\nGross crop sales: ₹________\nMinus seed/fertilizer/pesticide/labour/irrigation/transport: ₹________\nNet agricultural income: ₹________\nNon-agricultural income, if any: ₹________\n\nKeep these records:\nMandi receipts, input bills, labour payments, land records, lease papers, bank entries, insurance/loan documents.`;
+
+  return JSON.stringify({
+    farmer: { name, location, land_acres: land, crops, soil },
+    personalization: ctx || {},
+    matched_schemes: schemes,
+    generated_at: new Date().toISOString(),
+  }, null, 2);
 }
