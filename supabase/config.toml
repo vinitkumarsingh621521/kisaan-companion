@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.dowry-estimate]
 verify_jwt = false
+
+[functions.ai-advisor]
+verify_jwt = false
+
+[functions.bhuvan-geocode]
+verify_jwt = false

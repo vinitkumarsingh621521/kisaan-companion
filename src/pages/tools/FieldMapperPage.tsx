@@ -2,7 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2, Cloud, CloudOff, Satellite } from "lucide-react";
+import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2, Cloud, CloudOff, Satellite, Search, Locate } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -64,8 +66,30 @@ export default function FieldMapperPage() {
   const [locating, setLocating] = useState(true);
   const [ndvi, setNdvi] = useState(false);
   const [ndviOpacity, setNdviOpacity] = useState(0.6);
+  const [searchQ, setSearchQ] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lon: number; source: string }[]>([]);
 
-  const totalAcres = parseFloat(active?.farmer_details?.total_land || active?.farm_size || "5") || 5;
+  const runSearch = async () => {
+    const q = searchQ.trim();
+    if (!q) return;
+    setSearching(true); setSearchResults([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("bhuvan-geocode", { body: { query: q } });
+      if (error) throw error;
+      const results = (data as any)?.results || [];
+      if (!results.length) { toast.error("No location matched. Try district, state."); }
+      else { setSearchResults(results); setCenter([results[0].lat, results[0].lon]); toast.success(`Centered on ${results[0].label}`); }
+    } catch (e: any) { toast.error(e?.message || "Search failed"); }
+    finally { setSearching(false); }
+  };
+  const useGPS = () => {
+    if (!navigator.geolocation) return toast.error("GPS not supported");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setCenter([pos.coords.latitude, pos.coords.longitude]); toast.success("Centered on your location"); },
+      () => toast.error("Could not get GPS — check browser permission"),
+    );
+  };
 
   useEffect(() => {
     let cancel = false;

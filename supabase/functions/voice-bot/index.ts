@@ -6,7 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM = `You are KrishiMitra Voice — a warm, human, village-wise agricultural advisor for Indian farmers. The user spoke to you. Reply in the EXACT same language they used. Keep replies short (2-4 sentences) because they will be spoken aloud. Sound like a caring real person: calm, practical, lightly encouraging, never robotic. Give one specific next step with quantities/timing when possible. Reference the farmer's profile data when given.`;
+const SYSTEM = `You are KrishiMitra Voice — a warm, human, village-wise agricultural advisor for Indian farmers.
+RULES:
+- Reply in the EXACT language the user spoke. If user wrote in English, reply in English. If Hindi, reply in Hindi. Etc.
+- Keep replies short and natural (2-4 spoken sentences). They will be read aloud.
+- Sound like a caring real person — calm, warm, lightly encouraging, sometimes a tiny village proverb. NEVER robotic.
+- Always give ONE specific next step with a number (kg/acre, litres, days, ₹) when possible.
+- Reference the farmer's profile data when given (name, district, soil, crops).`;
 
 function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);
@@ -25,17 +31,17 @@ function extFor(mime: string): string {
   return "webm";
 }
 
-async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language: string): Promise<string> {
+type STTResult = { text: string; provider: string; error?: string };
+
+async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language: string): Promise<STTResult> {
   const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
-  if (!GROQ_KEY) throw new Error("Groq API key missing");
+  if (!GROQ_KEY) return { text: "", provider: "groq", error: "Groq API key missing" };
 
   const ext = extFor(mime);
   const fd = new FormData();
   fd.append("file", new Blob([audioBytes], { type: mime || "audio/webm" }), `audio.${ext}`);
   fd.append("model", "whisper-large-v3");
-  if (language && language !== "en") {
-    fd.append("language", language);
-  }
+  if (language && language !== "auto") fd.append("language", language);
 
   const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
     method: "POST",
@@ -45,152 +51,125 @@ async function transcribeWithGroq(audioBytes: Uint8Array, mime: string, language
 
   if (!r.ok) {
     const t = await r.text();
-    throw new Error(`Whisper failed (${r.status}): ${t.slice(0, 300)}`);
+    return { text: "", provider: "groq", error: `Groq ${r.status}: ${t.slice(0, 180)}` };
   }
   const j = await r.json();
-  return j.text || "";
+  return { text: j.text || "", provider: "groq" };
 }
 
-async function transcribeWithHuggingFace(audioBytes: Uint8Array, mime: string): Promise<string> {
+// HF Inference Router (the new endpoint that actually works)
+async function transcribeWithHuggingFace(audioBytes: Uint8Array, mime: string): Promise<STTResult> {
   const HF_KEY = Deno.env.get("Hugging_face_token");
-  if (!HF_KEY) throw new Error("Hugging Face token missing");
+  if (!HF_KEY) return { text: "", provider: "huggingface", error: "Hugging Face token missing" };
 
-  const r = await fetch("https://api-inference.huggingface.co/models/openai/whisper-large-v3", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": mime || "audio/webm" },
-    body: audioBytes,
-  });
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`HF transcription failed (${r.status}): ${t.slice(0, 200)}`);
-  }
-  const j = await r.json();
-  return j.text || j?.[0]?.text || "";
-}
-
-async function transcribeAudio(audioBytes: Uint8Array, mime: string, language: string): Promise<string> {
-  try {
-    return await transcribeWithGroq(audioBytes, mime, language);
-  } catch (e) {
-    console.warn("[voice-bot] Groq transcription failed, trying Hugging Face", e);
-    return await transcribeWithHuggingFace(audioBytes, mime);
-  }
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
-  }
-  return btoa(binary);
-}
-
-// Groq PlayAI TTS — only English/Arabic voices currently. For Indian languages we let client use browser TTS.
-async function ttsWithGroq(text: string, language: string): Promise<{ audio: string; mime: string } | null> {
-  const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
-  if (!GROQ_KEY) return null;
-  // Only attempt for English — Groq playai-tts does not yet support Indic languages well
-  if (language && language !== "en") return null;
-  try {
-    const r = await fetch("https://api.groq.com/openai/v1/audio/speech", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "playai-tts",
-        voice: "Fritz-PlayAI",
-        input: text.slice(0, 800),
-        response_format: "wav",
-      }),
-    });
-    if (!r.ok) {
-      console.warn("[voice-bot] Groq TTS failed", r.status);
-      return null;
-    }
-    const buf = new Uint8Array(await r.arrayBuffer());
-    return { audio: bytesToBase64(buf), mime: "audio/wav" };
-  } catch (e) {
-    console.warn("[voice-bot] Groq TTS error", e);
-    return null;
-  }
-}
-
-async function chatWithGroq(userText: string, profile: any): Promise<string> {
-  const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
-  if (!GROQ_KEY) throw new Error("Groq API key missing");
-
-  const profileLine = profile
-    ? `Farmer: ${profile.full_name || "Friend"}, ${profile.farm_location || "India"}. Soil: ${profile.soil_type || "?"}. Crops: ${profile?.farmer_details?.current_crops || "?"}.`
-    : "";
-
-  const messages = [
-    { role: "system", content: `${SYSTEM}\n\n${profileLine}` },
-    { role: "user", content: userText },
+  const urls = [
+    "https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3",
+    "https://api-inference.huggingface.co/models/openai/whisper-large-v3",
   ];
 
-  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  let lastErr = "";
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": mime || "audio/webm" },
+        body: audioBytes,
+      });
+      if (!r.ok) {
+        lastErr = `HF ${r.status} @ ${url}`;
+        continue;
+      }
+      const j = await r.json();
+      const text = j.text || j?.[0]?.text || "";
+      if (text) return { text, provider: "huggingface" };
+    } catch (e: any) {
+      lastErr = `HF exception: ${e?.message || e}`;
+    }
+  }
+  return { text: "", provider: "huggingface", error: lastErr || "HF transcription failed" };
+}
+
+async function transcribeAudio(audioBytes: Uint8Array, mime: string, language: string): Promise<STTResult> {
+  const a = await transcribeWithGroq(audioBytes, mime, language);
+  if (a.text) return a;
+  console.warn("[voice-bot] Groq STT failed:", a.error);
+  const b = await transcribeWithHuggingFace(audioBytes, mime);
+  if (b.text) return b;
+  console.warn("[voice-bot] HF STT failed:", b.error);
+  return { text: "", provider: "none", error: `${a.error || ""} | ${b.error || ""}` };
+}
+
+async function chatWithLovable(userText: string, profile: any, language: string): Promise<string> {
+  const KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!KEY) throw new Error("LOVABLE_API_KEY missing");
+
+  const profileLine = profile
+    ? `Farmer: ${profile.full_name || "Friend"}, ${profile.farm_location || profile?.farmer_details?.district || "India"}. Soil: ${profile.soil_type || profile?.farmer_details?.soil_type || "?"}. Crops: ${profile?.farmer_details?.current_crops || "?"}. Land: ${profile?.farmer_details?.total_land || profile.farm_size || "?"} acres.`
+    : "";
+
+  const langLine = language && language !== "auto"
+    ? `The user's spoken language is "${language}". Reply in that exact language.`
+    : "Match the user's language exactly.";
+
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      temperature: 0.7,
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: `${SYSTEM}\n${langLine}\n${profileLine}` },
+        { role: "user", content: userText },
+      ],
+      temperature: 0.75,
       max_tokens: 320,
     }),
   });
 
   if (!r.ok) {
     const t = await r.text();
-    throw new Error(`Groq chat failed (${r.status}): ${t.slice(0, 300)}`);
+    throw new Error(`Lovable AI ${r.status}: ${t.slice(0, 200)}`);
   }
   const j = await r.json();
   return j.choices?.[0]?.message?.content || "";
 }
 
-async function chatWithLovable(userText: string, profile: any): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("Lovable AI key missing");
-
+async function chatWithGroq(userText: string, profile: any, language: string): Promise<string> {
+  const KEY = Deno.env.get("Groq_api_key_Rahul");
+  if (!KEY) throw new Error("Groq key missing");
   const profileLine = profile
-    ? `Farmer: ${profile.full_name || "Friend"}, ${profile.farm_location || "India"}. Soil: ${profile.soil_type || profile?.farmer_details?.soil_type || "?"}. Crops: ${profile?.farmer_details?.current_crops || "?"}.`
+    ? `Farmer: ${profile.full_name || "Friend"}, ${profile.farm_location || "India"}.`
     : "";
-
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: `${SYSTEM}\n\n${profileLine}` },
+        { role: "system", content: `${SYSTEM}\nLanguage: ${language}.\n${profileLine}` },
         { role: "user", content: userText },
       ],
-      temperature: 0.65,
+      temperature: 0.7,
       max_tokens: 280,
     }),
   });
-
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`Lovable AI failed (${r.status}): ${t.slice(0, 300)}`);
-  }
+  if (!r.ok) throw new Error(`Groq ${r.status}`);
   const j = await r.json();
   return j.choices?.[0]?.message?.content || "";
 }
 
-async function chatWithFallback(userText: string, profile: any): Promise<string> {
+async function chatWithFallback(userText: string, profile: any, language: string): Promise<{ reply: string; provider: string }> {
   try {
-    const reply = await chatWithLovable(userText, profile);
-    if (reply.trim()) return reply;
-  } catch (e) {
-    console.warn("[voice-bot] Lovable AI chat failed, trying Groq", e);
-  }
+    const t = await chatWithLovable(userText, profile, language);
+    if (t.trim()) return { reply: t, provider: "lovable" };
+  } catch (e) { console.warn("[voice-bot] Lovable chat failed", e); }
   try {
-    const reply = await chatWithGroq(userText, profile);
-    if (reply.trim()) return reply;
-  } catch (e) {
-    console.warn("[voice-bot] Groq chat failed", e);
-  }
-  return "I heard you, but my AI network is weak right now. For safety, check today’s crop, soil moisture, and weather first — then ask me again in a minute, dost.";
+    const t = await chatWithGroq(userText, profile, language);
+    if (t.trim()) return { reply: t, provider: "groq" };
+  } catch (e) { console.warn("[voice-bot] Groq chat failed", e); }
+  return {
+    reply: "I heard you, friend, but my AI link is weak right now. Please try again in a few seconds — meanwhile, check today's weather and your soil moisture.",
+    provider: "fallback",
+  };
 }
 
 serve(async (req) => {
@@ -199,49 +178,54 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const { audio, mime, language, profile, text: directText, transcribeOnly } = body;
+    const lang = (language || "en").toString();
 
     let transcript = "";
+    let sttProvider = "browser";
+    let sttError: string | undefined;
 
     if (directText && typeof directText === "string" && directText.trim()) {
-      // Browser STT path — skip Whisper
       transcript = directText.trim();
     } else if (audio) {
       const bytes = base64ToBytes(audio);
-      transcript = await transcribeAudio(bytes, mime || "audio/webm", language || "en");
+      const stt = await transcribeAudio(bytes, mime || "audio/webm", lang);
+      transcript = stt.text;
+      sttProvider = stt.provider;
+      sttError = stt.error;
     } else {
       return new Response(JSON.stringify({ error: "Provide either 'audio' (base64) or 'text'" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Critical: never throw 500 on empty transcript — return diagnostics so UI can guide the user.
     if (!transcript.trim()) {
-      return new Response(
-        JSON.stringify({ transcript: "", reply: "Sorry, I didn't catch that. Please try again." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({
+        transcript: "",
+        reply: "I couldn't catch your voice clearly. Please try again — speak close to the mic in a quiet spot.",
+        diagnostics: { sttProvider, sttError, audioMime: mime, language: lang },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (transcribeOnly) {
-      return new Response(JSON.stringify({ transcript }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        transcript,
+        diagnostics: { sttProvider, sttError, audioMime: mime, language: lang },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const reply = await chatWithFallback(transcript, profile);
-    const tts = await ttsWithGroq(reply, language || "en");
+    const { reply, provider: chatProvider } = await chatWithFallback(transcript, profile, lang);
 
-    return new Response(JSON.stringify({ transcript, reply, audio: tts?.audio, audioMime: tts?.mime }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({
+      transcript,
+      reply,
+      diagnostics: { sttProvider, sttError, chatProvider, audioMime: mime, language: lang },
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("voice-bot error:", e?.message || e);
-    return new Response(
-      JSON.stringify({ error: e?.message || "Voice processing failed", details: String(e) }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({
+      error: e?.message || "Voice processing failed",
+      reply: "Something went wrong on our side. Please try again — your mic permission is still saved.",
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

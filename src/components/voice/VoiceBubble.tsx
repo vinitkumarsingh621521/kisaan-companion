@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, X, Loader2, Volume2, MicOff, AlertCircle } from "lucide-react";
+import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -54,6 +54,18 @@ export default function VoiceBubble() {
   const [processing, setProcessing] = useState(false);
   const [history, setHistory] = useState<Msg[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [voiceLang, setVoiceLang] = useState<string>(i18n.language || "en");
+  const [showDiag, setShowDiag] = useState(false);
+  const [diag, setDiag] = useState<{ micPermission?: string; sttProvider?: string; chatProvider?: string; audioMime?: string; sttError?: string; lastStatus?: string; sttConfidence?: number | null }>({});
+
+  // mic permission probe
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !(navigator as any).permissions) return;
+    (navigator as any).permissions.query({ name: "microphone" as PermissionName }).then((p: any) => {
+      setDiag((d) => ({ ...d, micPermission: p.state }));
+      p.onchange = () => setDiag((d) => ({ ...d, micPermission: p.state }));
+    }).catch(() => setDiag((d) => ({ ...d, micPermission: "unknown" })));
+  }, []);
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -139,16 +151,17 @@ export default function VoiceBubble() {
 
   const sendToBot = async (payload: { audio?: string; mime?: string; text?: string }) => {
     const { data, error } = await supabase.functions.invoke("voice-bot", {
-      body: {
-        ...payload,
-        language: i18n.language,
-        profile: active,
-      },
+      body: { ...payload, language: voiceLang, profile: active },
     });
-    if (error) throw new Error(error.message || "Voice bot failed");
+    if (error) {
+      setDiag((d) => ({ ...d, lastStatus: `error: ${error.message || "invoke failed"}` }));
+      throw new Error(error.message || "Voice bot failed");
+    }
     if (!data) throw new Error("No response from voice bot");
-    if ((data as any).error) throw new Error((data as any).error);
-    return data as { transcript: string; reply: string; audio?: string; audioMime?: string };
+    const d = data as any;
+    setDiag((prev) => ({ ...prev, ...(d.diagnostics || {}), lastStatus: "ok" }));
+    if (d.error && !d.reply) throw new Error(d.error);
+    return d as { transcript: string; reply: string; audio?: string; audioMime?: string };
   };
 
   // ───── Path A: Browser SpeechRecognition (Chrome/Edge desktop, Android) ─────
@@ -157,16 +170,21 @@ export default function VoiceBubble() {
     if (!SR) return false;
     try {
       const rec = new SR();
-      rec.lang = LANG_BCP[i18n.language] || "en-IN";
+      rec.lang = LANG_BCP[voiceLang] || "en-IN";
       rec.interimResults = false;
       rec.continuous = false;
       rec.maxAlternatives = 1;
 
       let finalText = "";
       let usingRecorderFallback = false;
+      let confidenceSum = 0, confidenceN = 0;
       rec.onresult = (ev: any) => {
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
-          if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
+          if (ev.results[i].isFinal) {
+            finalText += ev.results[i][0].transcript;
+            const c = ev.results[i][0].confidence;
+            if (typeof c === "number" && c > 0) { confidenceSum += c; confidenceN++; }
+          }
         }
       };
       rec.onerror = (ev: any) => {
@@ -193,6 +211,8 @@ export default function VoiceBubble() {
         recognitionRef.current = null;
         if (!finalText.trim()) return;
         setProcessing(true);
+        const conf = confidenceN > 0 ? confidenceSum / confidenceN : null;
+        setDiag((d) => ({ ...d, sttProvider: "browser", sttConfidence: conf }));
         try {
           const r = await sendToBot({ text: finalText });
           setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
@@ -331,15 +351,56 @@ export default function VoiceBubble() {
                 <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
                   <Volume2 className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <div>
+              <div>
                   <div className="font-display font-semibold text-foreground text-sm">Krishi Voice</div>
-                  <div className="text-[10px] text-muted-foreground">Speak in {(LANG_BCP[i18n.language] || "en-IN").toUpperCase()}</div>
+                  <div className="text-[10px] text-muted-foreground">Speak in {(LANG_BCP[voiceLang] || "en-IN").toUpperCase()}</div>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1 rounded-md hover:bg-muted">
-                <X className="h-4 w-4 text-muted-foreground" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setShowDiag((s) => !s)} className="p-1 rounded-md hover:bg-muted" title="Diagnostics">
+                  <Activity className={`h-4 w-4 ${showDiag ? "text-primary" : "text-muted-foreground"}`} />
+                </button>
+                <button onClick={() => setOpen(false)} className="p-1 rounded-md hover:bg-muted">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
             </div>
+
+            {/* Language picker */}
+            <div className="flex items-center gap-2 mb-2">
+              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <select
+                value={voiceLang}
+                onChange={(e) => setVoiceLang(e.target.value)}
+                className="text-xs flex-1 rounded-md border border-border bg-background px-2 py-1"
+              >
+                <option value="en">English</option>
+                <option value="hi">हिन्दी (Hindi)</option>
+                <option value="bn">বাংলা (Bengali)</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+                <option value="mr">मराठी (Marathi)</option>
+                <option value="gu">ગુજરાતી (Gujarati)</option>
+                <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+                <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                <option value="ml">മലയാളം (Malayalam)</option>
+                <option value="or">ଓଡ଼ିଆ (Odia)</option>
+                <option value="as">অসমীয়া (Assamese)</option>
+                <option value="ur">اردو (Urdu)</option>
+              </select>
+            </div>
+
+            {showDiag && (
+              <div className="mb-2 p-2 rounded-lg bg-muted/40 text-[10px] space-y-0.5">
+                <div>🎤 Mic permission: <b>{diag.micPermission || "unknown"}</b></div>
+                <div>🛰 STT path: <b>{diag.sttProvider || "—"}</b>{typeof diag.sttConfidence === "number" ? ` · conf ${(diag.sttConfidence * 100).toFixed(0)}%` : ""}</div>
+                <div>🤖 Chat: <b>{diag.chatProvider || "—"}</b></div>
+                <div>🎧 Audio mime: <b>{diag.audioMime || "—"}</b></div>
+                <div>🌐 Language: <b>{voiceLang}</b></div>
+                <div>📡 Last: <b>{diag.lastStatus || "—"}</b></div>
+                {diag.sttError && <div className="text-destructive">⚠ {diag.sttError}</div>}
+              </div>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 p-2 rounded-lg bg-destructive/10 text-destructive text-[11px] mb-2">
