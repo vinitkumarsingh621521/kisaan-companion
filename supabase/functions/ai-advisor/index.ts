@@ -141,11 +141,13 @@ function buildBaseline(inputs: any) {
     land_allocation_review: {
       total_planned_acres: Number(totalAcres.toFixed(2)),
       unallocated_acres: Math.max(0, Number((land - totalAcres).toFixed(2))),
-      summary: totalAcres > land
-        ? `You allocated ${totalAcres.toFixed(2)} ac but your land is ${land} ac — ${(totalAcres - land).toFixed(2)} ac extra. Reduce one crop.`
-        : totalAcres < land * 0.9
-          ? `${(land - totalAcres).toFixed(2)} acres unused. Consider adding a short-cycle crop like moong (Zaid) or fodder.`
-          : `Good allocation — ${(totalAcres / land * 100).toFixed(0)}% of your land is planted.`,
+      summary: !land || land <= 0
+        ? "Add your total land size (acres) to see allocation coverage."
+        : totalAcres > land
+          ? `You allocated ${totalAcres.toFixed(2)} ac but your land is ${land} ac — ${(totalAcres - land).toFixed(2)} ac extra. Reduce one crop.`
+          : totalAcres < land * 0.9
+            ? `${(land - totalAcres).toFixed(2)} acres unused. Consider adding a short-cycle crop like moong (Zaid) or fodder.`
+            : `Good allocation — ${Math.round((totalAcres / land) * 100)}% of your land is planted.`,
       recommendations: [
         totalAcres > land ? "Drop the smallest crop or reduce its acres." : "Add a legume on unused land to fix nitrogen.",
         "Keep ≥10% of land for crop rotation flexibility.",
@@ -342,9 +344,12 @@ async function enrichWithAI(baseline: any, inputs: any, profileContext: any): Pr
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { inputs, profileContext } = await req.json().catch(() => ({}));
-    const baseline = buildBaseline(inputs || {});
-    const enriched = await enrichWithAI(baseline, inputs || {}, profileContext);
+    const body = await req.json().catch(() => ({}));
+    // Accept either { inputs, profileContext } or a flat payload
+    const inputs = body?.inputs ?? body ?? {};
+    const profileContext = body?.profileContext;
+    const baseline = buildBaseline(inputs);
+    const enriched = await enrichWithAI(baseline, inputs, profileContext);
     return new Response(JSON.stringify(enriched), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("ai-advisor fatal:", e);
