@@ -335,19 +335,25 @@ serve(async (req) => {
 
     const { reply, provider: chatProvider } = await chatWithFallback(transcript, profile, lang);
 
-    // ChatGPT-quality voice (best-effort; never blocks reply)
+    // Human-quality voice — Gemini first (very natural, free tier on AI Studio key),
+    // then OpenAI tts-1-hd as fallback. Best-effort; never blocks the text reply.
     let audio_reply: string | null = null;
+    let audio_mime: string | null = null;
     let ttsProvider: string | null = null;
     if (wantsTTS && reply) {
-      const tts = await synthesizeWithOpenAI(reply, lang);
-      if (tts) { audio_reply = tts.audioBase64; ttsProvider = `openai:${tts.voice}`; }
+      const g = await synthesizeWithGemini(reply, lang);
+      if (g) { audio_reply = g.audioBase64; audio_mime = g.mime; ttsProvider = g.voice; }
+      else {
+        const o = await synthesizeWithOpenAI(reply, lang);
+        if (o) { audio_reply = o.audioBase64; audio_mime = "audio/mpeg"; ttsProvider = `openai:${o.voice}`; }
+      }
     }
 
     return new Response(JSON.stringify({
       transcript,
       reply,
-      audio_reply,            // base64 mp3 or null — client plays via data URI
-      audio_mime: audio_reply ? "audio/mpeg" : null,
+      audio_reply,            // base64 audio or null — client plays via data URI
+      audio_mime,
       diagnostics: { sttProvider, sttError, chatProvider, ttsProvider, audioMime: mime, language: lang },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
