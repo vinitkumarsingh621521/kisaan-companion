@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity } from "lucide-react";
+import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity, Pause, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -57,6 +57,8 @@ export default function VoiceBubble() {
   const [voiceLang, setVoiceLang] = useState<string>(i18n.language || "en");
   const [showDiag, setShowDiag] = useState(false);
   const [diag, setDiag] = useState<{ micPermission?: string; sttProvider?: string; chatProvider?: string; audioMime?: string; sttError?: string; lastStatus?: string; sttConfidence?: number | null }>({});
+  const [playState, setPlayState] = useState<"idle" | "playing" | "paused">("idle");
+  const ttsModeRef = useRef<"audio" | "browser" | null>(null);
 
   // mic permission probe
   useEffect(() => {
@@ -106,6 +108,9 @@ export default function VoiceBubble() {
       u.rate = lang.startsWith("en") ? 0.88 : 0.9;
       u.pitch = 1.06;
       u.volume = 1.0;
+      u.onstart = () => { ttsModeRef.current = "browser"; setPlayState("playing"); };
+      u.onend = () => { setPlayState("idle"); ttsModeRef.current = null; };
+      u.onerror = () => { setPlayState("idle"); ttsModeRef.current = null; };
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     } catch (e) {
@@ -114,21 +119,18 @@ export default function VoiceBubble() {
   };
 
   const playServerAudio = async (b64: string, mime: string) => {
-    try {
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const blob = new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const audio = audioRef.current || new Audio();
-      audioRef.current = audio;
-      audio.src = url;
-      await audio.play();
-      audio.onended = () => URL.revokeObjectURL(url);
-    } catch (e) {
-      console.warn("Server audio playback failed, falling back", e);
-      throw e;
-    }
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const audio = audioRef.current || new Audio();
+    audioRef.current = audio;
+    audio.src = url;
+    audio.onplay = () => { ttsModeRef.current = "audio"; setPlayState("playing"); };
+    audio.onpause = () => { if (!audio.ended) setPlayState("paused"); };
+    audio.onended = () => { setPlayState("idle"); ttsModeRef.current = null; URL.revokeObjectURL(url); };
+    await audio.play();
   };
 
   const speak = async (text: string, serverAudio?: { audio?: string; mime?: string }) => {
@@ -136,9 +138,42 @@ export default function VoiceBubble() {
       try {
         await playServerAudio(serverAudio.audio, serverAudio.mime);
         return;
-      } catch {}
+      } catch (e) {
+        console.warn("Server audio playback failed, falling back", e);
+      }
     }
     speakBrowser(text);
+  };
+
+  const pausePlayback = () => {
+    if (ttsModeRef.current === "audio" && audioRef.current) {
+      audioRef.current.pause();
+      setPlayState("paused");
+    } else if (ttsModeRef.current === "browser" && "speechSynthesis" in window) {
+      speechSynthesis.pause();
+      setPlayState("paused");
+    }
+  };
+
+  const resumePlayback = () => {
+    if (ttsModeRef.current === "audio" && audioRef.current) {
+      void audioRef.current.play();
+      setPlayState("playing");
+    } else if (ttsModeRef.current === "browser" && "speechSynthesis" in window) {
+      speechSynthesis.resume();
+      setPlayState("playing");
+    }
+  };
+
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      try { audioRef.current.pause(); audioRef.current.currentTime = 0; } catch {}
+    }
+    if ("speechSynthesis" in window) {
+      try { speechSynthesis.cancel(); } catch {}
+    }
+    ttsModeRef.current = null;
+    setPlayState("idle");
   };
 
   // Prime voices list (Chrome loads async)
@@ -220,7 +255,7 @@ export default function VoiceBubble() {
         setDiag((d) => ({ ...d, sttProvider: "browser", sttConfidence: conf }));
         try {
           const r = await sendToBot({ text: finalText });
-          setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
+          setHistory([{ role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
           speak(r.reply, { audio: r.audio, mime: r.audioMime });
         } catch (e: any) {
           toast.error(e?.message || "Could not get reply");
@@ -276,6 +311,8 @@ export default function VoiceBubble() {
 
   const handleStart = () => {
     setError(null);
+    stopPlayback();
+    setHistory([]);
     // Try the gesture-friendly browser STT first
     if (!startBrowserSTT()) {
       void startRecording();
@@ -302,7 +339,7 @@ export default function VoiceBubble() {
       const b64 = btoa(binary);
 
       const r = await sendToBot({ audio: b64, mime });
-      setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
+      setHistory([{ role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
       speak(r.reply, { audio: r.audio, mime: r.audioMime });
     } catch (e: any) {
       setError("Voice network failed. I saved your mic access; please try once more in a few seconds.");
@@ -455,8 +492,46 @@ export default function VoiceBubble() {
                   <Mic className="h-7 w-7" />
                 </button>
               )}
+
+              {playState !== "idle" && !recording && !processing && (
+                <div className="flex items-center gap-2 mt-1">
+                  {playState === "playing" ? (
+                    <button
+                      onClick={pausePlayback}
+                      className="px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5"
+                      aria-label="Pause voice"
+                    >
+                      <Pause className="h-3.5 w-3.5" /> Pause
+                    </button>
+                  ) : (
+                    <button
+                      onClick={resumePlayback}
+                      className="px-3 py-1.5 rounded-full bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium flex items-center gap-1.5"
+                      aria-label="Resume voice"
+                    >
+                      <Play className="h-3.5 w-3.5" /> Resume
+                    </button>
+                  )}
+                  <button
+                    onClick={stopPlayback}
+                    className="px-3 py-1.5 rounded-full bg-destructive/15 hover:bg-destructive/25 text-destructive text-xs font-medium flex items-center gap-1.5"
+                    aria-label="Stop voice"
+                  >
+                    <Square className="h-3.5 w-3.5" /> Stop
+                  </button>
+                </div>
+              )}
+
               <p className="text-[10px] text-muted-foreground text-center">
-                {recording ? "Listening… tap to stop" : processing ? "One moment…" : "Tap mic and speak"}
+                {recording
+                  ? "Listening… tap to stop"
+                  : processing
+                  ? "One moment…"
+                  : playState === "playing"
+                  ? "Speaking… you can pause or stop"
+                  : playState === "paused"
+                  ? "Paused — tap Resume to continue"
+                  : "Tap mic and speak"}
               </p>
             </div>
           </motion.div>
