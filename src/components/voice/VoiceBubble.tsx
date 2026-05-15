@@ -492,8 +492,46 @@ export default function VoiceBubble() {
                   <Mic className="h-7 w-7" />
                 </button>
               )}
+
+              {playState !== "idle" && !recording && !processing && (
+                <div className="flex items-center gap-2 mt-1">
+                  {playState === "playing" ? (
+                    <button
+                      onClick={pausePlayback}
+                      className="px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5"
+                      aria-label="Pause voice"
+                    >
+                      <Pause className="h-3.5 w-3.5" /> Pause
+                    </button>
+                  ) : (
+                    <button
+                      onClick={resumePlayback}
+                      className="px-3 py-1.5 rounded-full bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium flex items-center gap-1.5"
+                      aria-label="Resume voice"
+                    >
+                      <Play className="h-3.5 w-3.5" /> Resume
+                    </button>
+                  )}
+                  <button
+                    onClick={stopPlayback}
+                    className="px-3 py-1.5 rounded-full bg-destructive/15 hover:bg-destructive/25 text-destructive text-xs font-medium flex items-center gap-1.5"
+                    aria-label="Stop voice"
+                  >
+                    <Square className="h-3.5 w-3.5" /> Stop
+                  </button>
+                </div>
+              )}
+
               <p className="text-[10px] text-muted-foreground text-center">
-                {recording ? "Listening… tap to stop" : processing ? "One moment…" : "Tap mic and speak"}
+                {recording
+                  ? "Listening… tap to stop"
+                  : processing
+                  ? "One moment…"
+                  : playState === "playing"
+                  ? "Speaking… you can pause or stop"
+                  : playState === "paused"
+                  ? "Paused — tap Resume to continue"
+                  : "Tap mic and speak"}
               </p>
             </div>
           </motion.div>
