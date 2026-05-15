@@ -57,6 +57,8 @@ export default function VoiceBubble() {
   const [voiceLang, setVoiceLang] = useState<string>(i18n.language || "en");
   const [showDiag, setShowDiag] = useState(false);
   const [diag, setDiag] = useState<{ micPermission?: string; sttProvider?: string; chatProvider?: string; audioMime?: string; sttError?: string; lastStatus?: string; sttConfidence?: number | null }>({});
+  const [playState, setPlayState] = useState<"idle" | "playing" | "paused">("idle");
+  const ttsModeRef = useRef<"audio" | "browser" | null>(null);
 
   // mic permission probe
   useEffect(() => {
