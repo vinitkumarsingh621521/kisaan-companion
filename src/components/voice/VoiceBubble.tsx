@@ -311,6 +311,8 @@ export default function VoiceBubble() {
 
   const handleStart = () => {
     setError(null);
+    stopPlayback();
+    setHistory([]);
     // Try the gesture-friendly browser STT first
     if (!startBrowserSTT()) {
       void startRecording();
