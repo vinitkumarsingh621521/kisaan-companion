@@ -255,7 +255,7 @@ export default function VoiceBubble() {
         setDiag((d) => ({ ...d, sttProvider: "browser", sttConfidence: conf }));
         try {
           const r = await sendToBot({ text: finalText });
-          setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
+          setHistory([{ role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
           speak(r.reply, { audio: r.audio, mime: r.audioMime });
         } catch (e: any) {
           toast.error(e?.message || "Could not get reply");
@@ -337,7 +337,7 @@ export default function VoiceBubble() {
       const b64 = btoa(binary);
 
       const r = await sendToBot({ audio: b64, mime });
-      setHistory((h) => [...h, { role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
+      setHistory([{ role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
       speak(r.reply, { audio: r.audio, mime: r.audioMime });
     } catch (e: any) {
       setError("Voice network failed. I saved your mic access; please try once more in a few seconds.");
