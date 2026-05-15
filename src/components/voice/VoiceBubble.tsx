@@ -108,6 +108,9 @@ export default function VoiceBubble() {
       u.rate = lang.startsWith("en") ? 0.88 : 0.9;
       u.pitch = 1.06;
       u.volume = 1.0;
+      u.onstart = () => { ttsModeRef.current = "browser"; setPlayState("playing"); };
+      u.onend = () => { setPlayState("idle"); ttsModeRef.current = null; };
+      u.onerror = () => { setPlayState("idle"); ttsModeRef.current = null; };
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     } catch (e) {
@@ -116,21 +119,18 @@ export default function VoiceBubble() {
   };
 
   const playServerAudio = async (b64: string, mime: string) => {
-    try {
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const blob = new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const audio = audioRef.current || new Audio();
-      audioRef.current = audio;
-      audio.src = url;
-      await audio.play();
-      audio.onended = () => URL.revokeObjectURL(url);
-    } catch (e) {
-      console.warn("Server audio playback failed, falling back", e);
-      throw e;
-    }
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const audio = audioRef.current || new Audio();
+    audioRef.current = audio;
+    audio.src = url;
+    audio.onplay = () => { ttsModeRef.current = "audio"; setPlayState("playing"); };
+    audio.onpause = () => { if (!audio.ended) setPlayState("paused"); };
+    audio.onended = () => { setPlayState("idle"); ttsModeRef.current = null; URL.revokeObjectURL(url); };
+    await audio.play();
   };
 
   const speak = async (text: string, serverAudio?: { audio?: string; mime?: string }) => {
@@ -138,9 +138,42 @@ export default function VoiceBubble() {
       try {
         await playServerAudio(serverAudio.audio, serverAudio.mime);
         return;
-      } catch {}
+      } catch (e) {
+        console.warn("Server audio playback failed, falling back", e);
+      }
     }
     speakBrowser(text);
+  };
+
+  const pausePlayback = () => {
+    if (ttsModeRef.current === "audio" && audioRef.current) {
+      audioRef.current.pause();
+      setPlayState("paused");
+    } else if (ttsModeRef.current === "browser" && "speechSynthesis" in window) {
+      speechSynthesis.pause();
+      setPlayState("paused");
+    }
+  };
+
+  const resumePlayback = () => {
+    if (ttsModeRef.current === "audio" && audioRef.current) {
+      void audioRef.current.play();
+      setPlayState("playing");
+    } else if (ttsModeRef.current === "browser" && "speechSynthesis" in window) {
+      speechSynthesis.resume();
+      setPlayState("playing");
+    }
+  };
+
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      try { audioRef.current.pause(); audioRef.current.currentTime = 0; } catch {}
+    }
+    if ("speechSynthesis" in window) {
+      try { speechSynthesis.cancel(); } catch {}
+    }
+    ttsModeRef.current = null;
+    setPlayState("idle");
   };
 
   // Prime voices list (Chrome loads async)
