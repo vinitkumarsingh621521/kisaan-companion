@@ -65,27 +65,30 @@ function relDate(pub: string): string {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-async function fetchRss(category: string, lang: string, state?: string): Promise<Article[]> {
-  const base = CATEGORY_QUERY[category] || CATEGORY_QUERY.All;
-  const q = state ? `${base} ${state}` : base;
-  const { hl, ceid } = LANG_MAP[lang] || LANG_MAP.en;
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}+when:14d&hl=${hl}&gl=IN&ceid=${ceid}`;
+async function fetchOne(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+      "Accept": "application/rss+xml, application/xml, text/xml, */*",
+      "Accept-Language": "en-IN,en;q=0.9",
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.text();
+}
 
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 KrishiMitra/1.0" } });
-  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
-  const xml = await res.text();
-
-  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => m[1]);
+function parseRss(xml: string, category: string, fallbackSource: string): Article[] {
+  const items = [...xml.matchAll(/<item[\s\S]*?>([\s\S]*?)<\/item>/g)].map(m => m[1]);
   const out: Article[] = [];
   for (const item of items.slice(0, 14)) {
     const title = stripTags((item.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || "");
-    const link = decode((item.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || "");
+    const link = decode((item.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || "")
+      || decode((item.match(/<guid[^>]*>([\s\S]*?)<\/guid>/) || [])[1] || "");
     const pubDate = decode((item.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || "");
     const desc = stripTags((item.match(/<description>([\s\S]*?)<\/description>/) || [])[1] || "");
     const sourceMatch = item.match(/<source[^>]*>([\s\S]*?)<\/source>/);
-    const source = sourceMatch ? stripTags(sourceMatch[1]) : "Google News";
+    const source = sourceMatch ? stripTags(sourceMatch[1]) : fallbackSource;
     if (!title || !link) continue;
-    // description from Google News is HTML with the source/title repeated — strip the title prefix if present
     let summary = desc.replace(title, "").trim();
     if (summary.length < 40) summary = desc;
     if (summary.length > 220) summary = summary.slice(0, 217) + "…";
@@ -101,6 +104,30 @@ async function fetchRss(category: string, lang: string, state?: string): Promise
     });
   }
   return out;
+}
+
+async function fetchRss(category: string, lang: string, state?: string): Promise<Article[]> {
+  const base = CATEGORY_QUERY[category] || CATEGORY_QUERY.All;
+  const q = state ? `${base} ${state}` : base;
+  const { hl, ceid } = LANG_MAP[lang] || LANG_MAP.en;
+
+  const attempts: { url: string; src: string }[] = [
+    { url: `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${hl}&gl=IN&ceid=${ceid}`, src: "Google News" },
+    { url: `https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&cc=IN`, src: "Bing News" },
+    // r.jina.ai proxy as last resort — fetches any URL and returns text
+    { url: `https://r.jina.ai/https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${hl}&gl=IN&ceid=${ceid}`, src: "Google News" },
+  ];
+
+  for (const { url, src } of attempts) {
+    try {
+      const xml = await fetchOne(url);
+      const items = parseRss(xml, category, src);
+      if (items.length) return items;
+    } catch (_e) {
+      // try next
+    }
+  }
+  return [];
 }
 
 serve(async (req) => {
