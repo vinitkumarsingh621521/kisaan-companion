@@ -1,0 +1,220 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Sprout, Droplets, FlaskConical, CalendarDays, Bot } from "lucide-react";
+import { toast } from "sonner";
+import type { Zone } from "@/components/tools/FieldMap";
+
+interface Props {
+  zone: Zone | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+interface ZoneMeta { sownOn?: string; notes?: string }
+
+const META_KEY = "fieldmapper.zoneMeta.v1";
+function loadMeta(): Record<string, ZoneMeta> {
+  try { return JSON.parse(localStorage.getItem(META_KEY) || "{}"); } catch { return {}; }
+}
+function saveMeta(all: Record<string, ZoneMeta>) {
+  localStorage.setItem(META_KEY, JSON.stringify(all));
+}
+
+// crop → days from sowing to harvest, total cycle water mm, NPK kg per acre
+const CROP_FACTS: Record<string, {
+  days: number; weeklyMm: number;
+  stages: { until: number; name: string }[];
+  npkPerAcre: { n: number; p: number; k: number };
+}> = {
+  Rice:       { days: 120, weeklyMm: 50, npkPerAcre: { n: 50, p: 25, k: 25 },
+    stages: [{ until: 15, name: "Nursery / Transplant" }, { until: 45, name: "Tillering" }, { until: 75, name: "Panicle initiation" }, { until: 100, name: "Grain-fill" }, { until: 120, name: "Maturity / Harvest" }] },
+  Wheat:      { days: 135, weeklyMm: 25, npkPerAcre: { n: 48, p: 24, k: 16 },
+    stages: [{ until: 20, name: "Germination" }, { until: 55, name: "Tillering" }, { until: 85, name: "Jointing / Heading" }, { until: 115, name: "Grain-fill" }, { until: 135, name: "Harvest" }] },
+  Maize:      { days: 100, weeklyMm: 35, npkPerAcre: { n: 60, p: 25, k: 25 },
+    stages: [{ until: 18, name: "Seedling" }, { until: 45, name: "Vegetative" }, { until: 65, name: "Tasseling" }, { until: 90, name: "Grain-fill" }, { until: 100, name: "Harvest" }] },
+  Cotton:     { days: 180, weeklyMm: 40, npkPerAcre: { n: 40, p: 20, k: 20 },
+    stages: [{ until: 30, name: "Seedling" }, { until: 75, name: "Squaring" }, { until: 130, name: "Bolling" }, { until: 180, name: "Boll opening / Harvest" }] },
+  Vegetables: { days: 75,  weeklyMm: 30, npkPerAcre: { n: 40, p: 20, k: 30 },
+    stages: [{ until: 10, name: "Germination" }, { until: 35, name: "Vegetative" }, { until: 55, name: "Flowering" }, { until: 75, name: "Harvest" }] },
+  Sugarcane:  { days: 365, weeklyMm: 55, npkPerAcre: { n: 100, p: 30, k: 60 },
+    stages: [{ until: 45, name: "Germination" }, { until: 120, name: "Tillering" }, { until: 270, name: "Grand growth" }, { until: 365, name: "Maturity" }] },
+  Pulses:     { days: 110, weeklyMm: 20, npkPerAcre: { n: 10, p: 20, k: 10 },
+    stages: [{ until: 15, name: "Germination" }, { until: 45, name: "Branching" }, { until: 80, name: "Pod-fill" }, { until: 110, name: "Harvest" }] },
+  Fallow:     { days: 0,   weeklyMm: 0,  npkPerAcre: { n: 0, p: 0, k: 0 }, stages: [{ until: 0, name: "Resting" }] },
+};
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.floor((b.getTime() - a.getTime()) / 86_400_000);
+}
+
+export default function ZoneDetailSheet({ zone, open, onClose }: Props) {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [meta, setMeta] = useState<ZoneMeta>({});
+  const [notesDraft, setNotesDraft] = useState("");
+
+  useEffect(() => {
+    if (!zone) return;
+    const all = loadMeta();
+    const m = all[zone.id] || {};
+    setMeta(m);
+    setNotesDraft(m.notes || "");
+  }, [zone?.id]);
+
+  const facts = useMemo(() => zone ? (CROP_FACTS[zone.crop] || CROP_FACTS.Fallow) : null, [zone]);
+
+  const computed = useMemo(() => {
+    if (!zone || !facts) return null;
+    const acres = zone.acres;
+    const weeklyLiters = Math.round(facts.weeklyMm * acres * 4046.86); // 1 mm × m² = 1 L; 1 ac = 4046.86 m²
+    const npk = {
+      n: Math.round(facts.npkPerAcre.n * acres),
+      p: Math.round(facts.npkPerAcre.p * acres),
+      k: Math.round(facts.npkPerAcre.k * acres),
+    };
+    let stageName = "—";
+    let harvestEta = "—";
+    let dap: number | null = null;
+    if (meta.sownOn && facts.days > 0) {
+      const sown = new Date(meta.sownOn);
+      if (!isNaN(sown.getTime())) {
+        dap = Math.max(0, daysBetween(sown, new Date()));
+        const stage = facts.stages.find(s => dap! <= s.until) || facts.stages[facts.stages.length - 1];
+        stageName = stage.name;
+        const harvestDate = new Date(sown.getTime() + facts.days * 86_400_000);
+        const left = daysBetween(new Date(), harvestDate);
+        harvestEta = left > 0
+          ? `${harvestDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} (${left} d)`
+          : `${harvestDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} (ready)`;
+      }
+    }
+    return { weeklyLiters, npk, stageName, harvestEta, dap };
+  }, [zone, facts, meta.sownOn]);
+
+  if (!zone) return null;
+
+  const updateMeta = (patch: Partial<ZoneMeta>) => {
+    const all = loadMeta();
+    const next = { ...(all[zone.id] || {}), ...patch };
+    all[zone.id] = next;
+    saveMeta(all);
+    setMeta(next);
+  };
+
+  const saveNotes = () => {
+    updateMeta({ notes: notesDraft });
+    toast.success(t("fieldMapper.detail.savedNotes", "Notes saved"));
+  };
+
+  const askAI = () => {
+    const ctx = `Zone: ${zone.crop} · ${zone.acres.toFixed(2)} acres${meta.sownOn ? ` · sown ${meta.sownOn}` : ""}${computed?.stageName ? ` · stage ${computed.stageName}` : ""}. What should I do this week?`;
+    sessionStorage.setItem("km.aiPrefill", ctx);
+    navigate("/ai-advisor");
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded" style={{ background: zone.color }} />
+            {zone.crop} · {zone.acres.toFixed(2)} ac
+          </SheetTitle>
+          <SheetDescription>
+            {zone.hectares.toFixed(3)} ha · {t("fieldMapper.detail.title", "Field details")}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="space-y-5 mt-5">
+          {/* Sowing date */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1.5">
+              <CalendarDays className="h-3.5 w-3.5" /> {t("fieldMapper.detail.sowingDate", "Sowing date")}
+            </label>
+            <Input
+              type="date"
+              value={meta.sownOn || ""}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => updateMeta({ sownOn: e.target.value || undefined })}
+            />
+          </div>
+
+          {/* Stage + harvest */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1"><Sprout className="h-3 w-3" /> {t("fieldMapper.detail.stage", "Stage")}</div>
+              <div className="font-semibold text-sm mt-0.5">{computed?.stageName || "—"}</div>
+              {computed?.dap !== null && computed?.dap !== undefined && <div className="text-[11px] text-muted-foreground">DAP: {computed.dap}</div>}
+            </div>
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {t("fieldMapper.detail.harvest", "Expected harvest")}</div>
+              <div className="font-semibold text-sm mt-0.5">{computed?.harvestEta || "—"}</div>
+            </div>
+          </div>
+
+          {!meta.sownOn && (
+            <p className="text-xs text-muted-foreground italic">
+              {t("fieldMapper.detail.noSowingDate", "Set a sowing date to see stage and harvest window.")}
+            </p>
+          )}
+
+          {/* Water */}
+          <div className="rounded-lg border border-border p-3">
+            <div className="text-xs font-medium flex items-center gap-1.5 mb-1">
+              <Droplets className="h-3.5 w-3.5 text-blue-500" /> {t("fieldMapper.detail.water", "Weekly water need")}
+            </div>
+            <div className="text-sm">
+              <span className="font-semibold">{facts?.weeklyMm} mm/wk</span> · {(computed?.weeklyLiters || 0).toLocaleString("en-IN")} L total
+            </div>
+          </div>
+
+          {/* NPK */}
+          <div className="rounded-lg border border-border p-3">
+            <div className="text-xs font-medium flex items-center gap-1.5 mb-1">
+              <FlaskConical className="h-3.5 w-3.5 text-amber-600" /> {t("fieldMapper.detail.npk", "NPK recommendation")}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded bg-amber-50 dark:bg-amber-950/30 py-1.5">
+                <div className="text-[10px] text-muted-foreground">N</div>
+                <div className="font-semibold text-sm">{computed?.npk.n} kg</div>
+              </div>
+              <div className="rounded bg-rose-50 dark:bg-rose-950/30 py-1.5">
+                <div className="text-[10px] text-muted-foreground">P</div>
+                <div className="font-semibold text-sm">{computed?.npk.p} kg</div>
+              </div>
+              <div className="rounded bg-violet-50 dark:bg-violet-950/30 py-1.5">
+                <div className="text-[10px] text-muted-foreground">K</div>
+                <div className="font-semibold text-sm">{computed?.npk.k} kg</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              {t("fieldMapper.detail.notes", "Notes")}
+            </label>
+            <Textarea
+              rows={3}
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              placeholder="Last spray, pest seen, planned activity…"
+            />
+            <Button size="sm" variant="outline" className="mt-2" onClick={saveNotes}>
+              {t("fieldMapper.detail.saveNotes", "Save notes")}
+            </Button>
+          </div>
+
+          <Button className="w-full gap-2" onClick={askAI}>
+            <Bot className="h-4 w-4" /> {t("fieldMapper.detail.askAI", "Ask AI about this field")}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

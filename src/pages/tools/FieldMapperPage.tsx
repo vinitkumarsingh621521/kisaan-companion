@@ -15,7 +15,9 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useFarmZones } from "@/hooks/useFarmZones";
 import { NDVILegend } from "@/components/tools/NDVIOverlay";
 import FieldZoneAnalytics from "@/components/tools/FieldZoneAnalytics";
+import ZoneDetailSheet from "@/components/tools/ZoneDetailSheet";
 import type { LatLng } from "leaflet";
+import type { Zone } from "@/components/tools/FieldMap";
 
 const FieldMap = lazy(() => import("@/components/tools/FieldMap"));
 
@@ -69,6 +71,7 @@ export default function FieldMapperPage() {
   const [searchQ, setSearchQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lon: number; source: string }[]>([]);
+  const [detailZone, setDetailZone] = useState<Zone | null>(null);
 
   const runSearch = async () => {
     const q = searchQ.trim();
@@ -284,8 +287,8 @@ export default function FieldMapperPage() {
                 </Suspense>
               </div>
               <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Use the polygon tool (top-left) to draw a zone.
-                Centered near {active?.farmer_details?.district || active?.farm_location || "India"}.
+                <MapPin className="h-3 w-3" /> {t("fieldMapper.drawHint", "Use the polygon tool (top-left) to draw a zone.")}
+                {" "}Centered near {active?.farmer_details?.district || active?.farm_location || "India"}.
                 {ndvi && <span className="ml-1">{t("fieldMapper.ndviHint")}</span>}
               </div>
             </div>
@@ -294,14 +297,20 @@ export default function FieldMapperPage() {
             <div className="space-y-4">
               <div className="glass-card p-4">
                 <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Sprout className="h-4 w-4 text-primary" /> Crop Zones
+                  <Sprout className="h-4 w-4 text-primary" /> {t("fieldMapper.zones", "Crop Zones")}
                 </h3>
                 {zones.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">{t("fieldMapper.noZones")} 🎨</p>
                 ) : (
                   <div className="space-y-2">
                     {zones.map((z) => (
-                      <div key={z.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/30 group">
+                      <button
+                        key={z.id}
+                        type="button"
+                        onClick={() => setDetailZone(z)}
+                        className="w-full flex items-center justify-between text-sm p-2 rounded bg-muted/30 hover:bg-muted/60 transition-colors group text-left"
+                        aria-label={t("fieldMapper.openDetail", "Open details")}
+                      >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-3 h-3 rounded shrink-0" style={{ background: z.color }} />
                           <span className="font-medium truncate">{z.crop}</span>
@@ -311,27 +320,30 @@ export default function FieldMapperPage() {
                             <div className="text-xs font-medium">{z.acres.toFixed(2)} ac</div>
                             <div className="text-[10px] text-muted-foreground">{z.hectares.toFixed(3)} ha</div>
                           </div>
-                          <button
-                            onClick={() => removeZone(z.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); removeZone(z.id); }}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); removeZone(z.id); } }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80 cursor-pointer"
                             aria-label="Delete zone"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                     <div className="pt-2 mt-1 border-t border-border space-y-1">
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Mapped</span>
+                        <span className="text-muted-foreground">{t("fieldMapper.mapped", "Mapped")}</span>
                         <span className="font-medium">{totals.ac.toFixed(2)} ac · {totals.ha.toFixed(3)} ha</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Plot total</span>
+                        <span className="text-muted-foreground">{t("fieldMapper.plotTotal", "Plot total")}</span>
                         <span className="font-medium">{totalAcres.toFixed(2)} ac</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Coverage</span>
+                        <span className="text-muted-foreground">{t("fieldMapper.coverage", "Coverage")}</span>
                         <span className={`font-medium ${totals.ac > totalAcres ? "text-destructive" : "text-primary"}`}>
                           {totalAcres ? ((totals.ac / totalAcres) * 100).toFixed(0) : 0}%
                         </span>
@@ -352,6 +364,7 @@ export default function FieldMapperPage() {
           </div>
         </div>
       </main>
+      <ZoneDetailSheet zone={detailZone} open={!!detailZone} onClose={() => setDetailZone(null)} />
       <Footer />
     </div>
   );

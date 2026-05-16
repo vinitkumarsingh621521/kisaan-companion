@@ -1,101 +1,77 @@
-I checked the live backend and code paths. The hosted backend is healthy, but the failures are coming from brittle function flows and incomplete UI handling:
+Goals
 
-- Voice audio transcription falls back to a Hugging Face endpoint that is currently wrong, so recorded audio can return non-2xx.
-- AI Advisor uses a very large forced tool schema with expensive/slow model calls; this can time out and show non-2xx instead of returning a useful fallback.
-- AI Krishi Advisor chat works in direct tests, but the UI only shows generic errors and voice input has weak diagnostics/language control.
-- Field Mapper delete exists, but it is hard to use and map-drawn polygons are not editable enough; location search is basic and Bhuvan is not used yet.
+Fix three quality issues the user called out:
 
-Plan:
+1. Language switch only translates a handful of strings (nav + a few field mapper labels). Everything else stays in English.
+2. Field Mapper feels like a toy — drawing polygons with no real payoff.
+3. News is AI-generated (hallucinated), often the same set, doesn't refresh, no truly latest items.
 
-1. Fix Krishi Voice end-to-end .  Please voice of ai agent should be like human you can use the chatgpt or anything else . 
+---
 
-- Replace the broken Hugging Face transcription URL with a reliable inference endpoint and keep Groq/Lovable AI as fallback paths.
-- Add a no-crash fallback response: even if STT provider fails, the function returns structured diagnostics instead of only a 500.
-- Add explicit language selection in the Krishi Voice popup: English, Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Punjabi, Kannada, Malayalam, Odia, Assamese, Urdu.
-- Use selected voice language for STT, AI response language, and browser TTS.
-- Show STT confidence when browser SpeechRecognition provides it; show “not available” for provider paths that do not return confidence.
-- Add a voice diagnostics panel showing:
-  - mic permission status
-  - active STT path: browser, recorder/Groq, recorder/Hugging Face
-  - audio mime type, file size, duration
-  - selected language
-  - last provider error
-  - last function status
+## 1) Site-wide language switching
 
-2. Fix AI Krishi Advisor chat and its voice input
+Today only `nav.*`, `common.*`, `dashboard.*`, and `fieldMapper.*` keys exist in 5 locales, and most pages hardcode English ("Agri News", "Crop Zones", "Refresh", buttons, toasts, headings, etc.). i18next is wired correctly — the problem is missing keys + hardcoded strings.
 
-- Reuse the same language + diagnostics logic for chat voice input where appropriate.
-- Improve error display so the user sees the real cause instead of only “Edge Function returned a non-2xx status code”.
-- Make the chat fallback usable if streaming fails: retry once with non-streaming response or show a grounded local advisory template.
-- Keep replies practical: quantities, timing, warnings, and specific next step.
+Approach:
 
-3. Make AI Advisor deep, reliable, and more scientific
+- Expand `src/i18n/locales/{en,hi,bn,ta,te}.json` with namespaces for every user-facing area: `news`, `market`, `schemes`, `community`, `research`, `team`, `profile`, `aiAdvisor`, `cropAdvisor`, `auth`, `tools` (reports / satellite / iot / achievements / offline), `footer`, `voice`, plus shared `actions`, `status`, and form labels.
+- Replace hardcoded strings on the most-visible pages with `t("…")` calls: NewsPage, MarketPage, SchemesPage, CommunityPage, ResearchPage, TeamPage, ProfilePage, AIAdvisor, CropAdvisor, Footer, Navbar badge/labels, VoiceBubble controls, AuthPage. Smaller widget strings (dashboard cards, tool pages) covered in the same pass.
+- Add a hidden `<html lang>` syncer in `App.tsx` (small effect on `i18n.language`) so screen readers and SEO update too.
+- Persist already works via `i18next-browser-languagedetector` localStorage key `krishimitra.lang`.
+- Server-rendered text from the AI (news summaries, advisor replies) — pass the active `i18n.language` to the edge function and instruct the model to reply in that language. krishi-ai's prompt already says "match the user language"; we just need to forward the language tag explicitly.
 
-- Refactor the `ai-advisor` function to produce a deterministic agronomy baseline first, then enrich with AI. This prevents total failure when AI times out.
-- Add crop reference tables for common Indian crops: seed rate, water requirement, NPK, pesticide/IPM baseline, season windows, approximate duration, soil pH fit, and irrigation notes.
-- Infer season automatically from sowing and harvest dates:
-  - Kharif, Rabi, Zaid, or unclear/overlap
-  - compare inferred season against selected crop and allocation season
-- Add explicit warning output when selected crop/date/season is incompatible:
-  - what mistake is happening
-  - suggested alternative crop
-  - what to change first: sowing date, crop, irrigation, variety, or land allocation
-- Add measurement-style input to the wizard:
-  - per acre / per hectare
-  - metric / local-friendly units
-- Output seed, water, fertilizer, and pesticide/IPM with clear units and conversions:
-  - per acre
-  - total for allocated acres
-  - kg, litres, mm, kL, bags where sensible
-- Add richer crop allocation inputs:
-  - crop, acres, variety, sowing date, harvest date, season override, irrigation method, fertilizer use, pesticide use
-- Update result UI with dedicated cards for:
-  - season mistake warnings
-  - crop-wise input calculator
-  - first action to change
-  - confidence/data quality
+Out of scope: translating user-generated community posts and raw API data (mandi prices, scheme PDFs) — these stay in their source language.
 
-4. Repair Documentation Tools
+---
 
-- Make the documentation tool cards clearly clickable, not just the small Open button.
-- Add generated PDF/text outputs for loan, insurance, tax, and farm-data export with farmer profile data.
-- Add graceful fallback when scheme matching AI fails so the tools still open and generate documents.
-- Surface errors as inline messages instead of silently showing empty results.
+## 2) Make Field Mapper genuinely useful
 
-5. Improve Field Mapper substantially
+Keep the current draw/save/NDVI/analytics base, add real value layers:
 
-- Add precise location search above the map:
-  - village/district/address search
-  - use Bhuvan village geocoding where possible through a secure backend function using the existing Bhuvan secret
-  - fallback to Open-Meteo/Nominatim when Bhuvan returns nothing
-- Add “use my GPS” and “jump to profile location” controls.
-- Improve polygon drawing:
-  - allow many vertices for irregular fields
-  - show instructions while drawing
-  - ensure the user can finish polygons with more than three points
-- Fix deletion UX:
-  - visible delete buttons on every zone, not hover-only
-  - selectable zones on map
-  - delete selected zone from map/sidebar
-  - keep cloud/local delete in sync and show errors clearly
-- Add edit support for existing polygons if feasible with the current Leaflet Draw setup.
-- Add Bhuvan/ISRO layer support where technically available:
-  - Bhuvan-compatible geocoding/search via backend
-  - add an India-focused satellite/thematic layer option if a stable public WMS/WMTS endpoint is usable
-  - keep NASA MODIS NDVI as fallback if Bhuvan tiles are not directly consumable from the browser
-- Improve scientific output in Field Mapper:
-  - crop-wise area totals
-  - water demand by irrigation efficiency
-  - NPK budget
-  - estimated seed requirement
-  - yield/revenue estimate
-  - soil pH/season warning per zone
+- **Per-zone smart panel** (click a zone → side sheet): shows sown crop, area, sowing date input, expected harvest window (using `src/lib/phenology.ts`), water requirement (mm/week from crop + soil + month), recommended NPK dose for THAT area in kg, and live local weather snippet from existing `weather_brief` action.
+- **Sowing-date + stage tracker** stored on `farm_zones` via two new nullable columns (`sown_on date`, `stage text`) — migration + RLS already covers update.
+- **"Plan vs Plot" coverage warning** is already there; upgrade it to a real recommendation: when coverage <100% suggest crops for the remaining acres using `crop_recommendation` action, when >100% flag over-allocation.
+- **Yield + revenue estimator per zone**: pulls latest mandi price (existing `market-compare` function) × crop expected yield × zone area → ₹ estimate, summed at the bottom.
+- **Irrigation schedule export**: a "Generate 30-day watering plan" button → PDF using existing PdfExportButton pattern, listing each zone's days, mm, and liters.
+- **Zone notes**: free-text `notes` column already exists; expose an inline editor.
+- **Quick actions on each zone row**: "Ask AI about this field" deep-links to AI Advisor with zone context pre-filled.
+- **Mobile polish**: collapse sidebar into bottom drawer on <768px so the map is usable on the 393px viewport.
 
-6. Validate before saying done
+Net effect: drawing a polygon now produces a per-field agronomy + economics report instead of just a colored shape.
 
-- Test `voice-bot`, `krishi-ai`, and `ai-advisor` edge functions directly after changes.
-- Verify the UI no longer shows generic non-2xx for the tested flows.
-- Check the Field Mapper map loads, search moves the map, draw/delete works, and analytics update.
+---
 
-Scope note:
-This is a large repair across several frontend components and three backend functions. I can implement the full repair in phases in one build pass, but if any external provider blocks us (invalid Groq key, Hugging Face model access, or Bhuvan endpoint restrictions), I’ll ship graceful fallbacks and diagnostics so the app still works and tells you exactly what failed.
+## 3) Real, refreshing news
+
+Today NewsPage calls `krishi-ai` which asks Gemini to *invent* 12 articles — they look similar every time, are not truly current, and caching by category in component state prevents refresh.
+
+Switch to a real source via a new edge function `agri-news`:
+
+- Pulls from **Google News RSS** (`https://news.google.com/rss/search?q=Indian+agriculture+<category>&hl=<lang>&gl=IN&ceid=IN:<lang>`) — free, no API key, returns true headlines + source + publish time + working URL.
+- Parses RSS XML in the function, returns normalized `{title, summary, source, date, url, category, imageEmoji}` JSON.
+- Accepts `category`, `state` (from active profile), and `lang` — builds the query accordingly so news comes in the user's language for hi/bn/ta/te too.
+- Caches in-memory per (category, lang) for **10 minutes** to stay fast but never stale. Always returns `fetchedAt` so the UI can show "Updated 2 min ago".
+- NewsPage changes: drop the in-component cache; refetch on every mount and every category switch; "Refresh" button bypasses the 10-min cache via `?force=1`; show fetched-at timestamp; pass `i18n.language`.
+
+Out of scope: a paid NewsAPI key. Google News RSS is enough for "fresh + latest + real links".
+
+---
+
+## Technical notes (for devs)
+
+- **Files to touch (i18n):** the 5 JSON locale files; the page/component files listed above; small `useEffect` in `src/App.tsx` to set `document.documentElement.lang`.
+- **Files to touch (Field Mapper):** `src/pages/tools/FieldMapperPage.tsx`, `src/hooks/useFarmZones.tsx` (sown_on, stage, notes setters), new `src/components/tools/ZoneDetailSheet.tsx`, new migration adding `sown_on`, `stage` to `farm_zones`.
+- **Files to touch (News):** new `supabase/functions/agri-news/index.ts`, edit `src/pages/NewsPage.tsx`.
+- **No schema break:** new columns are nullable with defaults; existing zones stay valid.
+- **Edge-function key needs:** none — Google News RSS is open. Lovable AI key already covers any summarization fallback.
+
+---
+
+## Out of scope
+
+- Translating community user posts.
+- Replacing Leaflet with a 3D map.
+- Per-zone soil sampling integration (would need real lab data).
+- Push-notifications for news.
+- do something unexpected . Something out of the box something imaginative.
+- good luck 
