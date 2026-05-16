@@ -30,7 +30,13 @@
     "refresh": "Refresh",
     "language": "Language",
     "offline": "You are offline. Showing cached data.",
-    "online": "Back online — syncing…"
+    "online": "Back online — syncing…",
+    "search": "Search",
+    "edit": "Edit",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No"
   },
   "dashboard": {
     "welcome": "Welcome back",
@@ -41,6 +47,25 @@
     "schemes": "Schemes for you",
     "askAI": "Ask Krishi AI"
   },
+  "news": {
+    "title": "Agri News",
+    "subtitle": "Real headlines from Indian agriculture",
+    "updated": "Updated",
+    "source": "Source",
+    "refreshed": "Fetched the latest headlines",
+    "failed": "Failed to load news",
+    "empty": "No headlines right now — try another category",
+    "emptyLong": "No headlines available right now. Try Refresh in a moment.",
+    "cat": {
+      "All": "All",
+      "Technology": "Technology",
+      "Policy": "Policy",
+      "Market": "Market",
+      "Research": "Research",
+      "Climate": "Climate",
+      "Success": "Success"
+    }
+  },
   "fieldMapper": {
     "title": "Field Mapper",
     "subtitle": "Draw your farm on real satellite imagery. Auto-calculates hectares & acres.",
@@ -49,6 +74,43 @@
     "ndviHint": "Green = healthy, yellow = moderate, red = stressed",
     "syncing": "Syncing to cloud…",
     "synced": "Synced",
-    "localOnly": "Saved locally — sign in to sync"
+    "localOnly": "Saved locally — sign in to sync",
+    "zones": "Crop Zones",
+    "mapped": "Mapped",
+    "plotTotal": "Plot total",
+    "coverage": "Coverage",
+    "drawHint": "Use the polygon tool (top-left) to draw a zone.",
+    "openDetail": "Open details",
+    "detail": {
+      "title": "Field details",
+      "sowingDate": "Sowing date",
+      "stage": "Current stage",
+      "harvest": "Expected harvest",
+      "water": "Weekly water need",
+      "npk": "NPK recommendation",
+      "notes": "Notes",
+      "saveNotes": "Save notes",
+      "savedNotes": "Notes saved",
+      "askAI": "Ask AI about this field",
+      "noSowingDate": "Set a sowing date to see stage and harvest window."
+    }
+  },
+  "footer": {
+    "tagline": "AI-powered crop recommendation platform for Indian farmers.",
+    "features": "Features",
+    "tools": "Tools",
+    "contact": "Contact",
+    "share": "Share",
+    "copyLink": "Copy link",
+    "copied": "Link copied!",
+    "season": {
+      "kharif": "🌧️ Kharif Season",
+      "rabi": "🌾 Rabi Season",
+      "zaid": "☀️ Zaid Season"
+    }
+  },
+  "aiAdvisor": {
+    "title": "AI Advisor",
+    "subtitle": "Personalised, data-rich answers for your farm"
   }
 }
