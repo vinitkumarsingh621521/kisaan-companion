@@ -15,7 +15,9 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useFarmZones } from "@/hooks/useFarmZones";
 import { NDVILegend } from "@/components/tools/NDVIOverlay";
 import FieldZoneAnalytics from "@/components/tools/FieldZoneAnalytics";
+import ZoneDetailSheet from "@/components/tools/ZoneDetailSheet";
 import type { LatLng } from "leaflet";
+import type { Zone } from "@/components/tools/FieldMap";
 
 const FieldMap = lazy(() => import("@/components/tools/FieldMap"));
 
@@ -69,6 +71,7 @@ export default function FieldMapperPage() {
   const [searchQ, setSearchQ] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lon: number; source: string }[]>([]);
+  const [detailZone, setDetailZone] = useState<Zone | null>(null);
 
   const runSearch = async () => {
     const q = searchQ.trim();
