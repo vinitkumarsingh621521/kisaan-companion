@@ -364,6 +364,7 @@ export default function FieldMapperPage() {
           </div>
         </div>
       </main>
+      <ZoneDetailSheet zone={detailZone} open={!!detailZone} onClose={() => setDetailZone(null)} />
       <Footer />
     </div>
   );
