@@ -64,6 +64,10 @@ const lazyRoute = (el: JSX.Element) => (
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { i18n } = useTranslation();
+  useEffect(() => {
+    document.documentElement.lang = i18n.language || "en";
+  }, [i18n.language]);
   return (
     <>
       <ActiveProfileBar />
