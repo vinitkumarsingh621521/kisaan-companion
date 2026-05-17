@@ -63,7 +63,8 @@ async function geocodeDistrict(query: string): Promise<[number, number] | null> 
 export default function FieldMapperPage() {
   const { t } = useTranslation();
   const { active } = useActiveProfile();
-  const { zones, addZone, removeZones, clearAll, status } = useFarmZones();
+  const { zones, addZone, updateZone, removeZones, clearAll, status } = useFarmZones();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedCrop, setSelectedCrop] = useState("Rice");
   const [center, setCenter] = useState<[number, number]>(INDIA_CENTER);
