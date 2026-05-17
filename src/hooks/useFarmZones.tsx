@@ -148,5 +148,5 @@ export function useFarmZones() {
     await removeZones(ids);
   }, [zones, removeZones]);
 
-  return { zones, addZone, removeZones, clearAll, status, loading };
+  return { zones, addZone, updateZone, removeZones, clearAll, status, loading };
 }
