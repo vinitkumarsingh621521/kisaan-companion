@@ -52,11 +52,18 @@ function daysBetween(a: Date, b: Date): number {
   return Math.floor((b.getTime() - a.getTime()) / 86_400_000);
 }
 
+interface ChatMsg { role: "user" | "assistant"; content: string }
+
 export default function ZoneDetailSheet({ zone, open, onClose }: Props) {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const [meta, setMeta] = useState<ZoneMeta>({});
   const [notesDraft, setNotesDraft] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!zone) return;
