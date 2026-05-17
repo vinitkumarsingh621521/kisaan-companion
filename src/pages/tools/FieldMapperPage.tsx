@@ -134,7 +134,66 @@ export default function FieldMapperPage() {
     toast.info(`Removed ${ids.length} zone${ids.length > 1 ? "s" : ""}`);
   };
 
+  const handleEdit = (id: string, latlngs: { lat: number; lng: number }[]) => {
+    const m2 = polygonAreaM2(latlngs);
+    const hectares = m2 / 10000;
+    const acres = hectares * 2.47105;
+    updateZone(id, { latlngs, hectares, acres });
+    toast.success(`Updated zone — ${acres.toFixed(2)} ac`);
+  };
+
   const removeZone = (id: string) => removeZones([id]);
+
+  // Import GeoJSON or KML files — each polygon becomes a zone using the currently selected crop
+  const handleImportFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      let fc: any = null;
+      if (file.name.toLowerCase().endsWith(".kml")) {
+        const dom = new DOMParser().parseFromString(text, "text/xml");
+        fc = kmlToGeoJSON(dom as any);
+      } else {
+        fc = JSON.parse(text);
+      }
+      const features = fc?.type === "FeatureCollection" ? fc.features
+        : fc?.type === "Feature" ? [fc]
+        : [];
+      const polygons: { lat: number; lng: number }[][] = [];
+      for (const f of features) {
+        const g = f.geometry;
+        if (!g) continue;
+        if (g.type === "Polygon") {
+          polygons.push(g.coordinates[0].map(([lng, lat]: number[]) => ({ lat, lng })));
+        } else if (g.type === "MultiPolygon") {
+          for (const poly of g.coordinates) {
+            polygons.push(poly[0].map(([lng, lat]: number[]) => ({ lat, lng })));
+          }
+        }
+      }
+      if (!polygons.length) { toast.error("No polygons found in file"); return; }
+      let added = 0;
+      for (const ring of polygons) {
+        const m2 = polygonAreaM2(ring);
+        const ha = m2 / 10000;
+        const ac = ha * 2.47105;
+        if (ha < 0.0001) continue;
+        await addZone({
+          crop: selectedCrop,
+          color: COLORS[selectedCrop] || "#22c55e",
+          hectares: ha,
+          acres: ac,
+          latlngs: ring,
+        });
+        added++;
+      }
+      toast.success(`Imported ${added} zone${added > 1 ? "s" : ""} as ${selectedCrop}`);
+      // Re-center on first imported polygon
+      if (polygons[0]?.length) setCenter([polygons[0][0].lat, polygons[0][0].lng]);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Could not parse file — use .geojson or .kml");
+    }
+  };
 
   const onClearAll = () => {
     if (!zones.length) return;
