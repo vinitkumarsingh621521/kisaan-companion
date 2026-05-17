@@ -287,6 +287,20 @@ export default function FieldMapperPage() {
                   ))}
                 </div>
                 <div className="flex gap-1.5">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".geojson,.json,.kml"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImportFile(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <FileUp className="h-3.5 w-3.5 mr-1" /> Import
+                  </Button>
                   <Button size="sm" variant="outline" onClick={exportGeoJSON} disabled={!zones.length}>
                     <FileDown className="h-3.5 w-3.5 mr-1" /> {t("common.export")}
                   </Button>
