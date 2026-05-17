@@ -312,9 +312,58 @@ export default function ZoneDetailSheet({ zone, open, onClose }: Props) {
             </Button>
           </div>
 
-          <Button className="w-full gap-2" onClick={askAI}>
-            <Bot className="h-4 w-4" /> {t("fieldMapper.detail.askAI", "Ask AI about this field")}
-          </Button>
+          {!chatOpen ? (
+            <Button className="w-full gap-2" onClick={openAI}>
+              <Bot className="h-4 w-4" /> {t("fieldMapper.detail.askAI", "Ask AI about this field")}
+            </Button>
+          ) : (
+            <div className="rounded-lg border border-border bg-muted/20 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-background/60">
+                <div className="flex items-center gap-1.5 text-xs font-medium">
+                  <Bot className="h-3.5 w-3.5 text-primary" /> KrishiMitra · this field
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { abortRef.current?.abort(); setChatOpen(false); }}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Close chat"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div ref={chatScrollRef} className="max-h-72 overflow-y-auto p-3 space-y-2 text-xs">
+                {chat.length === 0 && (
+                  <div className="text-muted-foreground italic">Ask anything about this field…</div>
+                )}
+                {chat.map((m, i) => (
+                  <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                    <div className={`max-w-[85%] rounded-lg px-2.5 py-1.5 whitespace-pre-wrap leading-relaxed ${
+                      m.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background border border-border text-foreground"
+                    }`}>
+                      {m.content || (streaming && i === chat.length - 1 ? <Loader2 className="h-3 w-3 animate-spin" /> : "")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-2 border-t border-border bg-background/60 flex gap-1.5">
+                <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
+                  placeholder="Follow up question…"
+                  disabled={streaming}
+                  className="h-8 text-xs"
+                />
+                <Button size="sm" className="h-8 px-2" onClick={() => sendChat()} disabled={streaming || !chatInput.trim()}>
+                  {streaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
