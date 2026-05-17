@@ -118,10 +118,105 @@ export default function ZoneDetailSheet({ zone, open, onClose }: Props) {
     toast.success(t("fieldMapper.detail.savedNotes", "Notes saved"));
   };
 
-  const askAI = () => {
-    const ctx = `Zone: ${zone.crop} · ${zone.acres.toFixed(2)} acres${meta.sownOn ? ` · sown ${meta.sownOn}` : ""}${computed?.stageName ? ` · stage ${computed.stageName}` : ""}. What should I do this week?`;
-    sessionStorage.setItem("km.aiPrefill", ctx);
-    navigate("/ai-advisor");
+  const buildContextPrompt = (userQ: string) => {
+    if (!zone || !facts) return userQ;
+    const lines = [
+      `Field zone:`,
+      `- Crop: ${zone.crop}`,
+      `- Area: ${zone.acres.toFixed(2)} acres (${zone.hectares.toFixed(3)} ha)`,
+      meta.sownOn ? `- Sown on: ${meta.sownOn}` : `- Sown on: not set`,
+      computed?.stageName ? `- Current stage: ${computed.stageName} (DAP ${computed.dap ?? "?"})` : null,
+      computed?.harvestEta ? `- Expected harvest: ${computed.harvestEta}` : null,
+      `- Recommended weekly water: ${facts.weeklyMm} mm/wk (~${computed?.weeklyLiters?.toLocaleString("en-IN")} L)`,
+      `- NPK budget for this zone: N ${computed?.npk.n}kg · P ${computed?.npk.p}kg · K ${computed?.npk.k}kg`,
+      meta.notes ? `- Farmer notes: ${meta.notes}` : null,
+    ].filter(Boolean).join("\n");
+    return `${lines}\n\nFarmer's question: ${userQ}\n\nGive a short, specific, actionable answer for THIS zone — include quantities, timing, and reasoning.`;
+  };
+
+  const sendChat = async (q?: string) => {
+    const question = (q ?? chatInput).trim();
+    if (!question || streaming) return;
+    setChatInput("");
+    const userMsg: ChatMsg = { role: "user", content: question };
+    const next = [...chat, userMsg];
+    setChat(next);
+    setStreaming(true);
+    setChat((c) => [...c, { role: "assistant", content: "" }]);
+
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
+      const messages = next.map((m, i) => ({
+        role: m.role,
+        content: i === next.length - 1 ? buildContextPrompt(m.content) : m.content,
+      }));
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ action: "chat", messages }),
+        signal: ctrl.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        const errTxt = await res.text().catch(() => "");
+        throw new Error(errTxt || `AI error ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let acc = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const payload = trimmed.slice(5).trim();
+          if (payload === "[DONE]") continue;
+          try {
+            const json = JSON.parse(payload);
+            const delta = json.choices?.[0]?.delta?.content || "";
+            if (delta) {
+              acc += delta;
+              setChat((c) => {
+                const copy = [...c];
+                copy[copy.length - 1] = { role: "assistant", content: acc };
+                return copy;
+              });
+              requestAnimationFrame(() => {
+                chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight });
+              });
+            }
+          } catch { /* partial */ }
+        }
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        toast.error(e.message || "AI request failed");
+        setChat((c) => c.slice(0, -1));
+      }
+    } finally {
+      setStreaming(false);
+    }
+  };
+
+  const openAI = () => {
+    setChatOpen(true);
+    if (chat.length === 0) {
+      sendChat("What should I do this week for this field?");
+    }
   };
 
   return (
