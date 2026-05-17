@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2, Cloud, CloudOff, Satellite, Search, Locate } from "lucide-react";
+import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, FileUp, Share2, Cloud, CloudOff, Satellite, Search, Locate } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { useFarmZones } from "@/hooks/useFarmZones";
 import { NDVILegend } from "@/components/tools/NDVIOverlay";
 import FieldZoneAnalytics from "@/components/tools/FieldZoneAnalytics";
 import ZoneDetailSheet from "@/components/tools/ZoneDetailSheet";
+import CropSeasonTimeline from "@/components/tools/CropSeasonTimeline";
+import { kml as kmlToGeoJSON } from "@tmcw/togeojson";
 import type { LatLng } from "leaflet";
 import type { Zone } from "@/components/tools/FieldMap";
 
