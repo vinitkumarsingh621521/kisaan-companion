@@ -357,6 +357,7 @@ export default function FieldMapperPage() {
                     cropColor={COLORS[selectedCrop] || "#22c55e"}
                     onCreate={handleCreate}
                     onDelete={handleDeleteIds}
+                    onEdit={handleEdit}
                     ndvi={ndvi}
                     ndviOpacity={ndviOpacity}
                   />
