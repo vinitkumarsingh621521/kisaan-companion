@@ -2,9 +2,9 @@
 // Computes water demand, NPK budget, expected yield and gross revenue for each
 // drawn polygon, using the active farmer profile and crop reference data.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Droplets, Beaker, TrendingUp, Wallet, Sun, Leaf, Lightbulb } from "lucide-react";
+import { Droplets, Beaker, TrendingUp, Wallet, Sun, Leaf, Lightbulb, LayoutGrid, Table as TableIcon, ArrowUpDown } from "lucide-react";
 import type { Zone } from "@/components/tools/FieldMap";
 import type { FarmerProfile } from "@/hooks/useActiveProfile";
 
