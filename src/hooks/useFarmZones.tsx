@@ -114,6 +114,21 @@ export function useFarmZones() {
     return { ...zone, id: data.id };
   }, [active?.id]);
 
+  const updateZone = useCallback(async (id: string, patch: Partial<Omit<Zone, "id">>) => {
+    setZones((prev) => prev.map((z) => z.id === id ? { ...z, ...patch } : z));
+    if (!userIdRef.current || id.startsWith("tmp-")) return;
+    setStatus("syncing");
+    const dbPatch: any = {};
+    if (patch.latlngs) dbPatch.latlngs = patch.latlngs as any;
+    if (patch.hectares !== undefined) dbPatch.hectares = patch.hectares;
+    if (patch.acres !== undefined) dbPatch.acres = patch.acres;
+    if (patch.crop !== undefined) dbPatch.crop = patch.crop;
+    if (patch.color !== undefined) dbPatch.color = patch.color;
+    const { error } = await supabase.from("farm_zones").update(dbPatch).eq("id", id);
+    if (error) { console.error("[farm_zones] update error", error); setStatus("error"); }
+    else setStatus("synced");
+  }, []);
+
   const removeZones = useCallback(async (ids: string[]) => {
     setZones((prev) => prev.filter((z) => !ids.includes(z.id)));
     const cloudIds = ids.filter((i) => !i.startsWith("tmp-"));
