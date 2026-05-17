@@ -432,6 +432,8 @@ export default function FieldMapperPage() {
 
               <FieldZoneAnalytics zones={zones} profile={active} />
 
+              <CropSeasonTimeline zones={zones} />
+
               <div className="glass-card p-4 text-xs text-muted-foreground space-y-2">
                 <p>☁️ <strong>Cloud sync:</strong> Zones sync to your account across devices.</p>
                 <p>🛰️ <strong>NDVI:</strong> Toggle satellite crop-health overlay (NASA MODIS, 16-day).</p>
