@@ -30,12 +30,14 @@ interface Props {
   cropColor: string;
   onCreate: (latlngs: LatLng[]) => void;
   onDelete: (ids: string[]) => void;
+  onEdit?: (id: string, latlngs: { lat: number; lng: number }[]) => void;
   ndvi?: boolean;
   ndviOpacity?: number;
 }
 
-export default function FieldMap({ center, zones, selectedCrop, cropColor, onCreate, onDelete, ndvi = false, ndviOpacity = 0.6 }: Props) {
+export default function FieldMap({ center, zones, selectedCrop, cropColor, onCreate, onDelete, onEdit, ndvi = false, ndviOpacity = 0.6 }: Props) {
   const fgRef = useRef<L.FeatureGroup>(null);
+  const editFgRef = useRef<L.FeatureGroup>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -44,7 +46,6 @@ export default function FieldMap({ center, zones, selectedCrop, cropColor, onCre
     const layer = e.layer as L.Polygon;
     const latlngs = (layer.getLatLngs()[0] as LatLng[]);
     onCreate(latlngs);
-    // Remove from edit layer; we render zones from state.
     fgRef.current?.removeLayer(layer);
   };
 
@@ -54,6 +55,15 @@ export default function FieldMap({ center, zones, selectedCrop, cropColor, onCre
     if (ids.length) onDelete(ids);
   };
 
+  const edited = (e: any) => {
+    e.layers.eachLayer((l: any) => {
+      const id = l._zoneId;
+      if (!id || !onEdit) return;
+      const latlngs = (l.getLatLngs()[0] as LatLng[]).map((p) => ({ lat: p.lat, lng: p.lng }));
+      onEdit(id, latlngs);
+    });
+  };
+
   if (!mounted) return null;
 
   return (
@@ -61,44 +71,43 @@ export default function FieldMap({ center, zones, selectedCrop, cropColor, onCre
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Satellite">
           <TileLayer
-            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution='Tiles &copy; Esri'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             maxZoom={19}
           />
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer name="Streets">
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution='&copy; OpenStreetMap'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
           />
         </LayersControl.BaseLayer>
       </LayersControl>
 
-      {/* NDVI overlay */}
       {ndvi && <NDVIOverlay opacity={ndviOpacity} />}
 
-      {/* Render saved zones */}
-      {zones.map((z) => (
-        <Polygon
-          key={z.id}
-          positions={z.latlngs.map((p) => [p.lat, p.lng]) as any}
-          pathOptions={{ color: z.color, fillColor: z.color, fillOpacity: 0.4, weight: 2 }}
-          eventHandlers={{
-            add: (e: any) => { (e.target as any)._zoneId = z.id; },
-          }}
-        >
-          <LeafletTooltip direction="center" permanent className="!bg-card/90 !text-foreground !border-border">
-            <span className="text-xs font-medium">{z.crop} • {z.acres.toFixed(2)} ac</span>
-          </LeafletTooltip>
-        </Polygon>
-      ))}
-
-      <FeatureGroup ref={fgRef as any}>
+      {/* Editable zones live inside a FeatureGroup so EditControl can manage them */}
+      <FeatureGroup ref={editFgRef as any}>
+        {zones.map((z) => (
+          <Polygon
+            key={z.id}
+            positions={z.latlngs.map((p) => [p.lat, p.lng]) as any}
+            pathOptions={{ color: z.color, fillColor: z.color, fillOpacity: 0.4, weight: 2 }}
+            eventHandlers={{
+              add: (e: any) => { (e.target as any)._zoneId = z.id; },
+            }}
+          >
+            <LeafletTooltip direction="center" permanent className="!bg-card/90 !text-foreground !border-border">
+              <span className="text-xs font-medium">{z.crop} • {z.acres.toFixed(2)} ac</span>
+            </LeafletTooltip>
+          </Polygon>
+        ))}
         <EditControl
           position="topleft"
           onCreated={created}
           onDeleted={deleted}
+          onEdited={edited}
           draw={{
             rectangle: false,
             circle: false,
@@ -111,9 +120,10 @@ export default function FieldMap({ center, zones, selectedCrop, cropColor, onCre
               shapeOptions: { color: cropColor, fillOpacity: 0.4 },
             },
           }}
-          edit={{ edit: false }}
+          edit={{ edit: {}, remove: {} }}
         />
       </FeatureGroup>
+      <FeatureGroup ref={fgRef as any} />
     </MapContainer>
   );
 }

@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, Share2, Cloud, CloudOff, Satellite, Search, Locate } from "lucide-react";
+import { Map as MapIcon, Trash2, Sprout, MapPin, Loader2, FileDown, FileUp, Share2, Cloud, CloudOff, Satellite, Search, Locate } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { useFarmZones } from "@/hooks/useFarmZones";
 import { NDVILegend } from "@/components/tools/NDVIOverlay";
 import FieldZoneAnalytics from "@/components/tools/FieldZoneAnalytics";
 import ZoneDetailSheet from "@/components/tools/ZoneDetailSheet";
+import CropSeasonTimeline from "@/components/tools/CropSeasonTimeline";
+import { kml as kmlToGeoJSON } from "@tmcw/togeojson";
 import type { LatLng } from "leaflet";
 import type { Zone } from "@/components/tools/FieldMap";
 
@@ -61,7 +63,8 @@ async function geocodeDistrict(query: string): Promise<[number, number] | null> 
 export default function FieldMapperPage() {
   const { t } = useTranslation();
   const { active } = useActiveProfile();
-  const { zones, addZone, removeZones, clearAll, status } = useFarmZones();
+  const { zones, addZone, updateZone, removeZones, clearAll, status } = useFarmZones();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedCrop, setSelectedCrop] = useState("Rice");
   const [center, setCenter] = useState<[number, number]>(INDIA_CENTER);
@@ -131,7 +134,66 @@ export default function FieldMapperPage() {
     toast.info(`Removed ${ids.length} zone${ids.length > 1 ? "s" : ""}`);
   };
 
+  const handleEdit = (id: string, latlngs: { lat: number; lng: number }[]) => {
+    const m2 = polygonAreaM2(latlngs);
+    const hectares = m2 / 10000;
+    const acres = hectares * 2.47105;
+    updateZone(id, { latlngs, hectares, acres });
+    toast.success(`Updated zone — ${acres.toFixed(2)} ac`);
+  };
+
   const removeZone = (id: string) => removeZones([id]);
+
+  // Import GeoJSON or KML files — each polygon becomes a zone using the currently selected crop
+  const handleImportFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      let fc: any = null;
+      if (file.name.toLowerCase().endsWith(".kml")) {
+        const dom = new DOMParser().parseFromString(text, "text/xml");
+        fc = kmlToGeoJSON(dom as any);
+      } else {
+        fc = JSON.parse(text);
+      }
+      const features = fc?.type === "FeatureCollection" ? fc.features
+        : fc?.type === "Feature" ? [fc]
+        : [];
+      const polygons: { lat: number; lng: number }[][] = [];
+      for (const f of features) {
+        const g = f.geometry;
+        if (!g) continue;
+        if (g.type === "Polygon") {
+          polygons.push(g.coordinates[0].map(([lng, lat]: number[]) => ({ lat, lng })));
+        } else if (g.type === "MultiPolygon") {
+          for (const poly of g.coordinates) {
+            polygons.push(poly[0].map(([lng, lat]: number[]) => ({ lat, lng })));
+          }
+        }
+      }
+      if (!polygons.length) { toast.error("No polygons found in file"); return; }
+      let added = 0;
+      for (const ring of polygons) {
+        const m2 = polygonAreaM2(ring);
+        const ha = m2 / 10000;
+        const ac = ha * 2.47105;
+        if (ha < 0.0001) continue;
+        await addZone({
+          crop: selectedCrop,
+          color: COLORS[selectedCrop] || "#22c55e",
+          hectares: ha,
+          acres: ac,
+          latlngs: ring,
+        });
+        added++;
+      }
+      toast.success(`Imported ${added} zone${added > 1 ? "s" : ""} as ${selectedCrop}`);
+      // Re-center on first imported polygon
+      if (polygons[0]?.length) setCenter([polygons[0][0].lat, polygons[0][0].lng]);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Could not parse file — use .geojson or .kml");
+    }
+  };
 
   const onClearAll = () => {
     if (!zones.length) return;
@@ -225,6 +287,20 @@ export default function FieldMapperPage() {
                   ))}
                 </div>
                 <div className="flex gap-1.5">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".geojson,.json,.kml"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImportFile(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <FileUp className="h-3.5 w-3.5 mr-1" /> Import
+                  </Button>
                   <Button size="sm" variant="outline" onClick={exportGeoJSON} disabled={!zones.length}>
                     <FileDown className="h-3.5 w-3.5 mr-1" /> {t("common.export")}
                   </Button>
@@ -281,6 +357,7 @@ export default function FieldMapperPage() {
                     cropColor={COLORS[selectedCrop] || "#22c55e"}
                     onCreate={handleCreate}
                     onDelete={handleDeleteIds}
+                    onEdit={handleEdit}
                     ndvi={ndvi}
                     ndviOpacity={ndviOpacity}
                   />
@@ -354,6 +431,8 @@ export default function FieldMapperPage() {
               </div>
 
               <FieldZoneAnalytics zones={zones} profile={active} />
+
+              <CropSeasonTimeline zones={zones} />
 
               <div className="glass-card p-4 text-xs text-muted-foreground space-y-2">
                 <p>☁️ <strong>Cloud sync:</strong> Zones sync to your account across devices.</p>

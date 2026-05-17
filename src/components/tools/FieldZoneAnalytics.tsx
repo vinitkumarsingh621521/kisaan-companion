@@ -2,9 +2,9 @@
 // Computes water demand, NPK budget, expected yield and gross revenue for each
 // drawn polygon, using the active farmer profile and crop reference data.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Droplets, Beaker, TrendingUp, Wallet, Sun, Leaf, Lightbulb } from "lucide-react";
+import { Droplets, Beaker, TrendingUp, Wallet, Sun, Leaf, Lightbulb, LayoutGrid, Table as TableIcon, ArrowUpDown } from "lucide-react";
 import type { Zone } from "@/components/tools/FieldMap";
 import type { FarmerProfile } from "@/hooks/useActiveProfile";
 
@@ -88,40 +88,138 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
 
   const fmtRupee = (n: number) => n >= 100000 ? `₹${(n/100000).toFixed(2)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
 
+  const [view, setView] = useState<"cards" | "table">(zones.length >= 4 ? "table" : "cards");
+  const [sortKey, setSortKey] = useState<"acres" | "water_kl" | "N_kg" | "yield_t" | "revenue" | "phFit">("revenue");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sortedRows = useMemo(() => {
+    const arr = [...rows];
+    arr.sort((a, b) => {
+      const av = (a as any)[sortKey] ?? 0;
+      const bv = (b as any)[sortKey] ?? 0;
+      return sortDir === "asc" ? av - bv : bv - av;
+    });
+    return arr;
+  }, [rows, sortKey, sortDir]);
+
+  const toggleSort = (k: typeof sortKey) => {
+    if (sortKey === k) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+  };
+
+  // best/worst per column for cell colouring
+  const bounds = useMemo(() => {
+    const keys = ["acres", "water_kl", "N_kg", "yield_t", "revenue", "phFit"] as const;
+    const b: Record<string, { min: number; max: number }> = {};
+    keys.forEach((k) => {
+      const vals = rows.map((r) => (r as any)[k] as number);
+      b[k] = { min: Math.min(...vals), max: Math.max(...vals) };
+    });
+    return b;
+  }, [rows]);
+
+  // For water and N (inputs), lower is better; for yield, revenue, phFit, acres → higher is better
+  const cellClass = (k: string, v: number) => {
+    const { min, max } = bounds[k] || { min: 0, max: 0 };
+    if (min === max) return "";
+    const higherBetter = k === "yield_t" || k === "revenue" || k === "phFit" || k === "acres";
+    const best = higherBetter ? max : min;
+    const worst = higherBetter ? min : max;
+    if (v === best) return "bg-primary/15 text-primary font-semibold";
+    if (v === worst) return "bg-destructive/10 text-destructive";
+    return "";
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="glass-card p-4">
-        <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2 text-sm">
-          <Leaf className="h-4 w-4 text-primary" /> Per-zone agronomy
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">soil pH {soilPh} • {irrigationType}</span>
-        </h3>
-
-        <div className="space-y-3">
-          {rows.map((r) => (
-            <div key={r.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded shrink-0" style={{ background: r.color }} />
-                  <span className="font-medium text-sm">{r.crop}</span>
-                  <span className="text-[10px] text-muted-foreground">{r.acres.toFixed(2)} ac · {r.hectares.toFixed(3)} ha</span>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${r.phFit >= 0.95 ? "bg-primary/10 text-primary" : r.phFit >= 0.7 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-destructive/10 text-destructive"}`}>
-                  pH fit {(r.phFit*100).toFixed(0)}%
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                <Stat icon={<Droplets className="h-3 w-3 text-krishi-sky" />} label="Water / season" value={`${(r.water_kl/1000).toFixed(1)} ML`} />
-                <Stat icon={<Beaker  className="h-3 w-3 text-krishi-gold" />} label="N-P-K (kg)" value={`${Math.round(r.N_kg)}-${Math.round(r.P_kg)}-${Math.round(r.K_kg)}`} />
-                <Stat icon={<TrendingUp className="h-3 w-3 text-primary" />} label="Yield (est.)" value={`${r.yield_t.toFixed(1)} t`} />
-                <Stat icon={<Wallet  className="h-3 w-3 text-primary" />} label="Revenue (gross)" value={fmtRupee(r.revenue)} />
-              </div>
-              <div className="mt-2 text-[10px] text-muted-foreground">
-                <Sun className="h-3 w-3 inline mr-1" /> {r.ref.duration_d} day cycle · {r.ref.water_mm} mm crop water requirement (CWR)
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <h3 className="font-display font-semibold text-foreground flex items-center gap-2 text-sm">
+            <Leaf className="h-4 w-4 text-primary" /> Per-zone agronomy
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">soil pH {soilPh} • {irrigationType}</span>
+          </h3>
+          <div className="flex gap-1 p-0.5 rounded-md bg-muted/50">
+            <button
+              type="button"
+              onClick={() => setView("cards")}
+              className={`text-[10px] px-2 py-1 rounded inline-flex items-center gap-1 ${view === "cards" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            ><LayoutGrid className="h-3 w-3" /> Cards</button>
+            <button
+              type="button"
+              onClick={() => setView("table")}
+              className={`text-[10px] px-2 py-1 rounded inline-flex items-center gap-1 ${view === "table" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            ><TableIcon className="h-3 w-3" /> Compare</button>
+          </div>
         </div>
+
+        {view === "cards" ? (
+          <div className="space-y-3">
+            {rows.map((r) => (
+              <div key={r.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded shrink-0" style={{ background: r.color }} />
+                    <span className="font-medium text-sm">{r.crop}</span>
+                    <span className="text-[10px] text-muted-foreground">{r.acres.toFixed(2)} ac · {r.hectares.toFixed(3)} ha</span>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${r.phFit >= 0.95 ? "bg-primary/10 text-primary" : r.phFit >= 0.7 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-destructive/10 text-destructive"}`}>
+                    pH fit {(r.phFit*100).toFixed(0)}%
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <Stat icon={<Droplets className="h-3 w-3 text-krishi-sky" />} label="Water / season" value={`${(r.water_kl/1000).toFixed(1)} ML`} />
+                  <Stat icon={<Beaker  className="h-3 w-3 text-krishi-gold" />} label="N-P-K (kg)" value={`${Math.round(r.N_kg)}-${Math.round(r.P_kg)}-${Math.round(r.K_kg)}`} />
+                  <Stat icon={<TrendingUp className="h-3 w-3 text-primary" />} label="Yield (est.)" value={`${r.yield_t.toFixed(1)} t`} />
+                  <Stat icon={<Wallet  className="h-3 w-3 text-primary" />} label="Revenue (gross)" value={fmtRupee(r.revenue)} />
+                </div>
+                <div className="mt-2 text-[10px] text-muted-foreground">
+                  <Sun className="h-3 w-3 inline mr-1" /> {r.ref.duration_d} day cycle · {r.ref.water_mm} mm CWR
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto -mx-2">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-muted-foreground border-b border-border/40">
+                  <th className="text-left font-medium py-1.5 px-2">Zone</th>
+                  {([
+                    ["acres", "Acres"],
+                    ["water_kl", "Water kL"],
+                    ["N_kg", "N kg"],
+                    ["yield_t", "Yield t"],
+                    ["revenue", "Revenue"],
+                    ["phFit", "pH fit"],
+                  ] as const).map(([k, label]) => (
+                    <th key={k} className="text-right font-medium py-1.5 px-2 cursor-pointer hover:text-foreground" onClick={() => toggleSort(k as any)}>
+                      <span className="inline-flex items-center gap-0.5">{label}<ArrowUpDown className="h-2.5 w-2.5 opacity-60" /></span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((r) => (
+                  <tr key={r.id} className="border-b border-border/20 last:border-0">
+                    <td className="py-1.5 px-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded shrink-0" style={{ background: r.color }} />
+                        <span className="font-medium">{r.crop}</span>
+                      </div>
+                    </td>
+                    <td className={`text-right py-1.5 px-2 tabular-nums rounded ${cellClass("acres", r.acres)}`}>{r.acres.toFixed(2)}</td>
+                    <td className={`text-right py-1.5 px-2 tabular-nums rounded ${cellClass("water_kl", r.water_kl)}`}>{Math.round(r.water_kl).toLocaleString("en-IN")}</td>
+                    <td className={`text-right py-1.5 px-2 tabular-nums rounded ${cellClass("N_kg", r.N_kg)}`}>{Math.round(r.N_kg)}</td>
+                    <td className={`text-right py-1.5 px-2 tabular-nums rounded ${cellClass("yield_t", r.yield_t)}`}>{r.yield_t.toFixed(1)}</td>
+                    <td className={`text-right py-1.5 px-2 tabular-nums rounded ${cellClass("revenue", r.revenue)}`}>{fmtRupee(r.revenue)}</td>
+                    <td className={`text-right py-1.5 px-2 tabular-nums rounded ${cellClass("phFit", r.phFit)}`}>{(r.phFit*100).toFixed(0)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <Stat label="Total water" value={`${(totals.water_kl/1000).toFixed(1)} ML`} />
