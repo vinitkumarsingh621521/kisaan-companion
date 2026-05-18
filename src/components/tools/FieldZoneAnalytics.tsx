@@ -77,17 +77,6 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
     .filter(Boolean) as { id: string; current: string; alt: string }[],
     [rows, soilPh]);
 
-  if (zones.length === 0) {
-    return (
-      <div className="glass-card p-4 text-xs text-muted-foreground">
-        🧪 <strong>Agronomy panel</strong> — draw a zone on the map and we'll instantly compute water demand,
-        NPK budget, expected yield and revenue based on <em>your</em> soil pH and irrigation system.
-      </div>
-    );
-  }
-
-  const fmtRupee = (n: number) => n >= 100000 ? `₹${(n/100000).toFixed(2)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
-
   const [view, setView] = useState<"cards" | "table">(zones.length >= 4 ? "table" : "cards");
   const [sortKey, setSortKey] = useState<"acres" | "water_kl" | "N_kg" | "yield_t" | "revenue" | "phFit">("revenue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -102,21 +91,32 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
     return arr;
   }, [rows, sortKey, sortDir]);
 
-  const toggleSort = (k: typeof sortKey) => {
-    if (sortKey === k) setSortDir((d) => d === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir("desc"); }
-  };
-
   // best/worst per column for cell colouring
   const bounds = useMemo(() => {
     const keys = ["acres", "water_kl", "N_kg", "yield_t", "revenue", "phFit"] as const;
     const b: Record<string, { min: number; max: number }> = {};
     keys.forEach((k) => {
       const vals = rows.map((r) => (r as any)[k] as number);
-      b[k] = { min: Math.min(...vals), max: Math.max(...vals) };
+      b[k] = { min: vals.length ? Math.min(...vals) : 0, max: vals.length ? Math.max(...vals) : 0 };
     });
     return b;
   }, [rows]);
+
+  if (zones.length === 0) {
+    return (
+      <div className="glass-card p-4 text-xs text-muted-foreground">
+        🧪 <strong>Agronomy panel</strong> — draw a zone on the map and we'll instantly compute water demand,
+        NPK budget, expected yield and revenue based on <em>your</em> soil pH and irrigation system.
+      </div>
+    );
+  }
+
+  const fmtRupee = (n: number) => n >= 100000 ? `₹${(n/100000).toFixed(2)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
+
+  const toggleSort = (k: typeof sortKey) => {
+    if (sortKey === k) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+  };
 
   // For water and N (inputs), lower is better; for yield, revenue, phFit, acres → higher is better
   const cellClass = (k: string, v: number) => {
