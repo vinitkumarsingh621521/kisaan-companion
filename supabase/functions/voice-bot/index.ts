@@ -218,6 +218,44 @@ async function synthesizeWithOpenAI(text: string, language: string): Promise<{ a
   }
 }
 
+// HuggingFace Bark TTS — multilingual, more human than browser, slower (3-8s)
+async function synthesizeWithHuggingFace(text: string, language: string): Promise<{ audioBase64: string; mime: string; voice: string } | null> {
+  const HF_KEY = Deno.env.get("Hugging_face_token");
+  if (!HF_KEY || !text.trim()) return null;
+  // Bark supports many languages incl. Hindi/Tamil/Telugu/Bengali via prompt
+  const models = [
+    "suno/bark-small",
+    "suno/bark",
+    "facebook/mms-tts-eng",
+  ];
+  for (const model of models) {
+    try {
+      const r = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${HF_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: text.slice(0, 600) }),
+      });
+      if (!r.ok) {
+        console.warn(`[voice-bot] HF TTS ${model} failed:`, r.status, (await r.text()).slice(0, 160));
+        continue;
+      }
+      const ct = r.headers.get("content-type") || "";
+      if (!ct.includes("audio")) {
+        console.warn(`[voice-bot] HF TTS ${model} returned non-audio:`, ct);
+        continue;
+      }
+      const buf = new Uint8Array(await r.arrayBuffer());
+      let bin = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < buf.length; i += CHUNK) bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+      return { audioBase64: btoa(bin), mime: ct.includes("wav") ? "audio/wav" : "audio/flac", voice: `hf:${model}` };
+    } catch (e) {
+      console.warn(`[voice-bot] HF TTS ${model} exception:`, e);
+    }
+  }
+  return null;
+}
+
 async function chatWithLovable(userText: string, profile: any, language: string): Promise<string> {
   const KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!KEY) throw new Error("LOVABLE_API_KEY missing");
@@ -346,6 +384,10 @@ serve(async (req) => {
       else {
         const o = await synthesizeWithOpenAI(reply, lang);
         if (o) { audio_reply = o.audioBase64; audio_mime = "audio/mpeg"; ttsProvider = `openai:${o.voice}`; }
+        else {
+          const h = await synthesizeWithHuggingFace(reply, lang);
+          if (h) { audio_reply = h.audioBase64; audio_mime = h.mime; ttsProvider = h.voice; }
+        }
       }
     }
 
