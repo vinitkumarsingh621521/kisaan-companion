@@ -384,6 +384,10 @@ serve(async (req) => {
       else {
         const o = await synthesizeWithOpenAI(reply, lang);
         if (o) { audio_reply = o.audioBase64; audio_mime = "audio/mpeg"; ttsProvider = `openai:${o.voice}`; }
+        else {
+          const h = await synthesizeWithHuggingFace(reply, lang);
+          if (h) { audio_reply = h.audioBase64; audio_mime = h.mime; ttsProvider = h.voice; }
+        }
       }
     }
 
