@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Bell, BellOff, MapPin, Calendar } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { toast } from "sonner";
 
 const ALERT_KEY = "km.priceAlerts";
