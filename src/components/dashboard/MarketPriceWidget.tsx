@@ -3,7 +3,6 @@ import { TrendingUp, TrendingDown, Bell, BellOff, MapPin, Calendar } from "lucid
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { toast } from "sonner";
 
 const ALERT_KEY = "km.priceAlerts";
 type LivePrice = {
