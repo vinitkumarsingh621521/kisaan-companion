@@ -5,9 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const ALERT_KEY = "km.priceAlerts";
-const DATA_GOV_KEY = "579b464db66ec23bdd000001cdd3084b34264d06e3aa6bece006ccee";
-const RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070";
-
 type LivePrice = {
   crop: string;
   price: string;
@@ -23,23 +20,25 @@ type LivePrice = {
 };
 
 async function fetchCropPrice(crop: string, state?: string): Promise<LivePrice> {
-  const url = new URL(`https://api.data.gov.in/resource/${RESOURCE_ID}`);
-  url.searchParams.set("api-key", DATA_GOV_KEY);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("limit", "5");
-  url.searchParams.set("filters[commodity]", crop);
-  if (state) url.searchParams.set("filters[state]", state);
-
   try {
-    const res = await fetch(url.toString());
+    const u = new URL(
+      `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mandi-prices`
+    );
+    u.searchParams.set("crop", crop);
+    if (state) u.searchParams.set("state", state);
+    const res = await fetch(u.toString(), {
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const records: any[] = json.records || [];
-    if (!records.length) {
-      // retry without state filter
-      if (state) return fetchCropPrice(crop);
-      throw new Error("no records");
-    }
+    const payload = await res.json();
+    const records: any[] = payload.records || [];
+    if (!records.length) throw new Error("no records");
+
+
+
     const r = records[0];
     const modal = Number(r.modal_price) || null;
     const min = Number(r.min_price) || null;
