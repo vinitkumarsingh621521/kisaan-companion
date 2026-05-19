@@ -22,36 +22,23 @@ type LivePrice = {
 
 async function fetchCropPrice(crop: string, state?: string): Promise<LivePrice> {
   try {
-    const { data: json, error } = await supabase.functions.invoke("mandi-prices", {
-      body: null,
-      method: "GET",
-    } as any).catch(async () => {
-      // Fallback to direct fetch via constructed URL
-      const u = new URL(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mandi-prices`);
-      u.searchParams.set("crop", crop);
-      if (state) u.searchParams.set("state", state);
-      const r = await fetch(u.toString(), {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      });
-      return { data: await r.json(), error: r.ok ? null : new Error(`HTTP ${r.status}`) };
+    const u = new URL(
+      `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mandi-prices`
+    );
+    u.searchParams.set("crop", crop);
+    if (state) u.searchParams.set("state", state);
+    const res = await fetch(u.toString(), {
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
     });
-
-    // If invoke returned but we need query params, do direct fetch
-    let payload: any = json;
-    if (!payload || (!payload.records && !payload.error)) {
-      const u = new URL(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mandi-prices`);
-      u.searchParams.set("crop", crop);
-      if (state) u.searchParams.set("state", state);
-      const r = await fetch(u.toString(), {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      payload = await r.json();
-    }
-    if (error) throw error;
-
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
     const records: any[] = payload.records || [];
     if (!records.length) throw new Error("no records");
+
+
 
     const r = records[0];
     const modal = Number(r.modal_price) || null;
