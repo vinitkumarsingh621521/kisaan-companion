@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, Send, MessageCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InputWizard from "@/components/advisor/InputWizard";
@@ -8,6 +8,7 @@ import InsightGrid from "@/components/advisor/InsightGrid";
 import PdfExportButton from "@/components/advisor/PdfExportButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { advisorInputSchema, type AdvisorInput, type AdvisoryResult } from "@/lib/aiAdvisorSchema";
@@ -22,6 +23,54 @@ export default function AIAdvisor() {
   const [result, setResult] = useState<AdvisoryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRun, setLastRun] = useState<number | null>(null);
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatStreaming, setChatStreaming] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
+
+  const sendFollowup = async () => {
+    const q = chatInput.trim();
+    if (!q || !result || chatStreaming) return;
+    setChatInput("");
+    const history = [...chatMessages, { role: "user" as const, content: q }];
+    setChatMessages([...history, { role: "assistant", content: "" }]);
+    setChatStreaming(true);
+    try {
+      const resp = await fetch(ADVISOR_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ action: "followup", question: q, result, messages: chatMessages }),
+      });
+      if (!resp.ok || !resp.body) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setChatMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = { role: "assistant", content: acc };
+          return next;
+        });
+      }
+    } catch (e: any) {
+      setChatMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = { role: "assistant", content: `⚠ ${e.message || "Failed to get response"}` };
+        return next;
+      });
+      toast.error(e.message || "Follow-up failed");
+    } finally {
+      setChatStreaming(false);
+    }
+  };
 
   // Prefill from profile + personalization
   const initial: AdvisorInput = useMemo(() => {
@@ -167,6 +216,44 @@ export default function AIAdvisor() {
                 </div>
                 <div id="advisor-report" className="bg-background p-2 rounded-2xl">
                   <InsightGrid r={result} />
+                </div>
+
+                {/* Follow-up chat */}
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-foreground">
+                    <MessageCircle className="h-4 w-4 text-primary" /> Ask a follow-up
+                  </div>
+                  {chatMessages.length > 0 && (
+                    <div className="space-y-2 mb-3 max-h-[420px] overflow-y-auto pr-1">
+                      {chatMessages.map((m, i) => (
+                        <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                          <div className={
+                            m.role === "user"
+                              ? "max-w-[85%] rounded-2xl px-4 py-2 bg-primary text-primary-foreground text-sm"
+                              : "max-w-[90%] rounded-2xl px-4 py-2 bg-muted text-foreground text-sm whitespace-pre-wrap"
+                          }>
+                            {m.content || (chatStreaming && i === chatMessages.length - 1 ? <Loader2 className="h-3 w-3 animate-spin" /> : "")}
+                          </div>
+                        </div>
+                      ))}
+                      <div ref={chatEndRef} />
+                    </div>
+                  )}
+                  <div className="sticky bottom-2 z-10">
+                    <div className="flex gap-2 bg-background/95 backdrop-blur border border-border rounded-2xl p-2 shadow-lg">
+                      <Input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendFollowup(); } }}
+                        placeholder="Ask anything about your analysis…"
+                        disabled={chatStreaming}
+                        className="border-0 focus-visible:ring-0 bg-transparent"
+                      />
+                      <Button onClick={sendFollowup} disabled={chatStreaming || !chatInput.trim()} size="icon">
+                        {chatStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </>
             ) : (
