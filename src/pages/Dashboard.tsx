@@ -88,7 +88,7 @@ export default function Dashboard() {
               <CropCalendarWidget />
               <MarketPriceWidget />
             </div>
-            <div className="lg:col-span-4 space-y-5">
+            <div className="lg:col-span-4 space-y-5" id="weather">
               <WeatherWidget />
               <SoilHealthCard />
               <CarbonFootprintWidget />
