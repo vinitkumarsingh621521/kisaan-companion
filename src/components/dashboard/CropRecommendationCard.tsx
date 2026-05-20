@@ -192,6 +192,7 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
             </div>
           </motion.div>
         ))}
+
       </div>
 
       <Button
