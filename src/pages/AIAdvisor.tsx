@@ -217,6 +217,44 @@ export default function AIAdvisor() {
                 <div id="advisor-report" className="bg-background p-2 rounded-2xl">
                   <InsightGrid r={result} />
                 </div>
+
+                {/* Follow-up chat */}
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-foreground">
+                    <MessageCircle className="h-4 w-4 text-primary" /> Ask a follow-up
+                  </div>
+                  {chatMessages.length > 0 && (
+                    <div className="space-y-2 mb-3 max-h-[420px] overflow-y-auto pr-1">
+                      {chatMessages.map((m, i) => (
+                        <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                          <div className={
+                            m.role === "user"
+                              ? "max-w-[85%] rounded-2xl px-4 py-2 bg-primary text-primary-foreground text-sm"
+                              : "max-w-[90%] rounded-2xl px-4 py-2 bg-muted text-foreground text-sm whitespace-pre-wrap"
+                          }>
+                            {m.content || (chatStreaming && i === chatMessages.length - 1 ? <Loader2 className="h-3 w-3 animate-spin" /> : "")}
+                          </div>
+                        </div>
+                      ))}
+                      <div ref={chatEndRef} />
+                    </div>
+                  )}
+                  <div className="sticky bottom-2 z-10">
+                    <div className="flex gap-2 bg-background/95 backdrop-blur border border-border rounded-2xl p-2 shadow-lg">
+                      <Input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendFollowup(); } }}
+                        placeholder="Ask anything about your analysis…"
+                        disabled={chatStreaming}
+                        className="border-0 focus-visible:ring-0 bg-transparent"
+                      />
+                      <Button onClick={sendFollowup} disabled={chatStreaming || !chatInput.trim()} size="icon">
+                        {chatStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </>
             ) : (
               <div className="glass-card p-10 text-center">
