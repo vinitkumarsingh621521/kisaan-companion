@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TrendingUp, Droplets, Calendar, IndianRupee, ChevronRight, X, Leaf, BarChart3, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,17 +7,21 @@ import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { toArray } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
-const defaultCrops = [
-  { name: "Paddy (Rice)", emoji: "🌾", yield: "4.2 ton/ha", profit: "₹48,000", water: "High", season: "Kharif", score: 95, sustainability: 78 },
-  { name: "Maize", emoji: "🌽", yield: "5.8 ton/ha", profit: "₹52,000", water: "Medium", season: "Kharif", score: 91, sustainability: 85 },
-  { name: "Soybean", emoji: "🫘", yield: "2.1 ton/ha", profit: "₹38,000", water: "Low", season: "Kharif", score: 87, sustainability: 92 },
-  { name: "Finger Millet", emoji: "🌿", yield: "1.8 ton/ha", profit: "₹32,000", water: "Very Low", season: "Kharif", score: 82, sustainability: 96 },
-];
-
-type CropType = typeof defaultCrops[number] & { reason?: string };
+type CropType = {
+  name: string;
+  emoji?: string;
+  yield: string;
+  profit: string;
+  water: string;
+  season: string;
+  score: number;
+  sustainability: number;
+  reason?: string;
+};
 
 interface CropRecommendationCardProps {
   profile?: {
@@ -30,10 +34,11 @@ interface CropRecommendationCardProps {
 export default function CropRecommendationCard({ profile }: CropRecommendationCardProps) {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
-  const [crops, setCrops] = useState<CropType[]>(defaultCrops);
+  const [crops, setCrops] = useState<CropType[]>([]);
   const [selectedCrop, setSelectedCrop] = useState<CropType | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiAdvice, setAiAdvice] = useState<string>("");
+  const autoFetchedRef = useRef<string | null>(null);
 
   const getAIRecommendations = async () => {
     setIsLoadingAI(true);
