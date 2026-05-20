@@ -341,10 +341,80 @@ async function enrichWithAI(baseline: any, inputs: any, profileContext: any): Pr
   return baseline;
 }
 
+async function streamFollowup(body: any): Promise<Response> {
+  const KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!KEY) {
+    return new Response(JSON.stringify({ error: "AI key missing" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const { question, result, messages } = body || {};
+  if (!question || typeof question !== "string") {
+    return new Response(JSON.stringify({ error: "question required" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const history = Array.isArray(messages) ? messages.slice(-10) : [];
+  const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      stream: true,
+      messages: [
+        { role: "system", content: "You are KrishiMitra, a follow-up assistant. The user already received a 25-point farm advisory (JSON below). Answer their follow-up questions clearly and concisely (markdown ok), grounded in this analysis. If something isn't in the analysis, say so and give general best-practice guidance." },
+        { role: "system", content: `ADVISORY_JSON:\n${JSON.stringify(result || {}).slice(0, 12000)}` },
+        ...history.map((m: any) => ({ role: m.role, content: String(m.content || "") })),
+        { role: "user", content: question },
+      ],
+      temperature: 0.6,
+    }),
+  });
+  if (!upstream.ok || !upstream.body) {
+    const errTxt = await upstream.text().catch(() => "");
+    return new Response(JSON.stringify({ error: `AI error ${upstream.status}: ${errTxt.slice(0, 200)}` }), {
+      status: upstream.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  // Pass SSE through as plain text stream of content deltas
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = upstream.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() || "";
+          for (const line of lines) {
+            const l = line.trim();
+            if (!l.startsWith("data:")) continue;
+            const data = l.slice(5).trim();
+            if (data === "[DONE]") { controller.close(); return; }
+            try {
+              const json = JSON.parse(data);
+              const delta = json.choices?.[0]?.delta?.content;
+              if (delta) controller.enqueue(new TextEncoder().encode(delta));
+            } catch {}
+          }
+        }
+        controller.close();
+      } catch (e) { controller.error(e); }
+    },
+  });
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
+    if (body?.action === "followup") return await streamFollowup(body);
     // Accept either { inputs, profileContext } or a flat payload
     const inputs = body?.inputs ?? body ?? {};
     const profileContext = body?.profileContext;
