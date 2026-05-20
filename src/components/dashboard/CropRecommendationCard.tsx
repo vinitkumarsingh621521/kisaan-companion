@@ -108,6 +108,15 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
     }
   };
 
+  // Auto-fetch real AI recommendations once profile + context are ready
+  useEffect(() => {
+    if (!active?.id || !ctx) return;
+    if (autoFetchedRef.current === active.id) return;
+    autoFetchedRef.current = active.id;
+    getAIRecommendations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id, ctx?.farmer_name]);
+
   return (
     <div className="glass-card p-5 relative">
       <div className="flex items-center justify-between mb-4">
