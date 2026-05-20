@@ -2,7 +2,10 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Cloud, Sun, Snowflake, Droplets } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
 
-const MONTH_TIPS: Record<number, { icon: any; title: string; tip: string; tone: string }> = {
+type Tip = { icon: any; title: string; tip: string; tone: string };
+
+// Northern / Central / Eastern India calendar (default)
+const NORTH_TIPS: Record<number, Tip> = {
   0: { icon: Snowflake, title: "Rabi peak — irrigate wheat", tip: "Watch for late-season frost on potato and mustard. Light irrigation prevents lodging.", tone: "bg-krishi-sky-light text-krishi-sky" },
   1: { icon: Sun, title: "Rabi maturing — disease watch", tip: "Yellow rust in wheat is common now. Spray Propiconazole 25% EC @ 1ml/L if spotted.", tone: "bg-krishi-gold-light text-krishi-gold" },
   2: { icon: Sun, title: "Harvest season + Zaid prep", tip: "Harvest rabi early in the day. Prepare beds for Zaid moong, watermelon, vegetables.", tone: "bg-krishi-gold-light text-krishi-gold" },
@@ -17,12 +20,36 @@ const MONTH_TIPS: Record<number, { icon: any; title: string; tip: string; tone: 
   11: { icon: Snowflake, title: "Cold wave watch", tip: "Light irrigation protects wheat and gram from frost. Cover veg nurseries with polythene.", tone: "bg-krishi-sky-light text-krishi-sky" },
 };
 
+// Southern / Peninsular India — SW monsoon arrives ~3-4 weeks earlier (late May/early June),
+// NE monsoon dominant Oct-Dec, no harsh winter, two paddy crops common.
+const SOUTH_TIPS: Record<number, Tip> = {
+  0: { icon: Sun, title: "Samba paddy maturing", tip: "Harvest samba/thaladi paddy by mid-month. Begin land prep for summer (kuruvai) crop.", tone: "bg-krishi-gold-light text-krishi-gold" },
+  1: { icon: Sun, title: "Summer crop sowing", tip: "Sow groundnut, sesame, summer pulses. Mulch coconut & banana basins against heat.", tone: "bg-primary/10 text-primary" },
+  2: { icon: Sun, title: "Heat stress begins", tip: "Irrigate coconut/arecanut every 4-5 days. Whitewash mango trunks to prevent sunscald.", tone: "bg-destructive/10 text-destructive" },
+  3: { icon: Sun, title: "Pre-monsoon showers", tip: "Mango harvest peak. Prep nurseries for kharif paddy — SW monsoon ~3 weeks away.", tone: "bg-krishi-gold-light text-krishi-gold" },
+  4: { icon: Cloud, title: "SW monsoon onset — Kerala", tip: "Kerala/coastal Karnataka monsoon hits ~1st June. Sow kharif paddy nursery & ginger now.", tone: "bg-krishi-sky-light text-krishi-sky" },
+  5: { icon: Droplets, title: "Active SW monsoon", tip: "Transplant kharif paddy. Plant tapioca, turmeric, banana suckers. Watch for leaf rot.", tone: "bg-krishi-sky-light text-krishi-sky" },
+  6: { icon: Droplets, title: "Peak rains — pest pressure", tip: "BPH and blast in paddy; bud-rot in coconut. Apply Trichoderma + drain stagnant water.", tone: "bg-krishi-gold-light text-krishi-gold" },
+  7: { icon: Cloud, title: "Monsoon break — top dress", tip: "2nd urea split in paddy. Stake tomato & chilli. Pollinate cardamom plantations.", tone: "bg-krishi-sky-light text-krishi-sky" },
+  8: { icon: Cloud, title: "SW monsoon withdraws", tip: "Drain fields for grain filling. Prep beds for rabi vegetables & pulses.", tone: "bg-krishi-sky-light text-krishi-sky" },
+  9: { icon: Droplets, title: "NE monsoon onset — TN/AP", tip: "Tamil Nadu's main rainy season starts. Sow samba paddy, ragi, horsegram, cotton.", tone: "bg-krishi-sky-light text-krishi-sky" },
+  10: { icon: Droplets, title: "NE monsoon active", tip: "Cyclone watch on east coast. Stake banana, harvest groundnut before heavy rain.", tone: "bg-krishi-sky-light text-krishi-sky" },
+  11: { icon: Cloud, title: "Late NE monsoon + rabi", tip: "Sow pulses (blackgram, greengram) on residual moisture. Spray for thrips in chilli.", tone: "bg-krishi-gold-light text-krishi-gold" },
+};
+
+const SOUTH_STATES = new Set([
+  "Kerala", "Karnataka", "Tamil Nadu", "Andhra Pradesh", "Telangana",
+  "Puducherry", "Goa", "Lakshadweep", "Andaman and Nicobar Islands",
+]);
+
 export default function SeasonalAlertBanner() {
   const { ctx } = usePersonalization();
   const month = new Date().getMonth();
-  const tip = MONTH_TIPS[month];
-  const Icon = tip.icon;
   const state = ctx?.location.state || "your region";
+  const zone = SOUTH_STATES.has(state) ? "South India" : "North/Central India";
+  const tips = zone === "South India" ? SOUTH_TIPS : NORTH_TIPS;
+  const tip = tips[month];
+  const Icon = tip.icon;
 
   return (
     <motion.div
@@ -41,6 +68,9 @@ export default function SeasonalAlertBanner() {
               Seasonal Alert · {state}
             </span>
             <span className="krishi-badge bg-primary/10 text-primary text-[10px]">
+              {zone}
+            </span>
+            <span className="krishi-badge bg-muted text-muted-foreground text-[10px]">
               {ctx?.climate.monsoon_stage || "Current month"}
             </span>
           </div>
