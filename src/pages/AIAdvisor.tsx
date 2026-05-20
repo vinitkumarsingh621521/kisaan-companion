@@ -23,6 +23,54 @@ export default function AIAdvisor() {
   const [result, setResult] = useState<AdvisoryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRun, setLastRun] = useState<number | null>(null);
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatStreaming, setChatStreaming] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
+
+  const sendFollowup = async () => {
+    const q = chatInput.trim();
+    if (!q || !result || chatStreaming) return;
+    setChatInput("");
+    const history = [...chatMessages, { role: "user" as const, content: q }];
+    setChatMessages([...history, { role: "assistant", content: "" }]);
+    setChatStreaming(true);
+    try {
+      const resp = await fetch(ADVISOR_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ action: "followup", question: q, result, messages: chatMessages }),
+      });
+      if (!resp.ok || !resp.body) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setChatMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = { role: "assistant", content: acc };
+          return next;
+        });
+      }
+    } catch (e: any) {
+      setChatMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = { role: "assistant", content: `⚠ ${e.message || "Failed to get response"}` };
+        return next;
+      });
+      toast.error(e.message || "Follow-up failed");
+    } finally {
+      setChatStreaming(false);
+    }
+  };
 
   // Prefill from profile + personalization
   const initial: AdvisorInput = useMemo(() => {
