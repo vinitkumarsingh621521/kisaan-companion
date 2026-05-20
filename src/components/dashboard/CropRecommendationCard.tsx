@@ -133,7 +133,14 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
       )}
 
       <div className="space-y-3">
-        {crops.map((c, i) => (
+      <div className="space-y-3">
+        {isLoadingAI && crops.length === 0 ? (
+          [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)
+        ) : crops.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic text-center py-6">
+            Complete your profile to get personalized AI crop recommendations 🌾
+          </p>
+        ) : crops.map((c, i) => (
           <motion.div
             key={c.name}
             initial={{ opacity: 0, x: -10 }}
