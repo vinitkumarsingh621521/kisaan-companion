@@ -119,20 +119,24 @@ async function callGeminiStructured(apiMessages: any[], schema: any) {
   };
 
   for (const model of ["gemini-2.0-flash", "gemini-1.5-flash-latest"]) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      console.warn(`[krishi-ai] Gemini fallback ${model} failed:`, response.status, await response.text());
-      continue;
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        console.warn(`[krishi-ai] Gemini fallback ${model} failed:`, response.status, await response.text());
+        continue;
+      }
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+      const json = extractJson(text);
+      JSON.parse(json);
+      return json;
+    } catch (error) {
+      console.warn(`[krishi-ai] Gemini fallback ${model} parse/call failed:`, error);
     }
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
-    const json = extractJson(text);
-    JSON.parse(json);
-    return json;
   }
   return null;
 }
@@ -355,7 +359,7 @@ serve(async (req) => {
     const callLovable = () =>
       fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        headers: { "Lovable-API-Key": LOVABLE_API_KEY, "X-Lovable-AIG-SDK": "custom-fetch", "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
