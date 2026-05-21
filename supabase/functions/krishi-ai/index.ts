@@ -73,13 +73,76 @@ Return JSON only:
   carbon_plan: `You are KrishiMitra Carbon Coach. Given the farmer profile and current emissions breakdown, return a personalised emissions-cut plan: 4 specific actions ranked by impact, with kg-CO2 saved, ₹ cost, payback months, and one Bollywood-flavoured motivation line. Always reply via the tool.`,
 };
 
+const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
+
+function toGeminiSchema(schema: any): any {
+  if (!schema || typeof schema !== "object") return schema;
+  const out: any = {};
+  if (schema.type) out.type = String(schema.type).toUpperCase();
+  if (schema.enum) out.enum = schema.enum;
+  if (schema.description) out.description = schema.description;
+  if (schema.required) out.required = schema.required;
+  if (schema.items) out.items = toGeminiSchema(schema.items);
+  if (schema.properties) {
+    out.properties = Object.fromEntries(
+      Object.entries(schema.properties).map(([key, value]) => [key, toGeminiSchema(value)]),
+    );
+  }
+  return out;
+}
+
+function contentToText(content: any): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) return content.map((part) => part?.text || "").filter(Boolean).join("\n");
+  return JSON.stringify(content ?? "");
+}
+
+function extractJson(text: string): string {
+  const cleaned = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  return start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+}
+
+async function callGeminiStructured(apiMessages: any[], schema: any) {
+  const key = Deno.env.get("GOOGLE_AI_STUDIO_API_KEY") || Deno.env.get("Gemini_API_Key_Rahul");
+  if (!key) return null;
+
+  const prompt = `${apiMessages.map((m) => `${String(m.role || "user").toUpperCase()}: ${contentToText(m.content)}`).join("\n\n")}\n\nReturn ONLY valid JSON matching this schema:\n${JSON.stringify(schema)}`;
+  const payload = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.25,
+      response_mime_type: "application/json",
+      response_schema: toGeminiSchema(schema),
+    },
+  };
+
+  for (const model of ["gemini-2.0-flash", "gemini-1.5-flash-latest"]) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      console.warn(`[krishi-ai] Gemini fallback ${model} failed:`, response.status, await response.text());
+      continue;
+    }
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+    const json = extractJson(text);
+    JSON.parse(json);
+    return json;
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { action, messages, image, farmData, profile, profileContext, category, location, crops } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = SYSTEM_PROMPTS[action] || SYSTEM_PROMPTS.chat;
     let apiMessages: any[] = [{ role: "system", content: systemPrompt }];
