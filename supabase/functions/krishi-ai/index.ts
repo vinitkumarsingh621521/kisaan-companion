@@ -174,6 +174,37 @@ async function callOpenAIStructured(apiMessages: any[], schema: any, schemaName:
   return json;
 }
 
+async function callHuggingFaceStructured(apiMessages: any[], schema: any) {
+  const key = Deno.env.get("Hugging_face_token");
+  if (!key) return null;
+
+  const messages = [
+    ...apiMessages,
+    { role: "user", content: `Return ONLY valid JSON. Do not use markdown. JSON schema: ${JSON.stringify(schema)}` },
+  ];
+
+  for (const model of ["Qwen/Qwen2.5-7B-Instruct", "meta-llama/Llama-3.1-8B-Instruct"]) {
+    try {
+      const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages, temperature: 0.2, max_tokens: 1200 }),
+      });
+      if (!response.ok) {
+        console.warn(`[krishi-ai] Hugging Face fallback ${model} failed:`, response.status, await response.text());
+        continue;
+      }
+      const data = await response.json();
+      const json = extractJson(data?.choices?.[0]?.message?.content || "");
+      JSON.parse(json);
+      return json;
+    } catch (error) {
+      console.warn(`[krishi-ai] Hugging Face fallback ${model} parse/call failed:`, error);
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
