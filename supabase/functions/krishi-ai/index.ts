@@ -141,6 +141,39 @@ async function callGeminiStructured(apiMessages: any[], schema: any) {
   return null;
 }
 
+async function callOpenAIStructured(apiMessages: any[], schema: any, schemaName: string) {
+  const key = Deno.env.get("OPENAI_API_KEY");
+  if (!key) return null;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: apiMessages,
+      temperature: 0.25,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: schemaName,
+          strict: true,
+          schema,
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn("[krishi-ai] OpenAI fallback failed:", response.status, await response.text());
+    return null;
+  }
+
+  const data = await response.json();
+  const json = extractJson(data?.choices?.[0]?.message?.content || "");
+  JSON.parse(json);
+  return json;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
