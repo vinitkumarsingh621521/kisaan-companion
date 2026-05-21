@@ -342,6 +342,16 @@ serve(async (req) => {
       body.stream = false;
     }
 
+    if (DIRECT_GEMINI_ACTIONS.has(action)) {
+      const schema = action === "carbon_plan" ? carbonPlanTool.function.parameters : mistakeCheckTool.function.parameters;
+      const geminiResult = await callGeminiStructured(apiMessages, schema);
+      if (geminiResult) {
+        return new Response(JSON.stringify({ result: geminiResult, structured: true, provider: "gemini" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
     const callLovable = () =>
       fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -351,9 +361,9 @@ serve(async (req) => {
 
     let response = await callLovable();
 
-    // Groq fallback for non-streaming, non-image actions when Lovable AI is rate-limited or 5xx
+    // Groq fallback for non-streaming, non-image actions when Lovable AI is out of credits, rate-limited, or 5xx
     const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
-    const isRecoverable = !response.ok && (response.status === 429 || response.status >= 500);
+    const isRecoverable = !response.ok && (response.status === 402 || response.status === 429 || response.status >= 500);
     if (isRecoverable && !isStreaming && action !== "disease" && GROQ_KEY) {
       console.warn(`[krishi-ai] Lovable AI ${response.status} — falling back to Groq`);
       const groqBody: any = {
