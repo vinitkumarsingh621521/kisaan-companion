@@ -385,6 +385,10 @@ serve(async (req) => {
       if (geminiResult) {
         return new Response(JSON.stringify({ result: geminiResult, structured: true, provider: "gemini" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      const openAIResult = await callOpenAIStructured(apiMessages, schema, action === "carbon_plan" ? "carbon_plan" : "mistake_audit");
+      if (openAIResult) {
+        return new Response(JSON.stringify({ result: openAIResult, structured: true, provider: "openai" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
