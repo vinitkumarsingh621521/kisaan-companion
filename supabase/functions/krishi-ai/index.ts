@@ -420,6 +420,10 @@ serve(async (req) => {
       if (openAIResult) {
         return new Response(JSON.stringify({ result: openAIResult, structured: true, provider: "openai" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      const hfResult = await callHuggingFaceStructured(apiMessages, schema);
+      if (hfResult) {
+        return new Response(JSON.stringify({ result: hfResult, structured: true, provider: "huggingface" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
