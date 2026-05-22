@@ -3,7 +3,7 @@ import { ArrowRight, Leaf, Cloud, TrendingUp, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "@/components/AnimatedCounter";
-import heroImg from "@/assets/hero-farm.jpg";
+import DynamicHeroBackground from "@/components/home/DynamicHeroBackground";
 
 const stats = [
   { label: "Farmers Helped", value: "1,50,000+", icon: Leaf },
@@ -14,19 +14,10 @@ const stats = [
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background with parallax feel */}
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-krishi-soil">
+      {/* Live animated background — cycles through aurora, mycelium, spores, chlorophyll, helix */}
       <div className="absolute inset-0">
-        <motion.img
-          src={heroImg}
-          alt=""
-          className="w-full h-full object-cover"
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 8, ease: "easeOut" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-krishi-soil/90 via-krishi-soil/70 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-krishi-soil/60 to-transparent" />
+        <DynamicHeroBackground />
       </div>
 
       {/* Floating decorative elements */}
