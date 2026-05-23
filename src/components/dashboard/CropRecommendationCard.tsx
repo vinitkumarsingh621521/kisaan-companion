@@ -268,9 +268,11 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span className="text-sm text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> Best Sowing</span>
-                  <span className="font-semibold text-foreground">June - July</span>
+                  <span className="font-semibold text-foreground">{selectedCrop.season}</span>
                 </div>
               </div>
+
+              <GrowingSeasonTimeline season={selectedCrop.season} />
 
               <div className="flex gap-3">
                 <Button className="flex-1 gradient-primary border-0 text-primary-foreground" onClick={() => { toast.success(`${selectedCrop.name} added to your crop plan! 🌾`); setSelectedCrop(null); }}>
