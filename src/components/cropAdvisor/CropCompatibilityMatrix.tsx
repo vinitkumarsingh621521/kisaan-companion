@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, ArrowRight, Check, AlertTriangle, X, Loader2, TrendingUp, Lightbulb } from "lucide-react";
+import { Sparkles, ArrowRight, Loader2, TrendingUp, Lightbulb, AlertTriangle, RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -35,49 +35,68 @@ type Compat = {
   yield_uplift_pct: number;
 };
 
-function localFallback(a: string, b: string): Compat {
-  const goodPairs: Record<string, string[]> = {
-    Rice: ["Pulses", "Chickpea", "Mustard"],
-    Wheat: ["Mustard", "Chickpea", "Pulses"],
-    Maize: ["Soybean", "Pulses", "Chickpea"],
-    Sugarcane: ["Onion", "Potato"],
-    Cotton: ["Pulses", "Chickpea", "Soybean"],
+const AXES = [
+  { key: "intercrop", label: "Intercrop" },
+  { key: "rotation", label: "Rotation" },
+  { key: "water", label: "Water" },
+  { key: "nutrient", label: "Nutrient" },
+  { key: "pest", label: "Pest" },
+] as const;
+
+const SCORE_MAP = { good: 90, ok: 55, bad: 20 } as const;
+
+function CompatibilityRadar({ data }: { data: Compat }) {
+  const cx = 150, cy = 150, R = 100;
+  const N = AXES.length;
+  const angle = (i: number) => (-Math.PI / 2) + (i * 2 * Math.PI) / N;
+  const point = (i: number, scale: number) => {
+    const a = angle(i);
+    return [cx + Math.cos(a) * R * scale, cy + Math.sin(a) * R * scale] as const;
   };
-  const isGood = goodPairs[a]?.includes(b) || goodPairs[b]?.includes(a);
-  return {
-    intercrop: isGood ? "good" : "ok",
-    rotation: isGood ? "good" : "ok",
-    water: a === b ? "bad" : "ok",
-    nutrient: isGood ? "good" : "ok",
-    pest: isGood ? "good" : "ok",
-    overall_score: isGood ? 78 : 55,
-    recommendation: isGood
-      ? `${a} and ${b} pair well. Rotate seasonally to keep nitrogen healthy.`
-      : `${a} and ${b} have moderate compatibility. Verify with local agronomy extension before intercropping.`,
-    best_practice: "Maintain 30-45 cm row spacing and stagger sowing by 10-15 days.",
-    warning: isGood ? "" : "Watch for shared pests in monsoon weeks 3-5.",
-    yield_uplift_pct: isGood ? 12 : 4,
-  };
+  const gridPolygon = (scale: number) =>
+    AXES.map((_, i) => point(i, scale).join(",")).join(" ");
+  const dataPoints = AXES.map((ax, i) => {
+    const v = SCORE_MAP[data[ax.key]] / 100;
+    return point(i, v);
+  });
+  const dataPolygon = dataPoints.map((p) => p.join(",")).join(" ");
+
+  return (
+    <div className="flex justify-center">
+      <svg viewBox="0 0 300 300" className="w-full max-w-[300px]">
+        {[0.25, 0.5, 0.75, 1].map((s) => (
+          <polygon key={s} points={gridPolygon(s)} fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.5" />
+        ))}
+        {AXES.map((_, i) => {
+          const [x, y] = point(i, 1);
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="hsl(var(--border))" strokeWidth="1" opacity="0.5" />;
+        })}
+        <motion.polygon
+          points={dataPolygon}
+          fill="hsl(var(--primary))"
+          fillOpacity="0.3"
+          stroke="hsl(var(--primary))"
+          strokeWidth="2"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ transformOrigin: `${cx}px ${cy}px` }}
+        />
+        {dataPoints.map(([x, y], i) => (
+          <motion.circle key={i} cx={x} cy={y} r="4" fill="hsl(var(--primary))"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 + i * 0.08 }} />
+        ))}
+        {AXES.map((ax, i) => {
+          const [x, y] = point(i, 1.18);
+          return (
+            <text key={ax.key} x={x} y={y} textAnchor="middle" dominantBaseline="middle"
+              className="text-[11px] font-medium fill-foreground">{ax.label}</text>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }
-
-const cells = ["intercrop", "rotation", "water", "nutrient", "pest"] as const;
-const labels: Record<string, string> = {
-  intercrop: "Intercropping",
-  rotation: "Crop Rotation",
-  water: "Water Needs",
-  nutrient: "Nutrient Conflict",
-  pest: "Pest Cycle",
-};
-
-const colour = (v: "good" | "ok" | "bad") =>
-  v === "good"
-    ? "bg-primary/10 text-primary border-primary/30"
-    : v === "bad"
-    ? "bg-destructive/10 text-destructive border-destructive/30"
-    : "bg-krishi-gold-light text-krishi-gold border-krishi-gold/30";
-
-const icon = (v: "good" | "ok" | "bad") =>
-  v === "good" ? <Check className="h-3 w-3" /> : v === "bad" ? <X className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />;
 
 export default function CropCompatibilityMatrix() {
   const { active } = useActiveProfile();
@@ -89,6 +108,7 @@ export default function CropCompatibilityMatrix() {
   const [area, setArea] = useState<string>(active?.farmer_details?.total_land || "2");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Compat | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const askAI = async () => {
     if (a === b) {
@@ -97,6 +117,7 @@ export default function CropCompatibilityMatrix() {
     }
     setLoading(true);
     setResult(null);
+    setError(null);
     try {
       const resp = await fetch(AI_URL, {
         method: "POST",
@@ -108,13 +129,10 @@ export default function CropCompatibilityMatrix() {
           action: "compat",
           profileContext: ctx,
           farmData: {
-            cropA: a,
-            cropB: b,
+            cropA: a, cropB: b,
             state: ctx?.location?.state || active?.farmer_details?.state,
             soil: active?.soil_type || ctx?.climate?.soils?.[0],
-            season,
-            irrigation,
-            area,
+            season, irrigation, area,
             goal: active?.farmer_details?.crop_priority || "balanced",
           },
         }),
@@ -123,21 +141,12 @@ export default function CropCompatibilityMatrix() {
       const data = await resp.json();
       const raw = data.result || "";
       const m = typeof raw === "string" ? raw.match(/\{[\s\S]*\}/) : null;
-      if (m) {
-        try {
-          const parsed = JSON.parse(m[0]);
-          setResult(parsed);
-          toast.success("Compatibility report ready 🌾");
-        } catch {
-          setResult(localFallback(a, b));
-          toast.message("Using rule-based fallback");
-        }
-      } else {
-        setResult(localFallback(a, b));
-      }
+      if (!m) throw new Error("AI returned no structured data");
+      const parsed = JSON.parse(m[0]);
+      setResult(parsed);
+      toast.success("Compatibility report ready 🌾");
     } catch (e: any) {
-      setResult(localFallback(a, b));
-      toast.message("AI unavailable — using local rules");
+      setError(e.message || "AI analysis unavailable — check connection");
     } finally {
       setLoading(false);
     }
@@ -204,14 +213,29 @@ export default function CropCompatibilityMatrix() {
       </Button>
 
       <AnimatePresence>
+        {error && !result && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="p-4 rounded-lg bg-destructive/5 border border-destructive/20 text-center"
+          >
+            <WifiOff className="h-6 w-6 text-destructive mx-auto mb-2" />
+            <div className="text-sm font-semibold text-foreground mb-1">AI analysis unavailable</div>
+            <div className="text-xs text-muted-foreground mb-3">Check your connection and try again.</div>
+            <Button size="sm" variant="outline" onClick={askAI} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </Button>
+          </motion.div>
+        )}
+
         {result && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="space-y-3"
+            className="space-y-4"
           >
-            {/* Overall score */}
+            <CompatibilityRadar data={result} />
+
             <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-krishi-sky/10 border border-primary/20">
               <div className="w-14 h-14 rounded-full bg-card border-2 border-primary flex items-center justify-center flex-shrink-0">
                 <span className="font-display font-bold text-lg text-primary">{result.overall_score}</span>
@@ -223,15 +247,6 @@ export default function CropCompatibilityMatrix() {
                   Estimated yield uplift: <span className="font-semibold text-primary">+{result.yield_uplift_pct}%</span>
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {cells.map((k) => (
-                <div key={k} className={`p-2.5 rounded-lg border text-center text-xs ${colour(result[k])}`}>
-                  <div className="flex items-center justify-center mb-1">{icon(result[k])}</div>
-                  <div className="font-medium">{labels[k]}</div>
-                </div>
-              ))}
             </div>
 
             <div className="p-3 rounded-lg bg-muted/40 border border-border/40 text-sm text-foreground">
