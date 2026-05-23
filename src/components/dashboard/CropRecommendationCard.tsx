@@ -11,6 +11,52 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
+const SEASON_MONTHS: Record<string, string[]> = {
+  Kharif: ["Jun", "Jul", "Aug", "Sep", "Oct"],
+  Rabi: ["Nov", "Dec", "Jan", "Feb", "Mar"],
+  Zaid: ["Mar", "Apr", "May", "Jun", "Jul"],
+};
+const STAGE_NAMES = ["Sowing", "Germination", "Vegetative", "Flowering", "Harvest"];
+
+function GrowingSeasonTimeline({ season }: { season?: string }) {
+  const key = (season || "").match(/Kharif|Rabi|Zaid/i)?.[0];
+  const normalized = key ? key[0].toUpperCase() + key.slice(1).toLowerCase() : "Kharif";
+  const months = SEASON_MONTHS[normalized] || SEASON_MONTHS.Kharif;
+  const currentMonth = new Date().toLocaleString("en-US", { month: "short" });
+  const currentIdx = months.findIndex((m) => m === currentMonth);
+
+  return (
+    <div className="mb-5 p-4 rounded-xl bg-muted/30 border border-border/50">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Growing Season Timeline</span>
+        <span className="text-[10px] text-muted-foreground">{normalized} · {months[0]}–{months[months.length - 1]}</span>
+      </div>
+      <div className="relative flex items-center justify-between">
+        <div className="absolute left-3 right-3 top-1/2 h-0.5 bg-border -translate-y-1/2" />
+        {STAGE_NAMES.map((stage, i) => {
+          const isCurrent = i === currentIdx;
+          return (
+            <div key={stage} className="relative flex flex-col items-center flex-1 z-10">
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                isCurrent ? "bg-primary text-primary-foreground border-primary animate-pulse" :
+                i <= (currentIdx === -1 ? -1 : currentIdx) ? "bg-primary/30 border-primary/50 text-primary" :
+                "bg-card border-border text-muted-foreground"
+              }`}>
+                {i + 1}
+              </div>
+              <div className="text-[10px] font-medium text-foreground mt-1.5 text-center leading-tight">{stage}</div>
+              <div className="text-[9px] text-muted-foreground">{months[i]}</div>
+              {isCurrent && (
+                <div className="absolute -bottom-5 text-[9px] font-semibold text-primary whitespace-nowrap">You are here</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 type CropType = {
   name: string;
   emoji?: string;
