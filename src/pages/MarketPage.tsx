@@ -132,7 +132,7 @@ export default function MarketPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }
 

@@ -438,6 +438,6 @@ export default function AIAdvisor() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }
