@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Loader2, RefreshCw, Send, MessageCircle, Zap, Settings2, History } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import Footer from "@/components/Footer";
 import InputWizard from "@/components/advisor/InputWizard";
 import InsightGrid from "@/components/advisor/InsightGrid";
@@ -243,7 +244,7 @@ export default function AIAdvisor() {
   }) as AdvisorInput, [initial, qState, qCrop, qLand, qSoil, qBudget]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <AgriPageBackground variant="advisor" className="flex flex-col">
       <Navbar />
       <main className="flex-1 container mx-auto px-4 pt-24 pb-10">
         {/* Hero */}
@@ -437,6 +438,6 @@ export default function AIAdvisor() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

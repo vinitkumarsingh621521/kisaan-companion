@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { motion } from "framer-motion";
 import { FlaskConical, Trophy, Database, BarChart3, Brain, ExternalLink, ChevronDown, ChevronUp, Code2, Layers, Leaf, Droplets, Target, Zap, BookOpen, Workflow, FileOutput } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ export default function ResearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="research">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
@@ -531,6 +532,6 @@ export default function ResearchPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

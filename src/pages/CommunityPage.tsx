@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Award, Users, MessageSquare, Heart, Image as ImageIcon, Send, Loader2, Trash2 } from "lucide-react";
@@ -183,7 +184,7 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="community">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
@@ -344,6 +345,6 @@ export default function CommunityPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

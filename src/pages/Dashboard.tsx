@@ -19,6 +19,7 @@ import YieldForecastChart from "@/components/dashboard/YieldForecastChart";
 import CarbonFootprintWidget from "@/components/dashboard/CarbonFootprintWidget";
 import MistakeDetectorWidget from "@/components/dashboard/MistakeDetectorWidget";
 import { motion } from "framer-motion";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 
@@ -43,7 +44,7 @@ export default function Dashboard() {
     "your farm";
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="dashboard">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
@@ -99,6 +100,6 @@ export default function Dashboard() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

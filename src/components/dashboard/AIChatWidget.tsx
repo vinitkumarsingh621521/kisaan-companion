@@ -43,6 +43,18 @@ export default function AIChatWidget() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  // Listen for cross-component prefill events (e.g. from disease scanner quick-action buttons)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<{ text: string }>).detail?.text;
+      if (!text) return;
+      sendMessage(text);
+    };
+    window.addEventListener("krishi-prefill", handler as EventListener);
+    return () => window.removeEventListener("krishi-prefill", handler as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx, active, messages, isLoading]);
+
   const streamChat = async (allMessages: Message[]) => {
     const resp = await fetch(CHAT_URL, {
       method: "POST",
