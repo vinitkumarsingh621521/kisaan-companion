@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { motion } from "framer-motion";
 import { FlaskConical, Trophy, Database, BarChart3, Brain, ExternalLink, ChevronDown, ChevronUp, Code2, Layers, Leaf, Droplets, Target, Zap, BookOpen, Workflow, FileOutput } from "lucide-react";
 import { Button } from "@/components/ui/button";
