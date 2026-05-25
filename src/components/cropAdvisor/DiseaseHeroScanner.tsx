@@ -259,6 +259,37 @@ export default function DiseaseHeroScanner() {
                 </motion.div>
               ))}
             </div>
+
+            {/* Smart quick-action chat prompts based on the top detected disease */}
+            {(() => {
+              const top = diseaseResults[0];
+              if (!top) return null;
+              const prompts = [
+                { emoji: "💊", text: `Full treatment plan for ${top.name}` },
+                { emoji: "🛒", text: `Where to buy medicine for ${top.name} in my district?` },
+                { emoji: "🌿", text: `Organic alternative for ${top.name} treatment` },
+              ];
+              const askAI = (q: string) => {
+                document.getElementById("ai-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent("krishi-prefill", { detail: { text: q } }));
+                }, 350);
+              };
+              return (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {prompts.map((p) => (
+                    <button
+                      key={p.text}
+                      onClick={() => askAI(`${p.emoji} ${p.text}`)}
+                      className="text-xs md:text-sm px-3 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20 hover:scale-105 transform duration-200"
+                    >
+                      {p.emoji} {p.text}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
             <Button variant="outline" size="sm" className="mt-4" onClick={clearImage}>Scan Another Image</Button>
           </motion.div>
         )}
