@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { motion } from "framer-motion";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { FileText, Download, Calculator, Shield, Zap, Loader2, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -82,7 +83,7 @@ export default function SchemesPage() {
   }, [active?.id, ctx?.farmer_name]);
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="schemes">
       <Navbar />
       <Breadcrumbs />
       <main className="pt-20 pb-12 px-4">
@@ -178,7 +179,7 @@ export default function SchemesPage() {
         </DialogContent>
       </Dialog>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }
 

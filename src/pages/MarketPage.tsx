@@ -6,6 +6,7 @@ import PriceSparkline from "@/components/market/PriceSparkline";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import FreightArbitrageCalc from "@/components/market/FreightArbitrageCalc";
 import { motion } from "framer-motion";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { MapPin, Navigation, Truck, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -57,7 +58,7 @@ export default function MarketPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="market">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">

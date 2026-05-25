@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { Newspaper, RefreshCw, ExternalLink, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -89,7 +90,7 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="news">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">

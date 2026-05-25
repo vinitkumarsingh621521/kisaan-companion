@@ -183,7 +183,7 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="community">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
@@ -344,6 +344,6 @@ export default function CommunityPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

@@ -149,7 +149,7 @@ export default function ResearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="research">
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
@@ -531,6 +531,6 @@ export default function ResearchPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }
