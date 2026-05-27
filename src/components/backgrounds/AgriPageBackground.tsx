@@ -178,7 +178,7 @@ export default function AgriPageBackground({ variant, children, className = "" }
   const pulseName = `agriPulse_${uid}`;
 
   return (
-    <div className={`min-h-screen relative overflow-hidden ${className}`}>
+    <div className={`dark min-h-screen relative overflow-hidden bg-background text-foreground ${className}`}>
       <style>{`
         @keyframes ${animName} {
           0%   { background-position: 0% 0%, 0px 0px; }
@@ -186,64 +186,74 @@ export default function AgriPageBackground({ variant, children, className = "" }
         }
         @keyframes ${floatName} {
           0%, 100% { transform: translate3d(0,0,0) scale(1); }
-          50%      { transform: translate3d(40px,-40px,0) scale(1.15); }
+          50%      { transform: translate3d(30px,-30px,0) scale(1.08); }
         }
         @keyframes ${pulseName} {
-          0%, 100% { opacity: var(--blob-op, 0.35); }
-          50%      { opacity: calc(var(--blob-op, 0.35) * 1.6); }
+          0%, 100% { opacity: var(--blob-op, 0.18); }
+          50%      { opacity: calc(var(--blob-op, 0.18) * 1.4); }
         }
         .agri-bg-${uid} {
           background-color: ${theme.bg};
           background-image: ${theme.gradient}, url('${theme.pattern}');
           background-size: 100% 100%, ${theme.patternSize};
           background-repeat: no-repeat, repeat;
-          animation: ${animName} 40s linear infinite;
+          animation: ${animName} 60s linear infinite;
         }
         .agri-blob-${uid} {
           position: absolute;
           border-radius: 9999px;
-          filter: blur(70px);
+          filter: blur(90px);
           will-change: transform, opacity;
-          animation: ${floatName} 18s ease-in-out infinite,
-                     ${pulseName} 9s ease-in-out infinite;
+          animation: ${floatName} 22s ease-in-out infinite,
+                     ${pulseName} 11s ease-in-out infinite;
+        }
+        /* Soft vignette so center stays readable */
+        .agri-veil-${uid} {
+          background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.35) 100%);
         }
       `}</style>
 
+      {/* Layer 1: animated gradient + pattern */}
       <div className={`absolute inset-0 agri-bg-${uid}`} aria-hidden />
 
+      {/* Layer 2: blurred aurora blobs — kept faint so text always wins */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className={`agri-blob-${uid}`}
           style={{
-            top: "5%", left: "-8%",
-            width: 480, height: 480,
+            top: "-10%", left: "-12%",
+            width: 420, height: 420,
             backgroundColor: theme.blobs[0],
-            ["--blob-op" as any]: 0.35,
+            ["--blob-op" as any]: 0.22,
             animationDelay: "0s, 0s",
           }}
         />
         <div
           className={`agri-blob-${uid}`}
           style={{
-            top: "10%", right: "-10%",
-            width: 520, height: 520,
+            top: "-5%", right: "-12%",
+            width: 460, height: 460,
             backgroundColor: theme.blobs[1],
-            ["--blob-op" as any]: 0.28,
-            animationDelay: "-6s, -3s",
+            ["--blob-op" as any]: 0.18,
+            animationDelay: "-7s, -3s",
           }}
         />
         <div
           className={`agri-blob-${uid}`}
           style={{
-            bottom: "-15%", left: "30%",
-            width: 600, height: 600,
+            bottom: "-20%", left: "35%",
+            width: 540, height: 540,
             backgroundColor: theme.blobs[2],
-            ["--blob-op" as any]: 0.32,
-            animationDelay: "-12s, -6s",
+            ["--blob-op" as any]: 0.2,
+            animationDelay: "-13s, -6s",
           }}
         />
       </div>
 
+      {/* Layer 3: contrast veil so any text on top reads cleanly */}
+      <div aria-hidden className={`absolute inset-0 agri-veil-${uid} pointer-events-none`} />
+
+      {/* Content */}
       <div className="relative z-10">{children}</div>
     </div>
   );
