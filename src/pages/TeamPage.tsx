@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TeamSection from "@/components/TeamSection";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { motion } from "framer-motion";
 import { Heart, Lightbulb, Rocket, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
