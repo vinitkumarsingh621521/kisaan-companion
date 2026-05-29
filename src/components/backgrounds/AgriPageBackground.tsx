@@ -182,7 +182,7 @@ export default function AgriPageBackground({ variant, children, className = "" }
   const pulseName = `agriPulse_${uid}`;
 
   return (
-    <div className={`dark min-h-screen relative overflow-hidden bg-background text-foreground ${className}`}>
+    <div className={`min-h-screen relative overflow-hidden bg-background text-foreground ${className}`}>
       <style>{`
         @keyframes ${animName} {
           0%   { background-position: 0% 0%, 0px 0px; }
@@ -211,9 +211,21 @@ export default function AgriPageBackground({ variant, children, className = "" }
           animation: ${floatName} 22s ease-in-out infinite,
                      ${pulseName} 11s ease-in-out infinite;
         }
-        /* Soft vignette so center stays readable */
+        /* Soft vignette so center stays readable (dark mode) */
         .agri-veil-${uid} {
           background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.35) 100%);
+        }
+        /* ---------- Light-mode overrides ---------- */
+        html:not(.dark) .agri-bg-${uid} {
+          background-color: ${theme.lightBg};
+          background-image: ${theme.lightGradient}, url('${theme.pattern}');
+        }
+        html:not(.dark) .agri-blob-${uid} {
+          --blob-op: 0.07 !important;
+          filter: blur(110px);
+        }
+        html:not(.dark) .agri-veil-${uid} {
+          background: radial-gradient(ellipse at center, transparent 0%, transparent 55%, rgba(255,255,255,0.35) 100%);
         }
       `}</style>
 
