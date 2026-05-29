@@ -100,14 +100,13 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
     setLoading(true);
     (async () => {
       try {
-        const r = await fetch(`${MANDI_URL}?crop=${encodeURIComponent(farmerCrop)}&limit=100`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        });
+        const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=579b464db66ec23bdd000001cdd3084b34264d06e3aa6bece006ccee&format=json&filters%5Bcommodity%5D=${encodeURIComponent(farmerCrop)}&limit=100`;
+        const r = await fetch(url);
         const json = await r.json();
         const recs: any[] = json.records || [];
         const grouped: Record<string, number[]> = {};
         for (const rec of recs) {
-          const st = String(rec.state || rec.State || "").trim();
+          const st = String(rec.state || rec.State || "").trim().toLowerCase();
           const p = parseFloat(rec.modal_price || rec.Modal_Price || "0");
           if (!st || !p) continue;
           (grouped[st] ||= []).push(p);
