@@ -23,6 +23,10 @@ interface VariantTheme {
   bg: string;
   /** radial gradient stops */
   gradient: string;
+  /** light-mode background-color */
+  lightBg: string;
+  /** light-mode radial gradient */
+  lightGradient: string;
   /** tiny repeating SVG (data URI) */
   pattern: string;
   /** size of pattern tile */
