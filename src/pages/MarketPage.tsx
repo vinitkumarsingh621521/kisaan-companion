@@ -62,19 +62,32 @@ function priceColor(idx: number | null) {
   return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`;
 }
 
-/* ---------- Simplified India state polygons (approximate, decorative) ---------- */
+/* ---------- Simplified India state polygons for 600x560 viewBox ---------- */
 const STATE_PATHS: Record<string, string> = {
-  "Jammu and Kashmir": "M180,40 L260,30 L290,70 L240,110 L200,90 Z",
-  "Punjab": "M200,110 L255,105 L260,150 L215,160 Z",
-  "Haryana": "M225,160 L275,155 L285,200 L235,210 Z",
-  "Rajasthan": "M120,170 L225,160 L245,230 L160,295 L100,250 Z",
-  "Uttar Pradesh": "M260,165 L380,170 L395,230 L300,240 L275,205 Z",
-  "Bihar": "M380,180 L455,185 L460,225 L390,235 Z",
-  "Madhya Pradesh": "M180,240 L355,235 L370,310 L210,320 Z",
-  "Gujarat": "M70,260 L175,250 L185,330 L100,350 L55,310 Z",
-  "Maharashtra": "M140,335 L335,320 L355,400 L185,420 L120,385 Z",
-  "Karnataka": "M180,425 L295,415 L290,505 L195,510 Z",
-  "Andhra Pradesh": "M295,400 L390,395 L395,490 L300,505 Z",
+  "Jammu and Kashmir": "M 178 22 L 248 18 L 268 30 L 282 52 L 265 68 L 238 72 L 212 80 L 192 65 L 175 48 Z",
+  "Himachal Pradesh": "M 212 80 L 258 72 L 278 88 L 268 112 L 238 118 L 215 105 Z",
+  "Punjab": "M 192 100 L 218 95 L 238 118 L 225 138 L 200 140 L 185 122 Z",
+  "Haryana": "M 218 118 L 252 115 L 268 112 L 272 148 L 248 158 L 225 150 L 218 135 Z",
+  "Uttarakhand": "M 268 112 L 310 108 L 325 130 L 305 148 L 278 150 L 268 135 Z",
+  "Delhi": "M 245 152 L 260 150 L 262 165 L 248 168 Z",
+  "Uttar Pradesh": "M 248 158 L 380 150 L 402 175 L 390 215 L 330 228 L 270 220 L 248 195 Z",
+  "Rajasthan": "M 118 138 L 195 130 L 225 150 L 248 195 L 230 260 L 185 288 L 130 270 L 100 225 L 105 178 Z",
+  "Bihar": "M 390 175 L 448 172 L 460 198 L 445 222 L 398 225 L 385 205 Z",
+  "Sikkim": "M 448 152 L 462 148 L 468 162 L 456 168 Z",
+  "West Bengal": "M 448 172 L 475 168 L 490 185 L 485 230 L 468 260 L 448 255 L 440 230 L 445 205 Z",
+  "Jharkhand": "M 398 225 L 448 222 L 462 245 L 448 268 L 415 272 L 395 252 Z",
+  "Odisha": "M 415 272 L 460 265 L 478 285 L 472 325 L 442 342 L 410 330 L 398 305 L 400 280 Z",
+  "Madhya Pradesh": "M 175 258 L 330 245 L 355 268 L 358 308 L 318 325 L 220 330 L 175 310 L 162 280 Z",
+  "Chhattisgarh": "M 330 255 L 395 252 L 408 280 L 400 328 L 368 348 L 338 338 L 322 308 Z",
+  "Gujarat": "M 68 252 L 128 242 L 162 268 L 170 318 L 145 352 L 95 358 L 60 330 L 52 295 Z",
+  "Daman and Diu": "M 130 348 L 140 345 L 142 355 L 132 358 Z",
+  "Maharashtra": "M 138 325 L 250 315 L 320 320 L 342 352 L 330 395 L 278 415 L 195 412 L 145 385 L 132 355 Z",
+  "Telangana": "M 280 388 L 350 378 L 370 400 L 365 440 L 330 455 L 292 448 L 272 425 Z",
+  "Andhra Pradesh": "M 295 415 L 370 408 L 398 428 L 402 478 L 372 498 L 330 505 L 295 488 L 278 460 L 282 432 Z",
+  "Karnataka": "M 175 415 L 280 408 L 295 435 L 288 488 L 252 508 L 205 510 L 168 488 L 162 455 L 168 428 Z",
+  "Goa": "M 158 448 L 178 445 L 182 462 L 165 468 Z",
+  "Kerala": "M 195 492 L 235 485 L 248 510 L 240 538 L 215 548 L 195 532 L 188 512 Z",
+  "Tamil Nadu": "M 262 492 L 325 498 L 340 525 L 322 548 L 288 555 L 258 538 L 248 515 Z",
 };
 
 /* ---------- India price map ---------- */
