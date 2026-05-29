@@ -76,92 +76,92 @@ const newspaperPattern = svg(
 );
 
 const THEMES: Record<Variant, VariantTheme> = {
-  // Sunrise farm — your home base
   dashboard: {
     bg: "#1a2616",
-    gradient:
-      "radial-gradient(ellipse at 30% 0%, #2d4a1a 0%, #1a2616 45%, #0f1a0a 100%)",
+    gradient: "radial-gradient(ellipse at 30% 0%, #2d4a1a 0%, #1a2616 45%, #0f1a0a 100%)",
+    lightBg: "#f0f7ee",
+    lightGradient: "radial-gradient(ellipse at 30% 0%, #d4edcc 0%, #f0f7ee 60%, #ffffff 100%)",
     pattern: sunPattern,
     patternSize: "80px 80px",
     blobs: ["#fbbf24", "#16a34a", "#f97316"],
   },
-  // Deep neural/data ocean — AI advisor
   advisor: {
     bg: "#0a1628",
-    gradient:
-      "radial-gradient(ellipse at 70% 20%, #1e3a5f 0%, #0a1628 50%, #050b1a 100%)",
+    gradient: "radial-gradient(ellipse at 70% 20%, #1e3a5f 0%, #0a1628 50%, #050b1a 100%)",
+    lightBg: "#eef4fb",
+    lightGradient: "radial-gradient(ellipse at 70% 20%, #d0e8f5 0%, #eef4fb 60%, #ffffff 100%)",
     pattern: dataNodePattern,
     patternSize: "60px 60px",
     blobs: ["#06b6d4", "#8b5cf6", "#3b82f6"],
   },
-  // Forest greens — crops / disease
   crops: {
     bg: "#0d2b1a",
-    gradient:
-      "radial-gradient(ellipse at center, #1a4d2e 0%, #0d2b1a 40%, #0a1a05 100%)",
+    gradient: "radial-gradient(ellipse at center, #1a4d2e 0%, #0d2b1a 40%, #0a1a05 100%)",
+    lightBg: "#edfaf2",
+    lightGradient: "radial-gradient(ellipse at center, #d0f0dd 0%, #edfaf2 60%, #ffffff 100%)",
     pattern: wheatPattern,
     patternSize: "60px 60px",
     blobs: ["#22c55e", "#84cc16", "#10b981"],
   },
-  // Editorial sepia — news
   news: {
     bg: "#1a1410",
-    gradient:
-      "radial-gradient(ellipse at 50% 0%, #3a2818 0%, #1a1410 50%, #0a0805 100%)",
+    gradient: "radial-gradient(ellipse at 50% 0%, #3a2818 0%, #1a1410 50%, #0a0805 100%)",
+    lightBg: "#fdf6ee",
+    lightGradient: "radial-gradient(ellipse at 50% 0%, #f5e6cc 0%, #fdf6ee 60%, #ffffff 100%)",
     pattern: newspaperPattern,
     patternSize: "70px 70px",
     blobs: ["#d97706", "#a16207", "#dc2626"],
   },
-  // Government tricolor — schemes
   schemes: {
     bg: "#0a1428",
-    gradient:
-      "radial-gradient(ellipse at 50% 0%, #1e3a5f 0%, #0a1428 50%, #050a1a 100%)",
+    gradient: "radial-gradient(ellipse at 50% 0%, #1e3a5f 0%, #0a1428 50%, #050a1a 100%)",
+    lightBg: "#eef2fc",
+    lightGradient: "radial-gradient(ellipse at 50% 0%, #d8e6f5 0%, #eef2fc 60%, #ffffff 100%)",
     pattern: documentPattern,
     patternSize: "70px 70px",
-    blobs: ["#f97316", "#ffffff", "#16a34a"], // saffron, white, green
+    blobs: ["#f97316", "#ffffff", "#16a34a"],
   },
-  // Golden market / mandi
   market: {
     bg: "#1a1305",
-    gradient:
-      "radial-gradient(ellipse at 50% 100%, #4a3010 0%, #1a1305 50%, #0a0703 100%)",
+    gradient: "radial-gradient(ellipse at 50% 100%, #4a3010 0%, #1a1305 50%, #0a0703 100%)",
+    lightBg: "#fdf8ee",
+    lightGradient: "radial-gradient(ellipse at 50% 100%, #faecd0 0%, #fdf8ee 60%, #ffffff 100%)",
     pattern: coinPattern,
     patternSize: "70px 70px",
     blobs: ["#eab308", "#f97316", "#dc2626"],
   },
-  // Warm community
   community: {
     bg: "#1a0f1a",
-    gradient:
-      "radial-gradient(ellipse at 50% 30%, #3d1f3a 0%, #1a0f1a 50%, #0a050a 100%)",
+    gradient: "radial-gradient(ellipse at 50% 30%, #3d1f3a 0%, #1a0f1a 50%, #0a050a 100%)",
+    lightBg: "#fdf0f8",
+    lightGradient: "radial-gradient(ellipse at 50% 30%, #f5d8f0 0%, #fdf0f8 60%, #ffffff 100%)",
     pattern: peoplePattern,
     patternSize: "70px 70px",
     blobs: ["#ec4899", "#f97316", "#a855f7"],
   },
-  // Lab / research deep purple
   research: {
     bg: "#0d0a1f",
-    gradient:
-      "radial-gradient(ellipse at 50% 20%, #2a1f4a 0%, #0d0a1f 50%, #050310 100%)",
+    gradient: "radial-gradient(ellipse at 50% 20%, #2a1f4a 0%, #0d0a1f 50%, #050310 100%)",
+    lightBg: "#f5f0fe",
+    lightGradient: "radial-gradient(ellipse at 50% 20%, #e8d8fa 0%, #f5f0fe 60%, #ffffff 100%)",
     pattern: dnaPattern,
     patternSize: "50px 50px",
     blobs: ["#a855f7", "#06b6d4", "#3b82f6"],
   },
-  // Tools / IoT — tech industrial
   tools: {
     bg: "#0a1418",
-    gradient:
-      "radial-gradient(ellipse at 50% 50%, #1a3a44 0%, #0a1418 50%, #050a0d 100%)",
+    gradient: "radial-gradient(ellipse at 50% 50%, #1a3a44 0%, #0a1418 50%, #050a0d 100%)",
+    lightBg: "#eef8f8",
+    lightGradient: "radial-gradient(ellipse at 50% 50%, #cef0ef 0%, #eef8f8 60%, #ffffff 100%)",
     pattern: gearPattern,
     patternSize: "60px 60px",
     blobs: ["#14b8a6", "#0ea5e9", "#84cc16"],
   },
-  // Profile — soft natural
   profile: {
     bg: "#15211a",
-    gradient:
-      "radial-gradient(ellipse at 50% 0%, #2e4a36 0%, #15211a 50%, #0a120c 100%)",
+    gradient: "radial-gradient(ellipse at 50% 0%, #2e4a36 0%, #15211a 50%, #0a120c 100%)",
+    lightBg: "#eff8f3",
+    lightGradient: "radial-gradient(ellipse at 50% 0%, #d0ecdc 0%, #eff8f3 60%, #ffffff 100%)",
     pattern: leafPattern,
     patternSize: "60px 60px",
     blobs: ["#22c55e", "#fbbf24", "#10b981"],
