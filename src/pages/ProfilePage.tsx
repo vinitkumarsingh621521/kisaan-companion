@@ -42,10 +42,10 @@ export default function ProfilePage() {
     toast.success("🌾 Profile saved! Dashboard, AI advisor & all pages will now use this data.");
   };
 
-  if (pLoading) return <div className="min-h-screen bg-muted/30"><Navbar /><div className="pt-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div></div>;
+  if (pLoading) return <AgriPageBackground variant="profile"><Navbar /><div className="pt-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div></AgriPageBackground>;
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="profile">
       <Navbar />
       <ActiveProfileBar />
       <main className="pt-20 pb-12 px-4">
