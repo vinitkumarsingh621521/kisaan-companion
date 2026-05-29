@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Sprout, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import logo from "@/assets/logo.png";
 
 export default function AuthPage() {
