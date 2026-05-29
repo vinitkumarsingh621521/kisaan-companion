@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TeamSection from "@/components/TeamSection";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { motion } from "framer-motion";
 import { Heart, Lightbulb, Rocket, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -15,7 +16,7 @@ const journey = [
 
 export default function TeamPage() {
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="community">
       <Navbar />
       <main className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
@@ -49,6 +50,6 @@ export default function TeamPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

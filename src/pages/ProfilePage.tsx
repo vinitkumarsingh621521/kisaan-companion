@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { User, MapPin, Ruler, Layers, Globe, Save, Loader2 } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 
 const languages = ["English", "हिंदी", "বাংলা", "தமிழ்", "తెలుగు", "ಕನ್ನಡ", "मराठी", "ગુજરાતી", "ਪੰਜਾਬੀ", "മലയാളം", "ଓଡ଼ିଆ", "অসমীয়া", "اردو"];
 const soilTypes = ["Red Laterite", "Alluvial", "Black Cotton", "Sandy", "Clay", "Loamy", "Red Sandy", "Saline", "Peaty", "Forest", "Desert", "Mountain"];
@@ -41,10 +42,10 @@ export default function ProfilePage() {
     toast.success("🌾 Profile saved! Dashboard, AI advisor & all pages will now use this data.");
   };
 
-  if (pLoading) return <div className="min-h-screen bg-muted/30"><Navbar /><div className="pt-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div></div>;
+  if (pLoading) return <AgriPageBackground variant="profile"><Navbar /><div className="pt-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div></AgriPageBackground>;
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="profile">
       <Navbar />
       <ActiveProfileBar />
       <main className="pt-20 pb-12 px-4">
@@ -85,6 +86,6 @@ export default function ProfilePage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }

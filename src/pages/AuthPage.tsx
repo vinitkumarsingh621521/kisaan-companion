@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Sprout, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import logo from "@/assets/logo.png";
 
 export default function AuthPage() {
@@ -73,7 +74,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+    <AgriPageBackground variant="dashboard">
+      <div className="min-h-screen flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -189,6 +191,7 @@ export default function AuthPage() {
           </p>
         </div>
       </motion.div>
-    </div>
+      </div>
+    </AgriPageBackground>
   );
 }
