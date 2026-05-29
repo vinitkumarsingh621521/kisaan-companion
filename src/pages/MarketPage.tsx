@@ -145,7 +145,7 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
       <div className="relative w-full" style={{ aspectRatio: "600/560" }}>
         <svg viewBox="0 0 600 560" className="w-full h-full">
           {Object.entries(STATE_PATHS).map(([st, d]) => {
-            const idx = byState?.[st] ?? null;
+            const idx = byState?.[st.toLowerCase()] ?? null;
             const isFarmer = st === farmerState;
             return (
               <g key={st}>
