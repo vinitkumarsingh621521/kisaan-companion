@@ -16,7 +16,7 @@ const journey = [
 
 export default function TeamPage() {
   return (
-    <div className="min-h-screen bg-muted/30">
+    <AgriPageBackground variant="community">
       <Navbar />
       <main className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
@@ -50,6 +50,6 @@ export default function TeamPage() {
         </div>
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }
