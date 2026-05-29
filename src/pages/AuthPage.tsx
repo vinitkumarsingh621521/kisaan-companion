@@ -190,6 +190,6 @@ export default function AuthPage() {
           </p>
         </div>
       </motion.div>
-    </div>
+    </AgriPageBackground>
   );
 }
