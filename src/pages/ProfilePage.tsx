@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { User, MapPin, Ruler, Layers, Globe, Save, Loader2 } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 
 const languages = ["English", "हिंदी", "বাংলা", "தமிழ்", "తెలుగు", "ಕನ್ನಡ", "मराठी", "ગુજરાતી", "ਪੰਜਾਬੀ", "മലയാളം", "ଓଡ଼ିଆ", "অসমীয়া", "اردو"];
 const soilTypes = ["Red Laterite", "Alluvial", "Black Cotton", "Sandy", "Clay", "Loamy", "Red Sandy", "Saline", "Peaty", "Forest", "Desert", "Mountain"];
