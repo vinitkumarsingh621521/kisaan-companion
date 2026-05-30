@@ -24,6 +24,8 @@ export default function LanguageHeroSwitcher({
     setActive(code);
     i18n.changeLanguage(code);
     onChange?.(code);
+    // Force full reload so every component re-renders with translated strings
+    setTimeout(() => window.location.reload(), 80);
   };
 
   const copy = HERO_COPY[active] || HERO_COPY.en;
