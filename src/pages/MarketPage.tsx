@@ -53,12 +53,13 @@ const STATE_MANDIS: Record<string, { name: string; baseDist: number }[]> = {
 
 /* ---------- Color scale: gold (low) -> green (high) ---------- */
 function priceColor(idx: number | null) {
-  if (idx == null) return "hsl(var(--muted) / 0.4)";
+  // Always return a clearly visible color — no transparent muted no-data fills
+  if (idx == null) return "hsl(35, 25%, 78%)"; // warm sand neutral, clearly visible on white & dark
   const t = Math.max(0, Math.min(100, idx)) / 100;
-  // interpolate hue 38(gold) -> 142(green), sat 85->70, light 55->35
+  // interpolate hue 38(gold) -> 142(green), sat 90->75, light 52->32 (slightly darker for contrast)
   const h = 38 + (142 - 38) * t;
-  const s = 85 + (70 - 85) * t;
-  const l = 55 + (35 - 55) * t;
+  const s = 90 + (75 - 90) * t;
+  const l = 52 + (32 - 52) * t;
   return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`;
 }
 
@@ -142,8 +143,8 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
         Live state-wise modal prices from Agmarknet. Greener = better price for your crop.
       </p>
 
-      <div className="relative w-full" style={{ aspectRatio: "600/560" }}>
-        <svg viewBox="0 0 600 560" className="w-full h-full">
+      <div className="relative w-full rounded-xl overflow-hidden border border-border/40" style={{ aspectRatio: "600/560", background: "linear-gradient(180deg, hsl(210 30% 96%) 0%, hsl(210 25% 90%) 100%)" }}>
+        <svg viewBox="0 0 600 560" className="w-full h-full" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }}>
           {Object.entries(STATE_PATHS).map(([st, d]) => {
             const idx = byState?.[st.toLowerCase()] ?? null;
             const isFarmer = st === farmerState;
@@ -151,9 +152,10 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
               <g key={st}>
                 <path
                   d={d}
-                  fill={loading ? "hsl(var(--muted) / 0.4)" : priceColor(idx)}
-                  stroke={isFarmer ? "white" : "hsl(var(--background))"}
-                  strokeWidth={isFarmer ? 2.5 : 1}
+                  fill={loading ? "hsl(35, 20%, 75%)" : priceColor(idx)}
+                  stroke={isFarmer ? "hsl(0 0% 100%)" : "hsl(220 15% 25%)"}
+                  strokeWidth={isFarmer ? 3 : 1.2}
+                  strokeLinejoin="round"
                   className={`${loading ? "state-shimmer" : ""} ${isFarmer ? "farmer-ring" : ""} transition-opacity hover:opacity-80 cursor-pointer`}
                 >
                   <title>{st}{idx != null ? ` · Price Index ${idx}/100` : " · no data"}</title>

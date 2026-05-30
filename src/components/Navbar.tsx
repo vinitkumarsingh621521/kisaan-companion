@@ -252,6 +252,9 @@ export default function Navbar() {
 
           <NotificationCenter />
           <ThemeToggle />
+          <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+            {currentLang.native}
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
@@ -263,7 +266,7 @@ export default function Navbar() {
               {SUPPORTED_LANGUAGES.map((lng) => (
                 <DropdownMenuItem
                   key={lng.code}
-                  onClick={() => i18n.changeLanguage(lng.code)}
+                  onClick={() => { i18n.changeLanguage(lng.code); setTimeout(() => window.location.reload(), 80); }}
                   className="flex items-center justify-between gap-3"
                 >
                   <span>{lng.native}</span>
@@ -297,7 +300,7 @@ export default function Navbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card">
               {SUPPORTED_LANGUAGES.map((lng) => (
-                <DropdownMenuItem key={lng.code} onClick={() => i18n.changeLanguage(lng.code)}>
+                <DropdownMenuItem key={lng.code} onClick={() => { i18n.changeLanguage(lng.code); setTimeout(() => window.location.reload(), 80); }}>
                   {lng.native}
                   {i18n.language === lng.code && <Check className="h-3.5 w-3.5 text-primary ml-2" />}
                 </DropdownMenuItem>
