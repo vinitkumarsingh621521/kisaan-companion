@@ -300,7 +300,7 @@ export default function Navbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card">
               {SUPPORTED_LANGUAGES.map((lng) => (
-                <DropdownMenuItem key={lng.code} onClick={() => i18n.changeLanguage(lng.code)}>
+                <DropdownMenuItem key={lng.code} onClick={() => { i18n.changeLanguage(lng.code); setTimeout(() => window.location.reload(), 80); }}>
                   {lng.native}
                   {i18n.language === lng.code && <Check className="h-3.5 w-3.5 text-primary ml-2" />}
                 </DropdownMenuItem>
