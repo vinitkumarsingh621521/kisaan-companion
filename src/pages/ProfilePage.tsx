@@ -19,6 +19,7 @@ const soilTypes = ["Red Laterite", "Alluvial", "Black Cotton", "Sandy", "Clay", 
 
 export default function ProfilePage() {
   const { active, updateProfile, loading: pLoading } = useActiveProfile();
+  const { t } = useTranslation();
   const [basic, setBasic] = useState({ full_name: "", farm_location: "", farm_size: "", soil_type: "", preferred_language: "English" });
   const [details, setDetails] = useState<FarmerDetails>({});
   const [saving, setSaving] = useState(false);
