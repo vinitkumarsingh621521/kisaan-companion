@@ -32,6 +32,7 @@ const INDIAN_STATES = [
 export default function AIAdvisor() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
+  const { t } = useTranslation();
   const [result, setResult] = useState<AdvisoryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRun, setLastRun] = useState<number | null>(null);
