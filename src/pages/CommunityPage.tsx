@@ -40,6 +40,7 @@ const leaderboard = [
 export default function CommunityPage() {
   const { user } = useAuth();
   const { active } = useActiveProfile();
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<Post[]>([]);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
