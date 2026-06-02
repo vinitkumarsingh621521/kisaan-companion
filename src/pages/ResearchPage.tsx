@@ -162,10 +162,10 @@ export default function ResearchPage() {
               <FlaskConical className="h-4 w-4" /> SIH-25030 Research Project
             </div>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
-              🌾 AI-Based Crop Recommendation System
+              🌾 {t("research.title")}
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Government of Jharkhand · Smart India Hackathon 2025 · ULTRA v13 — 22 ML Models, CNN Disease Detection, Price Forecasting & More
+              {t("research.subtitle")}
             </p>
           </motion.div>
 
