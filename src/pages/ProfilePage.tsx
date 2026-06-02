@@ -12,12 +12,14 @@ import { motion } from "framer-motion";
 import { User, MapPin, Ruler, Layers, Globe, Save, Loader2 } from "lucide-react";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
+import { useTranslation } from "react-i18next";
 
 const languages = ["English", "हिंदी", "বাংলা", "தமிழ்", "తెలుగు", "ಕನ್ನಡ", "मराठी", "ગુજરાતી", "ਪੰਜਾਬੀ", "മലയാളം", "ଓଡ଼ିଆ", "অসমীয়া", "اردو"];
 const soilTypes = ["Red Laterite", "Alluvial", "Black Cotton", "Sandy", "Clay", "Loamy", "Red Sandy", "Saline", "Peaty", "Forest", "Desert", "Mountain"];
 
 export default function ProfilePage() {
   const { active, updateProfile, loading: pLoading } = useActiveProfile();
+  const { t } = useTranslation();
   const [basic, setBasic] = useState({ full_name: "", farm_location: "", farm_size: "", soil_type: "", preferred_language: "English" });
   const [details, setDetails] = useState<FarmerDetails>({});
   const [saving, setSaving] = useState(false);
@@ -51,8 +53,8 @@ export default function ProfilePage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 Editing: {active?.full_name}</h1>
-            <p className="text-muted-foreground mt-1">Switch profile from the bar above. The more you fill in, the smarter your AI gets.</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 {t("profile.editProfile")}: {active?.full_name}</h1>
+            <p className="text-muted-foreground mt-1">{t("profile.completion")}</p>
           </motion.div>
 
           <div className="glass-card p-6 space-y-5 mb-5">

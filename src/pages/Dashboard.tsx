@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { useTranslation } from "react-i18next";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -35,6 +36,7 @@ function getGreeting() {
 export default function Dashboard() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
+  const { t } = useTranslation();
 
   const userName = active?.full_name || "Farmer";
   const season = ctx?.climate.current_season || "Kharif";
@@ -57,7 +59,7 @@ export default function Dashboard() {
               {getGreeting()}, {userName}!
             </h1>
             <p className="text-muted-foreground mt-1">
-              Here's your farm overview for{" "}
+              {t("dashboard.overviewFor")}{" "}
               <span className="text-primary font-medium">{season} {new Date().getFullYear()}</span>
               {" — "}
               <span className="font-medium">{location}</span>

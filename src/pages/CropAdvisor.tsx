@@ -10,10 +10,12 @@ import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { motion } from "framer-motion";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { useTranslation } from "react-i18next";
 
 export default function CropAdvisor() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
+  const { t } = useTranslation();
 
   return (
     <AgriPageBackground variant="crops">
@@ -22,10 +24,10 @@ export default function CropAdvisor() {
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-white drop-shadow-lg">
-              🌾 AI Crop Advisor {active?.full_name ? <span className="text-base font-normal text-white/70">— for {active.full_name}</span> : null}
+              🌾 {t("cropAdvisor.title")} {active?.full_name ? <span className="text-base font-normal text-white/70">— {active.full_name}</span> : null}
             </h1>
             <p className="text-white/70 mt-1">
-              {ctx ? `Personalized for your ${ctx.climate?.zone || "region"} farm in ${ctx.location?.state || "India"}.` : "Real AI-powered disease detection & crop recommendations"}
+              {ctx ? `${t("cropAdvisor.subtitle")} · ${ctx.climate?.zone || "region"} · ${ctx.location?.state || "India"}` : t("cropAdvisor.subtitle")}
             </p>
           </motion.div>
 

@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import SchemeEligibilityQuiz from "@/components/schemes/SchemeEligibilityQuiz";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,6 +28,7 @@ const tools = [
 export default function SchemesPage() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
+  const { t } = useTranslation();
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTool, setActiveTool] = useState<(typeof tools)[number] | null>(null);
@@ -89,9 +91,9 @@ export default function SchemesPage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">⚡ Govt Schemes & Tools</h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">⚡ {t("schemes.title")}</h1>
             <p className="text-muted-foreground mt-1">
-              AI-matched to your profile {active?.farmer_details?.state ? `· ${active.farmer_details.state}` : ""}
+              {t("schemes.subtitle")} {active?.farmer_details?.state ? `· ${active.farmer_details.state}` : ""}
             </p>
           </motion.div>
 

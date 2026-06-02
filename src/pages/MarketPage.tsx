@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { useTranslation } from "react-i18next";
 
 const MANDI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mandi-prices`;
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
@@ -462,6 +463,7 @@ function TodayMarketBriefing({ farmerCrop, farmerState }: { farmerCrop: string; 
 export default function MarketPage() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
+  const { t } = useTranslation();
   const state = ctx?.location.state || active?.farmer_details?.state || "";
   const baseKm = parseFloat(active?.farmer_details?.nearest_mandi_km || "0") || 0;
   const district = ctx?.location.district || active?.farmer_details?.district || "";
@@ -478,9 +480,9 @@ export default function MarketPage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">📈 Market Intelligence</h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">📈 {t("market.title")}</h1>
             <p className="text-muted-foreground mt-1">
-              Live mandi prices for <span className="font-medium text-primary">{state || "India"}</span> · personalized to your crops
+              {t("market.subtitle")} · <span className="font-medium text-primary">{state || "India"}</span>
             </p>
           </motion.div>
 

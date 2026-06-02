@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 const ResearchPapersPanel = lazy(() => import("@/components/research/ResearchPapersPanel"));
+import { useTranslation } from "react-i18next";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -131,6 +132,7 @@ const soilRadarData = [
 const CHART_COLORS = ["hsl(142, 55%, 35%)", "hsl(200, 75%, 55%)", "hsl(38, 85%, 55%)", "hsl(0, 84%, 60%)", "hsl(280, 60%, 55%)"];
 
 export default function ResearchPage() {
+  const { t } = useTranslation();
   const [sortKey, setSortKey] = useState<string>("accuracy");
   const [sortAsc, setSortAsc] = useState(false);
   const [expandedCell, setExpandedCell] = useState<number | null>(null);
@@ -160,10 +162,10 @@ export default function ResearchPage() {
               <FlaskConical className="h-4 w-4" /> SIH-25030 Research Project
             </div>
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
-              🌾 AI-Based Crop Recommendation System
+              🌾 {t("research.title")}
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Government of Jharkhand · Smart India Hackathon 2025 · ULTRA v13 — 22 ML Models, CNN Disease Detection, Price Forecasting & More
+              {t("research.subtitle")}
             </p>
           </motion.div>
 
