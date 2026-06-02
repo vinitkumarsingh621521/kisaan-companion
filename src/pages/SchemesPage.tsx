@@ -28,6 +28,7 @@ const tools = [
 export default function SchemesPage() {
   const { active } = useActiveProfile();
   const { ctx } = usePersonalization();
+  const { t } = useTranslation();
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTool, setActiveTool] = useState<(typeof tools)[number] | null>(null);
