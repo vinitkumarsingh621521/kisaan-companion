@@ -132,6 +132,7 @@ const soilRadarData = [
 const CHART_COLORS = ["hsl(142, 55%, 35%)", "hsl(200, 75%, 55%)", "hsl(38, 85%, 55%)", "hsl(0, 84%, 60%)", "hsl(280, 60%, 55%)"];
 
 export default function ResearchPage() {
+  const { t } = useTranslation();
   const [sortKey, setSortKey] = useState<string>("accuracy");
   const [sortAsc, setSortAsc] = useState(false);
   const [expandedCell, setExpandedCell] = useState<number | null>(null);
