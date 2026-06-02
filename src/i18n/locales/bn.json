@@ -64,7 +64,8 @@
     "topCrops": "শীর্ষ প্রস্তাবিত ফসল",
     "goodMorning": "সুপ্রভাত",
     "goodAfternoon": "শুভ অপরাহ্ন",
-    "goodEvening": "শুভ সন্ধ্যা"
+    "goodEvening": "শুভ সন্ধ্যা",
+    "overviewFor": "Here's your farm overview for"
   },
   "market": {
     "title": "বাজার",

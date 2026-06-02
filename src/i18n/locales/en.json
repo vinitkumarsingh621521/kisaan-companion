@@ -64,7 +64,8 @@
     "topCrops": "Top Recommended Crops",
     "goodMorning": "Good morning",
     "goodAfternoon": "Good afternoon",
-    "goodEvening": "Good evening"
+    "goodEvening": "Good evening",
+    "overviewFor": "Here's your farm overview for"
   },
   "market": {
     "title": "Market",
