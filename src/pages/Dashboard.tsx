@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { useTranslation } from "react-i18next";
 
 function getGreeting() {
   const h = new Date().getHours();
