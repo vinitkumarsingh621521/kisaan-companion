@@ -260,8 +260,8 @@ export default function AIAdvisor() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-3">
               <Sparkles className="h-3 w-3" /> AI ADVISOR · 50+ inputs · 25 insights
             </div>
-            <h1 className="font-display font-bold text-3xl md:text-4xl text-foreground mb-2">Your whole farm, decoded.</h1>
-            <p className="text-muted-foreground max-w-2xl">Tell KrishiMitra about your land, soil, crops, finances, and goals. Get a personalized 25-point advisory — crop fit, costs, yields, profit, schemes, risks — all in seconds.</p>
+            <h1 className="font-display font-bold text-3xl md:text-4xl text-foreground mb-2">{t("aiAdvisor.title")}</h1>
+            <p className="text-muted-foreground max-w-2xl">{t("aiAdvisor.subtitle")}</p>
             {lastRun && (
               <p className="text-xs text-muted-foreground mt-3">Last analyzed: {new Date(lastRun).toLocaleString()}</p>
             )}
