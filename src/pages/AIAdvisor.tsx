@@ -16,6 +16,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { advisorInputSchema, type AdvisorInput, type AdvisoryResult } from "@/lib/aiAdvisorSchema";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const ADVISOR_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-advisor`;
 const historyKey = (id?: string) => `km.advisor.history.${id || "anon"}`;
