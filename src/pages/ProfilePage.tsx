@@ -53,8 +53,8 @@ export default function ProfilePage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 Editing: {active?.full_name}</h1>
-            <p className="text-muted-foreground mt-1">Switch profile from the bar above. The more you fill in, the smarter your AI gets.</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 {t("profile.editProfile")}: {active?.full_name}</h1>
+            <p className="text-muted-foreground mt-1">{t("profile.completion")}</p>
           </motion.div>
 
           <div className="glass-card p-6 space-y-5 mb-5">
