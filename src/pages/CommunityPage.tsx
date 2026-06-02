@@ -191,8 +191,8 @@ export default function CommunityPage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 Farmer Community</h1>
-            <p className="text-muted-foreground mt-1">Real posts from real farmers · likes update live</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 {t("community.title")}</h1>
+            <p className="text-muted-foreground mt-1">{t("community.subtitle")}</p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
