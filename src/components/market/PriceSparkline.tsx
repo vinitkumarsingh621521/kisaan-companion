@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useState } from "react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { Calendar } from "lucide-react";
@@ -29,7 +30,7 @@ export default function PriceSparkline({ crop, base }: { crop: string; base: num
     (async () => {
       try {
         const r = await fetch(`${MANDI_URL}?crop=${encodeURIComponent(crop)}&limit=30`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: { Authorization: `Bearer ${await edgeToken()}` },
         });
         if (!r.ok) throw new Error("fetch");
         const json = await r.json();

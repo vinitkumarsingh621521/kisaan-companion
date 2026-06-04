@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Minus, Loader2, MapPin, Trophy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ export default function MultiMandiCompare() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await edgeToken()}`,
         },
         body: JSON.stringify({ crops: selectedCrops, mandis: selectedMandis, state }),
       });

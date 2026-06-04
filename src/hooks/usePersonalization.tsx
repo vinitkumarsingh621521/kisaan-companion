@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useQuery } from "@tanstack/react-query";
 import { useActiveProfile } from "./useActiveProfile";
 
@@ -56,7 +57,7 @@ export function usePersonalization() {
     queryFn: async () => {
       const r = await fetch(CTX_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
         body: JSON.stringify({ profile: active }),
       });
       const json = (await r.json()) as PersonalizationCtx;

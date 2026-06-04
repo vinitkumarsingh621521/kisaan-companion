@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useState, useRef } from "react";
 import { Upload, X, Loader2, Bug, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,7 @@ export default function MultiImageDiseaseScanner() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+              Authorization: `Bearer ${await edgeToken()}`,
             },
             body: JSON.stringify({ action: "disease", image: r.image }),
           });

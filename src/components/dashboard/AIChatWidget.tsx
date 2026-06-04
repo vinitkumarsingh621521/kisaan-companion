@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Mic, MicOff, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ export default function AIChatWidget() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${await edgeToken()}`,
       },
       body: JSON.stringify({ action: "chat", messages: allMessages, profileContext: ctx, profile: active }),
     });

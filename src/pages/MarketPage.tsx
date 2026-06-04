@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -221,7 +222,7 @@ function PriceAlertPanel({ farmerCrops }: { farmerCrops: string[] }) {
       await Promise.all(cropsToCheck.map(async (c) => {
         try {
           const r = await fetch(`${MANDI_URL}?crop=${encodeURIComponent(c)}&limit=20`, {
-            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+            headers: { Authorization: `Bearer ${await edgeToken()}` },
           });
           const json = await r.json();
           const recs: any[] = json.records || [];
@@ -344,7 +345,7 @@ function TodayMarketBriefing({ farmerCrop, farmerState }: { farmerCrop: string; 
     try {
       // Fetch latest price
       const r = await fetch(`${MANDI_URL}?crop=${encodeURIComponent(farmerCrop)}&state=${encodeURIComponent(farmerState)}&limit=5`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { Authorization: `Bearer ${await edgeToken()}` },
       });
       const json = await r.json();
       const recs: any[] = json.records || [];
@@ -356,7 +357,7 @@ function TodayMarketBriefing({ farmerCrop, farmerState }: { farmerCrop: string; 
 
       const aiResp = await fetch(AI_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
         body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: userMsg }] }),
       });
       if (!aiResp.ok || !aiResp.body) throw new Error("AI failed");

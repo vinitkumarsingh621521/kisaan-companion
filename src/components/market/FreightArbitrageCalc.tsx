@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useState } from "react";
 import { Calculator, Truck, TrendingUp, Trophy } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ export default function FreightArbitrageCalc({ mandis, baseKm }: { mandis: Mandi
     (async () => {
       try {
         const r = await fetch(`${MANDI_URL}?crop=${encodeURIComponent(crop)}&limit=100`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: { Authorization: `Bearer ${await edgeToken()}` },
         });
         const json = await r.json();
         const recs: any[] = json.records || [];

@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useState } from "react";
 import { Zap, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,21 +20,21 @@ export default function GovtSchemesCard() {
     if (!active || !ctx) return;
     let cancelled = false;
     setLoading(true);
-    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      body: JSON.stringify({ action: "scheme_match", profileContext: ctx, profile: active }),
-    })
-      .then(r => r.json())
-      .then(data => {
+    (async () => {
+      try {
+        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
+          body: JSON.stringify({ action: "scheme_match", profileContext: ctx, profile: active }),
+        });
+        const data = await resp.json();
         if (cancelled) return;
-        try {
-          const cleaned = (data.result || "{}").replace(/```json\s*|```/g, "").trim();
-          const parsed = JSON.parse(cleaned);
-          if (parsed.schemes) setSchemes(parsed.schemes.slice(0, 4));
-        } catch {}
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
+        const cleaned = (data.result || "{}").replace(/```json\s*|```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        if (parsed.schemes) setSchemes(parsed.schemes.slice(0, 4));
+      } catch {}
+      finally { if (!cancelled) setLoading(false); }
+    })();
     return () => { cancelled = true; };
   }, [active?.id, ctx?.farmer_name]);
 
