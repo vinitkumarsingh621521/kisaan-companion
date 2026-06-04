@@ -1,17 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Build headers for direct fetch() calls to Supabase Edge Functions.
- * Sends the signed-in user's session JWT so edge functions can validate the caller.
- * Falls back to the publishable (anon) key only when no session exists.
+ * Returns the signed-in user's session JWT for direct fetch() calls to
+ * Supabase Edge Functions. Falls back to the publishable (anon) key when
+ * no session exists so unauthenticated callers still hit the function and
+ * receive a clean 401 from the function's own auth guard.
  */
-export async function edgeAuthHeaders(extra: Record<string, string> = {}): Promise<Record<string, string>> {
+export async function edgeToken(): Promise<string> {
   const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    ...extra,
-  };
+  return data.session?.access_token || (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
 }

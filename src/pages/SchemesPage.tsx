@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -68,7 +69,7 @@ export default function SchemesPage() {
     setLoading(true);
     fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
       body: JSON.stringify({ action: "scheme_match", profileContext: ctx, profile: active }),
     })
       .then(r => r.json())

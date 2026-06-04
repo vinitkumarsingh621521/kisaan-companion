@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useRef, useState } from "react";
 import { TrendingUp, Droplets, Calendar, IndianRupee, ChevronRight, X, Leaf, BarChart3, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await edgeToken()}`,
         },
         body: JSON.stringify({
           action: "crop_recommendation",

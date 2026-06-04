@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useState } from "react";
 import { Sparkles, ArrowRight, Loader2, TrendingUp, Lightbulb, AlertTriangle, RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -123,7 +124,7 @@ export default function CropCompatibilityMatrix() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await edgeToken()}`,
         },
         body: JSON.stringify({
           action: "compat",

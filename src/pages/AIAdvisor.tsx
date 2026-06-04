@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Loader2, RefreshCw, Send, MessageCircle, Zap, Settings2, History } from "lucide-react";
@@ -63,7 +64,7 @@ export default function AIAdvisor() {
     try {
       const resp = await fetch(ADVISOR_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
         body: JSON.stringify({ action: "followup", question: q, result, messages: chatMessages }),
       });
       if (!resp.ok || !resp.body) {
@@ -195,7 +196,7 @@ export default function AIAdvisor() {
     try {
       const resp = await fetch(ADVISOR_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
         body: JSON.stringify({ inputs: parsed.data, profileContext: ctx }),
       });
       if (!resp.ok) {

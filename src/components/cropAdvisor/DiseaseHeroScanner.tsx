@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useState, useRef, useEffect } from "react";
 import { Camera, Upload, X, AlertTriangle, Loader2, ShieldAlert, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -119,7 +120,7 @@ export default function DiseaseHeroScanner() {
     try {
       const resp = await fetch(AI_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await edgeToken()}` },
         body: JSON.stringify({ action: "disease", image: uploadedImage, profileContext: ctx, profile: active }),
       });
       clearInterval(progressInterval); setAnalysisProgress(100);

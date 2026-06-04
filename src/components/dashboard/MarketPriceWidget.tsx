@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Bell, BellOff, MapPin, Calendar } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
@@ -28,7 +29,7 @@ async function fetchCropPrice(crop: string, state?: string): Promise<LivePrice> 
     if (state) u.searchParams.set("state", state);
     const res = await fetch(u.toString(), {
       headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${await edgeToken()}`,
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
     });
