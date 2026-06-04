@@ -9,6 +9,8 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const user = await requireUser(req);
+  if (!user) return unauthorized(corsHeaders);
 
   try {
     const { language = "en", profile } = await req.json().catch(() => ({}));

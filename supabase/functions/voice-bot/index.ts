@@ -332,6 +332,8 @@ async function chatWithFallback(userText: string, profile: any, language: string
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const user = await requireUser(req);
+  if (!user) return unauthorized(corsHeaders);
 
   try {
     const body = await req.json().catch(() => ({}));

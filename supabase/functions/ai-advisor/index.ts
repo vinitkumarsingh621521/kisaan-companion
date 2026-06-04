@@ -413,6 +413,8 @@ async function streamFollowup(body: any): Promise<Response> {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const user = await requireUser(req);
+  if (!user) return unauthorized(corsHeaders);
   try {
     const body = await req.json().catch(() => ({}));
     if (body?.action === "followup") return await streamFollowup(body);

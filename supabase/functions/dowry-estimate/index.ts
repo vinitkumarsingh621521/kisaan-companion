@@ -73,6 +73,8 @@ const tool = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const user = await requireUser(req);
+  if (!user) return unauthorized(corsHeaders);
 
   try {
     const { answers, profile } = await req.json();
