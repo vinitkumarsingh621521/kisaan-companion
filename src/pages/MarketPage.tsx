@@ -124,6 +124,49 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
   const [retryCount, setRetryCount] = useState(0);
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; idx: number | null } | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [dataSource, setDataSource] = useState<"ai" | "loading" | "error">("loading");
+
+  const fetchStateInsight = async (stateName: string) => {
+    setAiInsight(null);
+    setInsightLoading(true);
+    const idx = byState?.[stateName] ?? null;
+    try {
+      const prompt = `You are a mandi market expert for Indian farmers.
+Crop: ${farmerCrop}
+Farmer's home state: ${farmerState}
+Selected state: ${stateName}
+Price index for ${stateName}: ${idx !== null ? idx + "/100" : "unknown"}
+Current month: ${new Date().toLocaleString("en-IN", { month: "long" })}
+
+In exactly 2 short sentences:
+1. Why is ${farmerCrop} price ${idx !== null && idx > 60 ? "competitive" : "lower"} in ${stateName} this season?
+2. Is it worth transporting from ${farmerState} to sell in ${stateName}? Give a direct yes/no with one reason.
+Be specific. Use crop and state names. No bullet points. Plain text only.`;
+      const resp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
+      });
+      if (!resp.ok) throw new Error("AI failed");
+      const data = await resp.json();
+      const text: string =
+        data.result ||
+        data.response ||
+        data.choices?.[0]?.message?.content ||
+        (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+        "";
+      setAiInsight(text.trim());
+    } catch {
+      setAiInsight("Market analysis temporarily unavailable.");
+    } finally {
+      setInsightLoading(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
