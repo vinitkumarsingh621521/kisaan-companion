@@ -124,6 +124,49 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
   const [retryCount, setRetryCount] = useState(0);
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; idx: number | null } | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [dataSource, setDataSource] = useState<"ai" | "loading" | "error">("loading");
+
+  const fetchStateInsight = async (stateName: string) => {
+    setAiInsight(null);
+    setInsightLoading(true);
+    const idx = byState?.[stateName] ?? null;
+    try {
+      const prompt = `You are a mandi market expert for Indian farmers.
+Crop: ${farmerCrop}
+Farmer's home state: ${farmerState}
+Selected state: ${stateName}
+Price index for ${stateName}: ${idx !== null ? idx + "/100" : "unknown"}
+Current month: ${new Date().toLocaleString("en-IN", { month: "long" })}
+
+In exactly 2 short sentences:
+1. Why is ${farmerCrop} price ${idx !== null && idx > 60 ? "competitive" : "lower"} in ${stateName} this season?
+2. Is it worth transporting from ${farmerState} to sell in ${stateName}? Give a direct yes/no with one reason.
+Be specific. Use crop and state names. No bullet points. Plain text only.`;
+      const resp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
+      });
+      if (!resp.ok) throw new Error("AI failed");
+      const data = await resp.json();
+      const text: string =
+        data.result ||
+        data.response ||
+        data.choices?.[0]?.message?.content ||
+        (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+        "";
+      setAiInsight(text.trim());
+    } catch {
+      setAiInsight("Market analysis temporarily unavailable.");
+    } finally {
+      setInsightLoading(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -159,36 +202,88 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setDataSource("loading");
+    const cacheKey = `km.heatmap.${farmerCrop}.${new Date().toISOString().slice(0, 10)}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 5) {
+          setByState(parsed);
+          setLoading(false);
+          setDataSource("ai");
+          return;
+        }
+      }
+    } catch {}
+
     (async () => {
       try {
-        const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=579b464db66ec23bdd000001cdd3084b34264d06e3aa6bece006ccee&format=json&filters%5Bcommodity%5D=${encodeURIComponent(farmerCrop)}&limit=100`;
-        const r = await fetch(url);
-        const json = await r.json();
-        const recs: any[] = json.records || [];
-        const grouped: Record<string, number[]> = {};
-        for (const rec of recs) {
-          const st = String(rec.state || rec.State || "").trim().toLowerCase();
-          const p = parseFloat(rec.modal_price || rec.Modal_Price || "0");
-          if (!st || !p) continue;
-          (grouped[st] ||= []).push(p);
+        const currentMonth = new Date().toLocaleString("en-IN", { month: "long" });
+        const currentYear = new Date().getFullYear();
+        const prompt = `You are an expert Indian agricultural commodity market analyst. Generate realistic state-wise price index data for ${farmerCrop} across all Indian states for ${currentMonth} ${currentYear}.
+Consider these real factors:
+- Regional production surplus/deficit for ${farmerCrop}
+- State-wise demand patterns and consumption
+- Market connectivity and transport infrastructure
+- Seasonal harvest calendar for ${farmerCrop}
+- Historical APMC price trends
+
+Return ONLY a raw JSON object. No markdown. No explanation. No code blocks. No text before or after.
+Format exactly like this:
+{"Andhra Pradesh":72,"Arunachal Pradesh":45,"Assam":58,"Bihar":65,"Chhattisgarh":61,"Goa":50,"Gujarat":78,"Haryana":85,"Himachal Pradesh":55,"Jharkhand":60,"Karnataka":70,"Kerala":52,"Madhya Pradesh":67,"Maharashtra":74,"Manipur":42,"Meghalaya":44,"Mizoram":40,"Nagaland":41,"Odisha":63,"Punjab":90,"Rajasthan":69,"Sikkim":38,"Tamil Nadu":68,"Telangana":71,"Tripura":48,"Uttar Pradesh":80,"Uttarakhand":57,"West Bengal":64,"NCT of Delhi":82,"Chandigarh":84,"Jammu and Kashmir":53,"Ladakh":35,"Puducherry":66}
+
+Values represent price competitiveness index 0-100 where 100 = state with highest modal price for ${farmerCrop} and 0 = lowest. Adjust realistically for the current month ${currentMonth} — harvest months mean lower prices in producing states.`;
+
+        const resp = await fetch(AI_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
+        });
+        if (!resp.ok) throw new Error("AI fetch failed");
+        const data = await resp.json();
+        const raw: string =
+          data.result ||
+          data.response ||
+          data.choices?.[0]?.message?.content ||
+          (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+          "";
+        const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON in AI response");
+        const parsed: Record<string, number> = JSON.parse(jsonMatch[0]);
+        if (Object.keys(parsed).length < 15) throw new Error("Insufficient state data");
+        try { localStorage.setItem(cacheKey, JSON.stringify(parsed)); } catch {}
+        if (alive) {
+          setByState(parsed);
+          setDataSource("ai");
         }
-        const avg: Record<string, number> = {};
-        Object.entries(grouped).forEach(([k, arr]) => { avg[k] = arr.reduce((a, b) => a + b, 0) / arr.length; });
-        const vals = Object.values(avg);
-        const min = Math.min(...vals), max = Math.max(...vals);
-        const idx: Record<string, number> = {};
-        Object.entries(avg).forEach(([k, v]) => { idx[k] = max === min ? 50 : Math.round(((v - min) / (max - min)) * 100); });
-        const normalizedIdx: Record<string, number> = {};
-        Object.entries(idx).forEach(([k, v]) => { normalizedIdx[normalizeStateName(k)] = v; });
-        if (alive) setByState(normalizedIdx);
-      } catch {
-        if (alive) setByState({});
+      } catch (err) {
+        console.error("AI heatmap error:", err);
+        const FALLBACK: Record<string, number> = {
+          "Punjab": 90, "Haryana": 87, "NCT of Delhi": 82, "Chandigarh": 84,
+          "Uttar Pradesh": 80, "Gujarat": 78, "Maharashtra": 74, "Andhra Pradesh": 72,
+          "Telangana": 71, "Tamil Nadu": 68, "Madhya Pradesh": 67, "Puducherry": 66,
+          "West Bengal": 64, "Jharkhand": 60, "Assam": 58, "Uttarakhand": 57,
+          "Himachal Pradesh": 55, "Jammu and Kashmir": 53, "Kerala": 52,
+          "Goa": 50, "Tripura": 48, "Meghalaya": 44, "Manipur": 42,
+          "Nagaland": 41, "Mizoram": 40, "Arunachal Pradesh": 38,
+          "Sikkim": 38, "Ladakh": 35, "Bihar": 65, "Chhattisgarh": 61,
+          "Karnataka": 70, "Odisha": 63, "Rajasthan": 69,
+        };
+        if (alive) {
+          setByState(FALLBACK);
+          setDataSource("error");
+        }
       } finally {
         if (alive) setLoading(false);
       }
     })();
     return () => { alive = false; };
-  }, [farmerCrop]);
+  }, [farmerCrop, retryCount]);
 
   const mandis = selectedState ? (STATE_MANDIS[selectedState] || []) : [];
 
@@ -203,10 +298,50 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
       `}</style>
       <h3 className="font-display font-semibold text-foreground mb-1 flex items-center gap-2">
         <MapPin className="h-5 w-5 text-primary" /> India Price Heatmap · {farmerCrop}
+        {dataSource === "ai" && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1">
+            ✦ AI powered
+          </span>
+        )}
+        {dataSource === "loading" && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium flex items-center gap-1">
+            <svg className="animate-spin h-2.5 w-2.5" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            Generating…
+          </span>
+        )}
+        {dataSource === "error" && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">
+            ⚠ Estimated data
+          </span>
+        )}
+        <button
+          onClick={() => {
+            const cacheKey = `km.heatmap.${farmerCrop}.${new Date().toISOString().slice(0, 10)}`;
+            try { localStorage.removeItem(cacheKey); } catch {}
+            setByState(null);
+            setLoading(true);
+            setDataSource("loading");
+            setRetryCount((c) => c + 1);
+          }}
+          className="ml-1 p-1 rounded hover:bg-muted transition-colors"
+          title="Regenerate AI price data"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
+          </svg>
+        </button>
       </h3>
       <p className="text-xs text-muted-foreground mb-3">
-        Live state-wise modal prices from Agmarknet. Greener = better price for your crop.
+        {dataSource === "ai"
+          ? `AI-generated price intelligence for ${farmerCrop} · ${new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })} · Greener = higher price`
+          : dataSource === "loading"
+          ? "Generating AI price intelligence for all states…"
+          : `Estimated price indices for ${farmerCrop} · Click any state for AI analysis`}
       </p>
+
 
       <div
         className="relative w-full rounded-xl overflow-hidden border border-border/40"
@@ -262,7 +397,12 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
                         setTooltip({ x: svgPt.x, y: svgPt.y, name: stateName, idx });
                       }}
                       onMouseLeave={() => setTooltip(null)}
-                      onClick={() => setSelectedState(prev => prev === stateName ? null : stateName)}
+                      onClick={() => {
+                        const next = selectedState === stateName ? null : stateName;
+                        setSelectedState(next);
+                        if (next) fetchStateInsight(next);
+                        else setAiInsight(null);
+                      }}
                     >
                       <title>{stateName}: {idx != null ? `Price Index ${idx}/100` : "No data"}</title>
                     </path>
@@ -318,44 +458,103 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
 
       {selectedState && (
         <div className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-semibold text-foreground">{selectedState}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                {byState?.[selectedState] != null ? `Price Index: ${byState[selectedState]}/100` : "No price data"}
-              </span>
+              {byState?.[selectedState] != null && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    byState[selectedState] >= 70
+                      ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                      : byState[selectedState] >= 45
+                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                      : "bg-red-500/15 text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {byState[selectedState] >= 70 ? "🟢" : byState[selectedState] >= 45 ? "🟡" : "🔴"} Price Index: {byState[selectedState]}/100
+                </span>
+              )}
               {selectedState === farmerState && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 font-medium">
                   📍 Your State
                 </span>
               )}
             </div>
             <button
-              onClick={() => setSelectedState(null)}
-              className="text-muted-foreground hover:text-foreground text-lg leading-none px-1"
+              onClick={() => { setSelectedState(null); setAiInsight(null); }}
+              className="text-muted-foreground hover:text-foreground text-xl leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors"
             >×</button>
           </div>
 
-          {mandis.length > 0 && (
-            <div>
-              <div className="text-xs text-muted-foreground mb-2">Nearby Mandis in {selectedState}</div>
-              <div className="flex flex-wrap gap-2">
-                {mandis.map(m => (
-                  <div key={m.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border/60 text-xs">
-                    <span className="text-primary">🏪</span>
-                    <span className="font-medium text-foreground">{m.name}</span>
-                    <span className="text-muted-foreground">~{m.baseDist} km</span>
+          {selectedState !== farmerState && byState?.[farmerState] != null && byState?.[selectedState] != null && (
+            <div className="mb-3 p-2.5 rounded-lg bg-background border border-border/50">
+              <div className="text-xs text-muted-foreground mb-1.5">
+                Price comparison: {farmerState} vs {selectedState}
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-20 truncate">{farmerState}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-blue-500/70 transition-all duration-700" style={{ width: `${byState[farmerState]}%` }} />
                   </div>
-                ))}
+                  <span className="text-[10px] font-medium w-6 text-right">{byState[farmerState]}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-20 truncate">{selectedState}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${byState[selectedState]}%`,
+                        background: byState[selectedState] > byState[farmerState] ? "hsl(142,70%,40%)" : "hsl(38,85%,50%)",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-medium w-6 text-right">{byState[selectedState]}</span>
+                </div>
+              </div>
+              <div className={`text-[10px] mt-1.5 font-medium ${byState[selectedState] > byState[farmerState] ? "text-green-600" : "text-amber-600"}`}>
+                {byState[selectedState] > byState[farmerState]
+                  ? `📈 ${selectedState} prices are ${byState[selectedState] - byState[farmerState]} points higher`
+                  : `📉 ${selectedState} prices are ${byState[farmerState] - byState[selectedState]} points lower`}
               </div>
             </div>
           )}
 
-          {selectedState !== farmerState && byState?.[farmerState] != null && byState?.[selectedState] != null && (
-            <div className="mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
-              {byState[selectedState] > byState[farmerState]
-                ? `📈 ${selectedState} has ${byState[selectedState] - byState[farmerState]} points higher price index than your state (${farmerState})`
-                : `📉 ${selectedState} has ${byState[farmerState] - byState[selectedState]} points lower price index than your state (${farmerState})`}
+          <div className="mb-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-xs font-medium text-foreground">✦ AI Market Insight</span>
+              {insightLoading && (
+                <svg className="animate-spin h-3 w-3 text-primary" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              )}
+            </div>
+            {insightLoading && (
+              <div className="space-y-1.5">
+                <div className="h-3 rounded bg-muted animate-pulse w-full" />
+                <div className="h-3 rounded bg-muted animate-pulse w-4/5" />
+              </div>
+            )}
+            {!insightLoading && aiInsight && (
+              <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-primary/30 pl-2">
+                {aiInsight}
+              </p>
+            )}
+          </div>
+
+          {mandis.length > 0 && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1.5 font-medium">🏪 Major Mandis in {selectedState}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {mandis.map((m) => (
+                  <div key={m.name} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-background border border-border/60 text-[11px]">
+                    <span className="font-medium text-foreground">{m.name}</span>
+                    <span className="text-muted-foreground">~{m.baseDist}km</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
