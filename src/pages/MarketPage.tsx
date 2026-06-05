@@ -298,10 +298,50 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
       `}</style>
       <h3 className="font-display font-semibold text-foreground mb-1 flex items-center gap-2">
         <MapPin className="h-5 w-5 text-primary" /> India Price Heatmap · {farmerCrop}
+        {dataSource === "ai" && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1">
+            ✦ AI powered
+          </span>
+        )}
+        {dataSource === "loading" && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium flex items-center gap-1">
+            <svg className="animate-spin h-2.5 w-2.5" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            Generating…
+          </span>
+        )}
+        {dataSource === "error" && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">
+            ⚠ Estimated data
+          </span>
+        )}
+        <button
+          onClick={() => {
+            const cacheKey = `km.heatmap.${farmerCrop}.${new Date().toISOString().slice(0, 10)}`;
+            try { localStorage.removeItem(cacheKey); } catch {}
+            setByState(null);
+            setLoading(true);
+            setDataSource("loading");
+            setRetryCount((c) => c + 1);
+          }}
+          className="ml-1 p-1 rounded hover:bg-muted transition-colors"
+          title="Regenerate AI price data"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
+          </svg>
+        </button>
       </h3>
       <p className="text-xs text-muted-foreground mb-3">
-        Live state-wise modal prices from Agmarknet. Greener = better price for your crop.
+        {dataSource === "ai"
+          ? `AI-generated price intelligence for ${farmerCrop} · ${new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })} · Greener = higher price`
+          : dataSource === "loading"
+          ? "Generating AI price intelligence for all states…"
+          : `Estimated price indices for ${farmerCrop} · Click any state for AI analysis`}
       </p>
+
 
       <div
         className="relative w-full rounded-xl overflow-hidden border border-border/40"
