@@ -462,40 +462,105 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-semibold text-foreground">{selectedState}</span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                {byState?.[selectedState] != null ? `Price Index: ${byState[selectedState]}/100` : "No price data"}
-              </span>
+      {selectedState && (
+        <div className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-semibold text-foreground">{selectedState}</span>
+              {byState?.[selectedState] != null && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    byState[selectedState] >= 70
+                      ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                      : byState[selectedState] >= 45
+                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                      : "bg-red-500/15 text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {byState[selectedState] >= 70 ? "🟢" : byState[selectedState] >= 45 ? "🟡" : "🔴"} Price Index: {byState[selectedState]}/100
+                </span>
+              )}
               {selectedState === farmerState && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 font-medium">
                   📍 Your State
                 </span>
               )}
             </div>
             <button
-              onClick={() => setSelectedState(null)}
-              className="text-muted-foreground hover:text-foreground text-lg leading-none px-1"
+              onClick={() => { setSelectedState(null); setAiInsight(null); }}
+              className="text-muted-foreground hover:text-foreground text-xl leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors"
             >×</button>
           </div>
 
-          {mandis.length > 0 && (
-            <div>
-              <div className="text-xs text-muted-foreground mb-2">Nearby Mandis in {selectedState}</div>
-              <div className="flex flex-wrap gap-2">
-                {mandis.map(m => (
-                  <div key={m.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border/60 text-xs">
-                    <span className="text-primary">🏪</span>
-                    <span className="font-medium text-foreground">{m.name}</span>
-                    <span className="text-muted-foreground">~{m.baseDist} km</span>
+          {selectedState !== farmerState && byState?.[farmerState] != null && byState?.[selectedState] != null && (
+            <div className="mb-3 p-2.5 rounded-lg bg-background border border-border/50">
+              <div className="text-xs text-muted-foreground mb-1.5">
+                Price comparison: {farmerState} vs {selectedState}
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-20 truncate">{farmerState}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-blue-500/70 transition-all duration-700" style={{ width: `${byState[farmerState]}%` }} />
                   </div>
-                ))}
+                  <span className="text-[10px] font-medium w-6 text-right">{byState[farmerState]}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-20 truncate">{selectedState}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${byState[selectedState]}%`,
+                        background: byState[selectedState] > byState[farmerState] ? "hsl(142,70%,40%)" : "hsl(38,85%,50%)",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-medium w-6 text-right">{byState[selectedState]}</span>
+                </div>
+              </div>
+              <div className={`text-[10px] mt-1.5 font-medium ${byState[selectedState] > byState[farmerState] ? "text-green-600" : "text-amber-600"}`}>
+                {byState[selectedState] > byState[farmerState]
+                  ? `📈 ${selectedState} prices are ${byState[selectedState] - byState[farmerState]} points higher`
+                  : `📉 ${selectedState} prices are ${byState[farmerState] - byState[selectedState]} points lower`}
               </div>
             </div>
           )}
 
-          {selectedState !== farmerState && byState?.[farmerState] != null && byState?.[selectedState] != null && (
-            <div className="mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
-              {byState[selectedState] > byState[farmerState]
-                ? `📈 ${selectedState} has ${byState[selectedState] - byState[farmerState]} points higher price index than your state (${farmerState})`
-                : `📉 ${selectedState} has ${byState[farmerState] - byState[selectedState]} points lower price index than your state (${farmerState})`}
+          <div className="mb-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-xs font-medium text-foreground">✦ AI Market Insight</span>
+              {insightLoading && (
+                <svg className="animate-spin h-3 w-3 text-primary" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              )}
+            </div>
+            {insightLoading && (
+              <div className="space-y-1.5">
+                <div className="h-3 rounded bg-muted animate-pulse w-full" />
+                <div className="h-3 rounded bg-muted animate-pulse w-4/5" />
+              </div>
+            )}
+            {!insightLoading && aiInsight && (
+              <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-primary/30 pl-2">
+                {aiInsight}
+              </p>
+            )}
+          </div>
+
+          {mandis.length > 0 && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1.5 font-medium">🏪 Major Mandis in {selectedState}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {mandis.map((m) => (
+                  <div key={m.name} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-background border border-border/60 text-[11px]">
+                    <span className="font-medium text-foreground">{m.name}</span>
+                    <span className="text-muted-foreground">~{m.baseDist}km</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
