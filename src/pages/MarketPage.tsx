@@ -66,38 +66,95 @@ function priceColor(idx: number | null) {
   return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`;
 }
 
-/* ---------- Simplified India state polygons for 600x560 viewBox ---------- */
-const STATE_PATHS: Record<string, string> = {
-  "Jammu and Kashmir": "M 178 22 L 248 18 L 268 30 L 282 52 L 265 68 L 238 72 L 212 80 L 192 65 L 175 48 Z",
-  "Himachal Pradesh": "M 212 80 L 258 72 L 278 88 L 268 112 L 238 118 L 215 105 Z",
-  "Punjab": "M 192 100 L 218 95 L 238 118 L 225 138 L 200 140 L 185 122 Z",
-  "Haryana": "M 218 118 L 252 115 L 268 112 L 272 148 L 248 158 L 225 150 L 218 135 Z",
-  "Uttarakhand": "M 268 112 L 310 108 L 325 130 L 305 148 L 278 150 L 268 135 Z",
-  "Delhi": "M 245 152 L 260 150 L 262 165 L 248 168 Z",
-  "Uttar Pradesh": "M 248 158 L 380 150 L 402 175 L 390 215 L 330 228 L 270 220 L 248 195 Z",
-  "Rajasthan": "M 118 138 L 195 130 L 225 150 L 248 195 L 230 260 L 185 288 L 130 270 L 100 225 L 105 178 Z",
-  "Bihar": "M 390 175 L 448 172 L 460 198 L 445 222 L 398 225 L 385 205 Z",
-  "Sikkim": "M 448 152 L 462 148 L 468 162 L 456 168 Z",
-  "West Bengal": "M 448 172 L 475 168 L 490 185 L 485 230 L 468 260 L 448 255 L 440 230 L 445 205 Z",
-  "Jharkhand": "M 398 225 L 448 222 L 462 245 L 448 268 L 415 272 L 395 252 Z",
-  "Odisha": "M 415 272 L 460 265 L 478 285 L 472 325 L 442 342 L 410 330 L 398 305 L 400 280 Z",
-  "Madhya Pradesh": "M 175 258 L 330 245 L 355 268 L 358 308 L 318 325 L 220 330 L 175 310 L 162 280 Z",
-  "Chhattisgarh": "M 330 255 L 395 252 L 408 280 L 400 328 L 368 348 L 338 338 L 322 308 Z",
-  "Gujarat": "M 68 252 L 128 242 L 162 268 L 170 318 L 145 352 L 95 358 L 60 330 L 52 295 Z",
-  "Daman and Diu": "M 130 348 L 140 345 L 142 355 L 132 358 Z",
-  "Maharashtra": "M 138 325 L 250 315 L 320 320 L 342 352 L 330 395 L 278 415 L 195 412 L 145 385 L 132 355 Z",
-  "Telangana": "M 280 388 L 350 378 L 370 400 L 365 440 L 330 455 L 292 448 L 272 425 Z",
-  "Andhra Pradesh": "M 295 415 L 370 408 L 398 428 L 402 478 L 372 498 L 330 505 L 295 488 L 278 460 L 282 432 Z",
-  "Karnataka": "M 175 415 L 280 408 L 295 435 L 288 488 L 252 508 L 205 510 L 168 488 L 162 455 L 168 428 Z",
-  "Goa": "M 158 448 L 178 445 L 182 462 L 165 468 Z",
-  "Kerala": "M 195 492 L 235 485 L 248 510 L 240 538 L 215 548 L 195 532 L 188 512 Z",
-  "Tamil Nadu": "M 262 492 L 325 498 L 340 525 L 322 548 L 288 555 L 258 538 L 248 515 Z",
+/* ---------- Agmarknet API state name -> GeoJSON NAME_1 ---------- */
+const AGMARKNET_TO_GEOJSON: Record<string, string> = {
+  "andaman and nicobar": "Andaman and Nicobar",
+  "andhra pradesh": "Andhra Pradesh",
+  "arunachal pradesh": "Arunachal Pradesh",
+  "assam": "Assam",
+  "bihar": "Bihar",
+  "chandigarh": "Chandigarh",
+  "chhattisgarh": "Chhattisgarh",
+  "dadra and nagar haveli": "Dadra and Nagar Haveli",
+  "daman and diu": "Daman and Diu",
+  "delhi": "NCT of Delhi",
+  "goa": "Goa",
+  "gujarat": "Gujarat",
+  "haryana": "Haryana",
+  "himachal pradesh": "Himachal Pradesh",
+  "jammu & kashmir": "Jammu and Kashmir",
+  "jammu and kashmir": "Jammu and Kashmir",
+  "jharkhand": "Jharkhand",
+  "karnataka": "Karnataka",
+  "kerala": "Kerala",
+  "lakshadweep": "Lakshadweep",
+  "madhya pradesh": "Madhya Pradesh",
+  "maharashtra": "Maharashtra",
+  "manipur": "Manipur",
+  "meghalaya": "Meghalaya",
+  "mizoram": "Mizoram",
+  "nagaland": "Nagaland",
+  "odisha": "Odisha",
+  "orissa": "Odisha",
+  "puducherry": "Puducherry",
+  "punjab": "Punjab",
+  "rajasthan": "Rajasthan",
+  "sikkim": "Sikkim",
+  "tamil nadu": "Tamil Nadu",
+  "telangana": "Telangana",
+  "tripura": "Tripura",
+  "uttar pradesh": "Uttar Pradesh",
+  "uttarakhand": "Uttarakhand",
+  "uttaranchal": "Uttarakhand",
+  "west bengal": "West Bengal",
 };
+
+function normalizeStateName(apiState: string): string {
+  return AGMARKNET_TO_GEOJSON[apiState.toLowerCase().trim()] || apiState.trim();
+}
 
 /* ---------- India price map ---------- */
 function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmerState: string }) {
   const [byState, setByState] = useState<Record<string, number> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [geoFeatures, setGeoFeatures] = useState<any[]>([]);
+  const [pathStrings, setPathStrings] = useState<Record<string, string>>({});
+  const [geoLoading, setGeoLoading] = useState(true);
+  const [geoError, setGeoError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; name: string; idx: number | null } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setGeoLoading(true);
+    setGeoError(false);
+    (async () => {
+      try {
+        const r = await fetch("https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson");
+        const json = await r.json();
+        if (!alive) return;
+        const features = json.features || [];
+        const projection = geoMercator().fitSize([600, 580], json);
+        const pathGen = geoPath().projection(projection);
+        const paths: Record<string, string> = {};
+        features.forEach((f: any) => {
+          const name = f.properties?.NAME_1 || f.properties?.st_nm || "";
+          const d = pathGen(f);
+          if (name && d) paths[name] = d;
+        });
+        setGeoFeatures(features);
+        setPathStrings(paths);
+        setGeoLoading(false);
+      } catch {
+        if (alive) {
+          setGeoError(true);
+          setGeoLoading(false);
+        }
+      }
+    })();
+    return () => { alive = false; };
+  }, [retryCount]);
 
   useEffect(() => {
     let alive = true;
@@ -121,7 +178,9 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
         const min = Math.min(...vals), max = Math.max(...vals);
         const idx: Record<string, number> = {};
         Object.entries(avg).forEach(([k, v]) => { idx[k] = max === min ? 50 : Math.round(((v - min) / (max - min)) * 100); });
-        if (alive) setByState(idx);
+        const normalizedIdx: Record<string, number> = {};
+        Object.entries(idx).forEach(([k, v]) => { normalizedIdx[normalizeStateName(k)] = v; });
+        if (alive) setByState(normalizedIdx);
       } catch {
         if (alive) setByState({});
       } finally {
@@ -131,6 +190,8 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
     return () => { alive = false; };
   }, [farmerCrop]);
 
+  const mandis = selectedState ? (STATE_MANDIS[selectedState] || []) : [];
+
   return (
     <div className="glass-card p-5">
       <style>{`
@@ -138,6 +199,7 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
         @keyframes shimmer-pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
         .state-shimmer { animation: shimmer-pulse 1.4s ease-in-out infinite; }
         .farmer-ring { stroke: white; animation: state-pulse 1.8s ease-in-out infinite; }
+        path:hover { opacity: 0.82; }
       `}</style>
       <h3 className="font-display font-semibold text-foreground mb-1 flex items-center gap-2">
         <MapPin className="h-5 w-5 text-primary" /> India Price Heatmap · {farmerCrop}
@@ -146,37 +208,187 @@ function IndiaPriceMap({ farmerCrop, farmerState }: { farmerCrop: string; farmer
         Live state-wise modal prices from Agmarknet. Greener = better price for your crop.
       </p>
 
-      <div className="relative w-full rounded-xl overflow-hidden border border-border/40" style={{ aspectRatio: "600/560", background: "linear-gradient(180deg, hsl(210 30% 96%) 0%, hsl(210 25% 90%) 100%)" }}>
-        <svg viewBox="0 0 600 560" className="w-full h-full" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))" }}>
-          {Object.entries(STATE_PATHS).map(([st, d]) => {
-            const idx = byState?.[st.toLowerCase()] ?? null;
-            const isFarmer = st === farmerState;
-            return (
-              <g key={st}>
-                <path
-                  d={d}
-                  fill={loading ? "hsl(35, 20%, 75%)" : priceColor(idx)}
-                  stroke={isFarmer ? "hsl(0 0% 100%)" : "hsl(220 15% 25%)"}
-                  strokeWidth={isFarmer ? 3 : 1.2}
-                  strokeLinejoin="round"
-                  className={`${loading ? "state-shimmer" : ""} ${isFarmer ? "farmer-ring" : ""} transition-opacity hover:opacity-80 cursor-pointer`}
-                >
-                  <title>{st}{idx != null ? ` · Price Index ${idx}/100` : " · no data"}</title>
-                </path>
-              </g>
-            );
-          })}
+      <div
+        className="relative w-full rounded-xl overflow-hidden border border-border/40"
+        style={{ aspectRatio: "600/580", background: "linear-gradient(180deg, hsl(200 40% 95%) 0%, hsl(200 35% 88%) 100%)" }}
+      >
+        <svg viewBox="0 0 600 580" className="w-full h-full" style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.12))" }}>
+          {geoLoading && (
+            <>
+              <rect x={0} y={0} width={600} height={580} fill="hsl(var(--muted) / 0.4)" className="state-shimmer" />
+              <text x={300} y={290} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize={14}>
+                Loading India map…
+              </text>
+            </>
+          )}
+          {!geoLoading && geoError && (
+            <>
+              <rect x={0} y={0} width={600} height={580} fill="hsl(var(--muted) / 0.3)" />
+              <text x={300} y={280} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize={14}>
+                Map unavailable — check connection
+              </text>
+            </>
+          )}
+          {!geoLoading && !geoError && (
+            <g>
+              {Object.entries(pathStrings).map(([stateName, pathD]) => {
+                const idx = byState?.[stateName] ?? null;
+                const isFarmer = stateName === farmerState;
+                const isSelected = stateName === selectedState;
+                const fillColor = (loading && byState === null) ? "hsl(35, 20%, 78%)" : priceColor(idx);
+                return (
+                  <g key={stateName}>
+                    <path
+                      d={pathD}
+                      fill={fillColor}
+                      stroke={isFarmer ? "white" : isSelected ? "hsl(var(--primary))" : "hsl(220 15% 30% / 0.6)"}
+                      strokeWidth={isFarmer ? 2.5 : isSelected ? 2 : 0.8}
+                      strokeLinejoin="round"
+                      className={loading && byState === null ? "state-shimmer" : ""}
+                      style={{
+                        cursor: "pointer",
+                        transition: "opacity 0.2s, filter 0.2s",
+                        filter: isSelected ? "brightness(1.15)" : "none",
+                      }}
+                      onMouseEnter={(e) => {
+                        const svgEl = e.currentTarget.closest("svg") as SVGSVGElement | null;
+                        if (!svgEl) return;
+                        const pt = svgEl.createSVGPoint();
+                        pt.x = e.clientX;
+                        pt.y = e.clientY;
+                        const ctm = svgEl.getScreenCTM();
+                        if (!ctm) return;
+                        const svgPt = pt.matrixTransform(ctm.inverse());
+                        setTooltip({ x: svgPt.x, y: svgPt.y, name: stateName, idx });
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                      onClick={() => setSelectedState(prev => prev === stateName ? null : stateName)}
+                    >
+                      <title>{stateName}: {idx != null ? `Price Index ${idx}/100` : "No data"}</title>
+                    </path>
+                    {isFarmer && (
+                      <path
+                        d={pathD}
+                        fill="none"
+                        stroke="white"
+                        strokeWidth={3}
+                        className="farmer-ring"
+                        pointerEvents="none"
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          )}
+          {tooltip && (
+            <g style={{ pointerEvents: "none" }}>
+              <rect
+                x={tooltip.x + 8}
+                y={tooltip.y - 28}
+                width={160}
+                height={36}
+                rx={6}
+                ry={6}
+                fill="hsl(var(--popover))"
+                stroke="hsl(var(--border))"
+                strokeWidth={1}
+                style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.2))" }}
+              />
+              <text x={tooltip.x + 16} y={tooltip.y - 14} fontSize={11} fontWeight="600" fill="hsl(var(--popover-foreground))">
+                {tooltip.name}
+              </text>
+              <text x={tooltip.x + 16} y={tooltip.y - 2} fontSize={10} fill="hsl(var(--muted-foreground))">
+                {tooltip.idx != null ? `Price Index: ${tooltip.idx}/100` : "No data available"}
+              </text>
+            </g>
+          )}
         </svg>
+        {!geoLoading && geoError && (
+          <div className="absolute inset-0 flex items-end justify-center pb-16 pointer-events-none">
+            <button
+              onClick={() => setRetryCount(c => c + 1)}
+              className="pointer-events-auto inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background border border-border text-xs font-medium hover:bg-muted"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </button>
+          </div>
+        )}
       </div>
 
+      {selectedState && (
+        <div className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base font-semibold text-foreground">{selectedState}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                {byState?.[selectedState] != null ? `Price Index: ${byState[selectedState]}/100` : "No price data"}
+              </span>
+              {selectedState === farmerState && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
+                  📍 Your State
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setSelectedState(null)}
+              className="text-muted-foreground hover:text-foreground text-lg leading-none px-1"
+            >×</button>
+          </div>
+
+          {mandis.length > 0 && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">Nearby Mandis in {selectedState}</div>
+              <div className="flex flex-wrap gap-2">
+                {mandis.map(m => (
+                  <div key={m.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border/60 text-xs">
+                    <span className="text-primary">🏪</span>
+                    <span className="font-medium text-foreground">{m.name}</span>
+                    <span className="text-muted-foreground">~{m.baseDist} km</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedState !== farmerState && byState?.[farmerState] != null && byState?.[selectedState] != null && (
+            <div className="mt-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
+              {byState[selectedState] > byState[farmerState]
+                ? `📈 ${selectedState} has ${byState[selectedState] - byState[farmerState]} points higher price index than your state (${farmerState})`
+                : `📉 ${selectedState} has ${byState[farmerState] - byState[selectedState]} points lower price index than your state (${farmerState})`}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Legend */}
-      <div className="mt-3">
-        <div className="text-[11px] text-muted-foreground mb-1">Price Index: Low → High</div>
-        <div className="h-2.5 rounded-full" style={{
-          background: "linear-gradient(90deg, hsl(38,85%,55%) 0%, hsl(90,77%,45%) 50%, hsl(142,70%,35%) 100%)",
-        }} />
-        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-          <span>0</span><span>50</span><span>100</span>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="flex-1">
+          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+            <span>Low price</span>
+            <span>Price Index: {farmerCrop}</span>
+            <span>High price</span>
+          </div>
+          <div
+            className="h-3 rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, hsl(38,90%,55%) 0%, hsl(80,83%,48%) 35%, hsl(115,76%,42%) 65%, hsl(142,70%,34%) 100%)",
+            }}
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 text-[10px] text-muted-foreground flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-sm border-2 border-white bg-transparent" />
+            Your state
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-sm" style={{ background: "hsl(35,25%,78%)" }} />
+            No data
+          </div>
         </div>
       </div>
     </div>
