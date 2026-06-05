@@ -397,7 +397,12 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
                         setTooltip({ x: svgPt.x, y: svgPt.y, name: stateName, idx });
                       }}
                       onMouseLeave={() => setTooltip(null)}
-                      onClick={() => setSelectedState(prev => prev === stateName ? null : stateName)}
+                      onClick={() => {
+                        const next = selectedState === stateName ? null : stateName;
+                        setSelectedState(next);
+                        if (next) fetchStateInsight(next);
+                        else setAiInsight(null);
+                      }}
                     >
                       <title>{stateName}: {idx != null ? `Price Index ${idx}/100` : "No data"}</title>
                     </path>
