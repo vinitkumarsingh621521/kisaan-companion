@@ -202,36 +202,88 @@ Be specific. Use crop and state names. No bullet points. Plain text only.`;
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setDataSource("loading");
+    const cacheKey = `km.heatmap.${farmerCrop}.${new Date().toISOString().slice(0, 10)}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 5) {
+          setByState(parsed);
+          setLoading(false);
+          setDataSource("ai");
+          return;
+        }
+      }
+    } catch {}
+
     (async () => {
       try {
-        const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=579b464db66ec23bdd000001cdd3084b34264d06e3aa6bece006ccee&format=json&filters%5Bcommodity%5D=${encodeURIComponent(farmerCrop)}&limit=100`;
-        const r = await fetch(url);
-        const json = await r.json();
-        const recs: any[] = json.records || [];
-        const grouped: Record<string, number[]> = {};
-        for (const rec of recs) {
-          const st = String(rec.state || rec.State || "").trim().toLowerCase();
-          const p = parseFloat(rec.modal_price || rec.Modal_Price || "0");
-          if (!st || !p) continue;
-          (grouped[st] ||= []).push(p);
+        const currentMonth = new Date().toLocaleString("en-IN", { month: "long" });
+        const currentYear = new Date().getFullYear();
+        const prompt = `You are an expert Indian agricultural commodity market analyst. Generate realistic state-wise price index data for ${farmerCrop} across all Indian states for ${currentMonth} ${currentYear}.
+Consider these real factors:
+- Regional production surplus/deficit for ${farmerCrop}
+- State-wise demand patterns and consumption
+- Market connectivity and transport infrastructure
+- Seasonal harvest calendar for ${farmerCrop}
+- Historical APMC price trends
+
+Return ONLY a raw JSON object. No markdown. No explanation. No code blocks. No text before or after.
+Format exactly like this:
+{"Andhra Pradesh":72,"Arunachal Pradesh":45,"Assam":58,"Bihar":65,"Chhattisgarh":61,"Goa":50,"Gujarat":78,"Haryana":85,"Himachal Pradesh":55,"Jharkhand":60,"Karnataka":70,"Kerala":52,"Madhya Pradesh":67,"Maharashtra":74,"Manipur":42,"Meghalaya":44,"Mizoram":40,"Nagaland":41,"Odisha":63,"Punjab":90,"Rajasthan":69,"Sikkim":38,"Tamil Nadu":68,"Telangana":71,"Tripura":48,"Uttar Pradesh":80,"Uttarakhand":57,"West Bengal":64,"NCT of Delhi":82,"Chandigarh":84,"Jammu and Kashmir":53,"Ladakh":35,"Puducherry":66}
+
+Values represent price competitiveness index 0-100 where 100 = state with highest modal price for ${farmerCrop} and 0 = lowest. Adjust realistically for the current month ${currentMonth} — harvest months mean lower prices in producing states.`;
+
+        const resp = await fetch(AI_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
+        });
+        if (!resp.ok) throw new Error("AI fetch failed");
+        const data = await resp.json();
+        const raw: string =
+          data.result ||
+          data.response ||
+          data.choices?.[0]?.message?.content ||
+          (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+          "";
+        const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON in AI response");
+        const parsed: Record<string, number> = JSON.parse(jsonMatch[0]);
+        if (Object.keys(parsed).length < 15) throw new Error("Insufficient state data");
+        try { localStorage.setItem(cacheKey, JSON.stringify(parsed)); } catch {}
+        if (alive) {
+          setByState(parsed);
+          setDataSource("ai");
         }
-        const avg: Record<string, number> = {};
-        Object.entries(grouped).forEach(([k, arr]) => { avg[k] = arr.reduce((a, b) => a + b, 0) / arr.length; });
-        const vals = Object.values(avg);
-        const min = Math.min(...vals), max = Math.max(...vals);
-        const idx: Record<string, number> = {};
-        Object.entries(avg).forEach(([k, v]) => { idx[k] = max === min ? 50 : Math.round(((v - min) / (max - min)) * 100); });
-        const normalizedIdx: Record<string, number> = {};
-        Object.entries(idx).forEach(([k, v]) => { normalizedIdx[normalizeStateName(k)] = v; });
-        if (alive) setByState(normalizedIdx);
-      } catch {
-        if (alive) setByState({});
+      } catch (err) {
+        console.error("AI heatmap error:", err);
+        const FALLBACK: Record<string, number> = {
+          "Punjab": 90, "Haryana": 87, "NCT of Delhi": 82, "Chandigarh": 84,
+          "Uttar Pradesh": 80, "Gujarat": 78, "Maharashtra": 74, "Andhra Pradesh": 72,
+          "Telangana": 71, "Tamil Nadu": 68, "Madhya Pradesh": 67, "Puducherry": 66,
+          "West Bengal": 64, "Jharkhand": 60, "Assam": 58, "Uttarakhand": 57,
+          "Himachal Pradesh": 55, "Jammu and Kashmir": 53, "Kerala": 52,
+          "Goa": 50, "Tripura": 48, "Meghalaya": 44, "Manipur": 42,
+          "Nagaland": 41, "Mizoram": 40, "Arunachal Pradesh": 38,
+          "Sikkim": 38, "Ladakh": 35, "Bihar": 65, "Chhattisgarh": 61,
+          "Karnataka": 70, "Odisha": 63, "Rajasthan": 69,
+        };
+        if (alive) {
+          setByState(FALLBACK);
+          setDataSource("error");
+        }
       } finally {
         if (alive) setLoading(false);
       }
     })();
     return () => { alive = false; };
-  }, [farmerCrop]);
+  }, [farmerCrop, retryCount]);
 
   const mandis = selectedState ? (STATE_MANDIS[selectedState] || []) : [];
 
