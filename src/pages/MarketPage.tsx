@@ -458,12 +458,6 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
 
       {selectedState && (
         <div className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-semibold text-foreground">{selectedState}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-      {selectedState && (
-        <div className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-semibold text-foreground">{selectedState}</span>
