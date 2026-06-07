@@ -391,11 +391,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _badge_catalog: {
+        Args: { _badge_id: string }
+        Returns: {
+          badge_id: string
+          badge_name: string
+          xp: number
+        }[]
+      }
       admin_exists: { Args: never; Returns: boolean }
+      award_badge: { Args: { _badge_id: string }; Returns: Json }
       bump_paper_counter: {
         Args: { _field: string; _paper_id: string }
         Returns: undefined
       }
+      bump_streak: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

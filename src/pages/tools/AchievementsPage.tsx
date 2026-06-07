@@ -70,16 +70,17 @@ export default function AchievementsPage() {
     if (earned.has(badgeId)) return;
     const badge = ALL_BADGES.find(b => b.id === badgeId);
     if (!badge || !user) return;
-    const { error } = await supabase.from("achievements").insert({
-      user_id: user.id, badge_id: badge.id, badge_name: badge.name, xp: badge.xp,
-    });
-    if (!error) {
+    const { data, error } = await supabase.rpc("award_badge", { _badge_id: badgeId });
+    const res: any = data;
+    if (!error && res?.awarded) {
       setEarned(prev => new Set(prev).add(badge.id));
       await addXP(badge.xp);
       if (!silent) {
         toast.success(`🏆 New badge: ${badge.name}! +${badge.xp} XP`);
         fireConfetti();
       }
+    } else if (!error && res?.already_earned) {
+      setEarned(prev => new Set(prev).add(badge.id));
     }
   };
 

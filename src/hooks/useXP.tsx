@@ -9,9 +9,6 @@ export interface XPRow {
   last_active_date: string | null;
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
-const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
-
 export function useXP() {
   const { user } = useAuth();
   const [data, setData] = useState<XPRow | null>(null);
@@ -19,40 +16,34 @@ export function useXP() {
 
   const load = useCallback(async () => {
     if (!user) { setData(null); setLoading(false); return; }
-    const { data: row } = await supabase
-      .from("user_xp")
-      .select("xp, level, streak_days, last_active_date")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (!row) {
-      const seed = { user_id: user.id, xp: 0, level: 1, streak_days: 1, last_active_date: today() };
-      await supabase.from("user_xp").insert(seed);
-      setData({ xp: 0, level: 1, streak_days: 1, last_active_date: today() });
+    // Server-side seed + daily streak bump (no direct table writes allowed)
+    const { data: bumped } = await supabase.rpc("bump_streak");
+    if (bumped) {
+      const r: any = bumped;
+      setData({
+        xp: r.xp ?? 0,
+        level: r.level ?? 1,
+        streak_days: r.streak_days ?? 1,
+        last_active_date: r.last_active_date ?? null,
+      });
     } else {
-      // streak update on first load each day
-      let { xp, level, streak_days, last_active_date } = row;
-      if (last_active_date !== today()) {
-        if (last_active_date === yesterday()) streak_days += 1;
-        else streak_days = 1;
-        last_active_date = today();
-        await supabase.from("user_xp").update({ streak_days, last_active_date }).eq("user_id", user.id);
-      }
-      setData({ xp, level, streak_days, last_active_date });
+      const { data: row } = await supabase
+        .from("user_xp")
+        .select("xp, level, streak_days, last_active_date")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (row) setData(row as XPRow);
     }
     setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
-  const addXP = useCallback(async (amount: number) => {
-    if (!user || !data) return;
-    const newXp = data.xp + amount;
-    const newLevel = Math.floor(newXp / 100) + 1;
-    await supabase.from("user_xp").update({ xp: newXp, level: newLevel }).eq("user_id", user.id);
-    setData({ ...data, xp: newXp, level: newLevel });
-    return { leveledUp: newLevel > data.level, newLevel };
-  }, [user, data]);
+  // XP can only be granted via award_badge RPC. This helper reloads after awards.
+  const addXP = useCallback(async (_amount: number) => {
+    await load();
+    return { leveledUp: false, newLevel: data?.level ?? 1 };
+  }, [load, data?.level]);
 
   return { data, loading, addXP, reload: load };
 }
