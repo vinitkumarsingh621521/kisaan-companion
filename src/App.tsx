@@ -26,6 +26,7 @@ import { DowryUnlockProvider } from "./hooks/useDowryUnlock";
 
 const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
 const DowryEstimatorPage = lazy(() => import("./pages/DowryEstimatorPage"));
+const KrishiMandalaPage = lazy(() => import("./pages/KrishiMandalaPage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
