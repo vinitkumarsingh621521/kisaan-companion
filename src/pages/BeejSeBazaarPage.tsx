@@ -596,8 +596,9 @@ Planned with KrishiMate — Beej se Bazaar 🚜`;
             </div>
           </section>
         )}
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </AgriPageBackground>
   );
 }
