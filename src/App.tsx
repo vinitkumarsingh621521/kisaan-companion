@@ -26,6 +26,7 @@ import { DowryUnlockProvider } from "./hooks/useDowryUnlock";
 
 const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
 const DowryEstimatorPage = lazy(() => import("./pages/DowryEstimatorPage"));
+const KrishiMandalaPage = lazy(() => import("./pages/KrishiMandalaPage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -93,6 +94,7 @@ function AnimatedRoutes() {
           <Route path="/tools/achievements" element={<PageTransition><AuthGuard>{lazyRoute(<AchievementsPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/offline" element={<PageTransition>{lazyRoute(<OfflinePage />)}</PageTransition>} />
           <Route path="/dowry-estimator" element={<PageTransition><AuthGuard>{lazyRoute(<DowryEstimatorPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/mandala" element={<PageTransition>{lazyRoute(<KrishiMandalaPage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>

@@ -36,6 +36,7 @@ export default function Navbar() {
     { label: t("nav.home"), path: "/" },
     { label: t("nav.dashboard"), path: "/dashboard" },
     { label: t("nav.aiAdvisor", "AI Advisor"), path: "/ai-advisor", badge: "NEW" },
+    { label: "Mandala", path: "/mandala", badge: "✦" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
