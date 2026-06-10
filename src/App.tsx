@@ -94,6 +94,7 @@ function AnimatedRoutes() {
           <Route path="/tools/achievements" element={<PageTransition><AuthGuard>{lazyRoute(<AchievementsPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/offline" element={<PageTransition>{lazyRoute(<OfflinePage />)}</PageTransition>} />
           <Route path="/dowry-estimator" element={<PageTransition><AuthGuard>{lazyRoute(<DowryEstimatorPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/mandala" element={<PageTransition>{lazyRoute(<KrishiMandalaPage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
