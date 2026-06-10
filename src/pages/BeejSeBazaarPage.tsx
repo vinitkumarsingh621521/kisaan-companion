@@ -424,10 +424,10 @@ Planned with KrishiMate — Beej se Bazaar 🚜`;
   }
 
   return (
-    <div className="min-h-screen flex flex-col relative">
-      <AgriPageBackground variant="crops">{null}</AgriPageBackground>
-      <Navbar />
-      <main className="flex-1">
+    <AgriPageBackground variant="crops">
+      <div className="min-h-screen flex flex-col relative">
+        <Navbar />
+        <main className="flex-1">
         <Hero onJump={() => journeySectionRef.current?.scrollIntoView({ behavior: "smooth" })} />
 
         {/* CONTROLS */}
