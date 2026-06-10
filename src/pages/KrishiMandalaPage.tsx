@@ -288,8 +288,10 @@ function Mandala({ selected, onSelect, hovered, onHover, rotation }: MandalaProp
 // ─────────────────────────────────────────────────────────────────────────────
 export default function KrishiMandalaPage() {
   const { active } = useActiveProfile();
-  const state = active?.state || "India";
-  const crop = active?.primary_crop || "your crops";
+  const details = (active?.farmer_details || {}) as Record<string, any>;
+  const state: string = details.state || active?.farm_location || "India";
+  const cropsArr = Array.isArray(details.current_crops) ? details.current_crops : [];
+  const crop: string = cropsArr[0] || details.primary_crop || "your crops";
 
   const [selected, setSelected] = useState<number>(new Date().getMonth());
   const [hovered, setHovered] = useState<number | null>(null);
