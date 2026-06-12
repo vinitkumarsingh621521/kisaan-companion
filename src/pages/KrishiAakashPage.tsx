@@ -226,6 +226,25 @@ function SkyCanvas({
         ctx.fillStyle = `hsla(40, 100%, 90%, ${a})`;
         ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
       }
+      // shooting stars
+      nextShoot -= frameDt;
+      if (nextShoot <= 0) { spawnShooter(); nextShoot = 2 + Math.random() * 4; }
+      for (let i = shooters.length - 1; i >= 0; i--) {
+        const sh = shooters[i];
+        sh.life += frameDt;
+        sh.x += sh.vx * frameDt; sh.y += sh.vy * frameDt;
+        const k = 1 - sh.life / sh.max;
+        if (k <= 0 || sh.x > size.w + 50 || sh.y > size.h + 50) { shooters.splice(i, 1); continue; }
+        const tailX = sh.x - sh.vx * 0.25;
+        const tailY = sh.y - sh.vy * 0.25;
+        const grad = ctx.createLinearGradient(tailX, tailY, sh.x, sh.y);
+        grad.addColorStop(0, "hsla(45, 100%, 90%, 0)");
+        grad.addColorStop(1, `hsla(45, 100%, 90%, ${0.9 * k})`);
+        ctx.strokeStyle = grad; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(sh.x, sh.y); ctx.stroke();
+        ctx.fillStyle = `hsla(45, 100%, 95%, ${k})`;
+        ctx.beginPath(); ctx.arc(sh.x, sh.y, 1.8, 0, Math.PI * 2); ctx.fill();
+      }
       ctx.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
     };
