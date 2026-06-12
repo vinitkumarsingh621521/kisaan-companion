@@ -28,6 +28,7 @@ const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
 const DowryEstimatorPage = lazy(() => import("./pages/DowryEstimatorPage"));
 const KrishiMandalaPage = lazy(() => import("./pages/KrishiMandalaPage"));
 const BeejSeBazaarPage = lazy(() => import("./pages/BeejSeBazaarPage"));
+const KrishiAakashPage = lazy(() => import("./pages/KrishiAakashPage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
