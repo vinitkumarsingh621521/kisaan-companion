@@ -187,10 +187,25 @@ function SkyCanvas({
       phase: Math.random() * Math.PI * 2,
       speed: 0.4 + Math.random() * 1.2,
     }));
+    type Shooter = { x: number; y: number; vx: number; vy: number; life: number; max: number };
+    const shooters: Shooter[] = [];
+    const spawnShooter = () => {
+      shooters.push({
+        x: Math.random() * size.w * 0.6,
+        y: Math.random() * size.h * 0.4,
+        vx: 180 + Math.random() * 140,
+        vy: 80 + Math.random() * 80,
+        life: 0,
+        max: 1.0 + Math.random() * 0.6,
+      });
+    };
+    let nextShoot = 1.5 + Math.random() * 3;
     let raf = 0;
     let t0 = performance.now();
+    let last = t0;
     const draw = (t: number) => {
       const dt = (t - t0) / 1000;
+      const frameDt = (t - last) / 1000; last = t;
       // gradient nebula
       const g = ctx.createRadialGradient(size.w * 0.7, size.h * 0.2, 20, size.w / 2, size.h / 2, Math.max(size.w, size.h));
       g.addColorStop(0, "hsla(260, 50%, 18%, 1)");
