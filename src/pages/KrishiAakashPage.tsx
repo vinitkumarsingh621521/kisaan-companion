@@ -187,10 +187,25 @@ function SkyCanvas({
       phase: Math.random() * Math.PI * 2,
       speed: 0.4 + Math.random() * 1.2,
     }));
+    type Shooter = { x: number; y: number; vx: number; vy: number; life: number; max: number };
+    const shooters: Shooter[] = [];
+    const spawnShooter = () => {
+      shooters.push({
+        x: Math.random() * size.w * 0.6,
+        y: Math.random() * size.h * 0.4,
+        vx: 180 + Math.random() * 140,
+        vy: 80 + Math.random() * 80,
+        life: 0,
+        max: 1.0 + Math.random() * 0.6,
+      });
+    };
+    let nextShoot = 1.5 + Math.random() * 3;
     let raf = 0;
     let t0 = performance.now();
+    let last = t0;
     const draw = (t: number) => {
       const dt = (t - t0) / 1000;
+      const frameDt = (t - last) / 1000; last = t;
       // gradient nebula
       const g = ctx.createRadialGradient(size.w * 0.7, size.h * 0.2, 20, size.w / 2, size.h / 2, Math.max(size.w, size.h));
       g.addColorStop(0, "hsla(260, 50%, 18%, 1)");
@@ -210,6 +225,25 @@ function SkyCanvas({
         const a = 0.35 + 0.45 * Math.sin(dt * s.speed + s.phase);
         ctx.fillStyle = `hsla(40, 100%, 90%, ${a})`;
         ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+      }
+      // shooting stars
+      nextShoot -= frameDt;
+      if (nextShoot <= 0) { spawnShooter(); nextShoot = 2 + Math.random() * 4; }
+      for (let i = shooters.length - 1; i >= 0; i--) {
+        const sh = shooters[i];
+        sh.life += frameDt;
+        sh.x += sh.vx * frameDt; sh.y += sh.vy * frameDt;
+        const k = 1 - sh.life / sh.max;
+        if (k <= 0 || sh.x > size.w + 50 || sh.y > size.h + 50) { shooters.splice(i, 1); continue; }
+        const tailX = sh.x - sh.vx * 0.25;
+        const tailY = sh.y - sh.vy * 0.25;
+        const grad = ctx.createLinearGradient(tailX, tailY, sh.x, sh.y);
+        grad.addColorStop(0, "hsla(45, 100%, 90%, 0)");
+        grad.addColorStop(1, `hsla(45, 100%, 90%, ${0.9 * k})`);
+        ctx.strokeStyle = grad; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(sh.x, sh.y); ctx.stroke();
+        ctx.fillStyle = `hsla(45, 100%, 95%, ${k})`;
+        ctx.beginPath(); ctx.arc(sh.x, sh.y, 1.8, 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
