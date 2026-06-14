@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser, unauthorized } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,10 +7,12 @@ const corsHeaders = {
 };
 
 const RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070";
-const PUBLIC_FALLBACK = "579b464db66ec23bdd000001cdd3084b34264d06e3aa6bece006ccee";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const user = await requireUser(req);
+  if (!user) return unauthorized(corsHeaders);
 
   try {
     const url = new URL(req.url);
@@ -23,11 +26,16 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("DATA_GOV_API_KEY") || PUBLIC_FALLBACK;
+    const apiKey = Deno.env.get("DATA_GOV_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Mandi data service is not configured" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     async function call(withState: boolean) {
       const u = new URL(`https://api.data.gov.in/resource/${RESOURCE_ID}`);
-      u.searchParams.set("api-key", apiKey);
+      u.searchParams.set("api-key", apiKey!);
       u.searchParams.set("format", "json");
       u.searchParams.set("limit", limit);
       u.searchParams.set("filters[commodity]", crop);
@@ -45,7 +53,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("mandi-prices error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), {
+    return new Response(JSON.stringify({ error: "Failed to fetch mandi prices" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
