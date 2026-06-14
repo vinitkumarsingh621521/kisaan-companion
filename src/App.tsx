@@ -30,6 +30,7 @@ const KrishiMandalaPage = lazy(() => import("./pages/KrishiMandalaPage"));
 const BeejSeBazaarPage = lazy(() => import("./pages/BeejSeBazaarPage"));
 const KrishiAakashPage = lazy(() => import("./pages/KrishiAakashPage"));
 const MausamYantraPage = lazy(() => import("./pages/MausamYantraPage"));
+const KrishiRaagPage = lazy(() => import("./pages/KrishiRaagPage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -101,6 +102,7 @@ function AnimatedRoutes() {
           <Route path="/beej-se-bazaar" element={<PageTransition>{lazyRoute(<BeejSeBazaarPage />)}</PageTransition>} />
           <Route path="/aakash" element={<PageTransition>{lazyRoute(<KrishiAakashPage />)}</PageTransition>} />
           <Route path="/yantra" element={<PageTransition>{lazyRoute(<MausamYantraPage />)}</PageTransition>} />
+          <Route path="/raag" element={<PageTransition>{lazyRoute(<KrishiRaagPage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>

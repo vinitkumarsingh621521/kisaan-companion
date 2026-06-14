@@ -40,6 +40,7 @@ export default function Navbar() {
     { label: "Beej→Bazaar", path: "/beej-se-bazaar", badge: "NEW" },
     { label: "Aakash", path: "/aakash", badge: "✦" },
     { label: "Yantra", path: "/yantra", badge: "✦" },
+    { label: "Raag", path: "/raag", badge: "♪" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
