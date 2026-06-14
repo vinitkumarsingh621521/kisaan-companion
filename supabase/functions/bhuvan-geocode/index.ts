@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser, unauthorized } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,8 @@ const corsHeaders = {
 // (uses Bhuvan API token from Supabase secrets), falls back to Nominatim (OSM).
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const user = await requireUser(req);
+  if (!user) return unauthorized(corsHeaders);
   try {
     const { query } = await req.json().catch(() => ({}));
     const q = String(query || "").trim();
