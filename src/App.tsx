@@ -104,6 +104,7 @@ function AnimatedRoutes() {
           <Route path="/aakash" element={<PageTransition>{lazyRoute(<KrishiAakashPage />)}</PageTransition>} />
           <Route path="/yantra" element={<PageTransition>{lazyRoute(<MausamYantraPage />)}</PageTransition>} />
           <Route path="/raag" element={<PageTransition>{lazyRoute(<KrishiRaagPage />)}</PageTransition>} />
+          <Route path="/swapna" element={<PageTransition>{lazyRoute(<KrishiSwapnaPage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
