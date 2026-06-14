@@ -41,6 +41,7 @@ export default function Navbar() {
     { label: "Aakash", path: "/aakash", badge: "✦" },
     { label: "Yantra", path: "/yantra", badge: "✦" },
     { label: "Raag", path: "/raag", badge: "♪" },
+    { label: "Swapna", path: "/swapna", badge: "☾" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
