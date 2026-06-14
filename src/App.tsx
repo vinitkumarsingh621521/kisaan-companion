@@ -91,7 +91,7 @@ function AnimatedRoutes() {
           <Route path="/news" element={<PageTransition>{lazyRoute(<NewsPage />)}</PageTransition>} />
           <Route path="/research" element={<PageTransition><AuthGuard>{lazyRoute(<ResearchPage />)}</AuthGuard></PageTransition>} />
           <Route path="/team" element={<PageTransition><AuthGuard>{lazyRoute(<TeamPage />)}</AuthGuard></PageTransition>} />
-          <Route path="/admin/team" element={<PageTransition><AuthGuard>{lazyRoute(<AdminTeamPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/admin/team" element={<PageTransition><AuthGuard><AdminGuard>{lazyRoute(<AdminTeamPage />)}</AdminGuard></AuthGuard></PageTransition>} />
           <Route path="/tools/field-mapper" element={<PageTransition><AuthGuard>{lazyRoute(<FieldMapperPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/reports" element={<PageTransition><AuthGuard>{lazyRoute(<ReportsPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/satellite" element={<PageTransition><AuthGuard>{lazyRoute(<SatellitePage />)}</AuthGuard></PageTransition>} />
