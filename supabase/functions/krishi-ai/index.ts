@@ -221,7 +221,7 @@ serve(async (req) => {
   if (!user) return unauthorized(corsHeaders);
 
   try {
-    const { action, messages, image, farmData, profile, profileContext, category, location, crops } = await req.json();
+    const { action, messages, image, farmData, profile, profileContext, category, location, crops, cropHint } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const systemPrompt = SYSTEM_PROMPTS[action] || SYSTEM_PROMPTS.chat;
@@ -249,7 +249,7 @@ serve(async (req) => {
         ],
       });
     } else if (action === "crop_photo" && image) {
-      const cropHint = (typeof (globalThis as any).cropHint === "string") ? (globalThis as any).cropHint : "crop";
+      const _cropHint = cropHint || "crop";
       apiMessages.push({
         role: "user",
         content: [
