@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { edgeToken } from "@/lib/edgeAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 interface AiAction {
   emoji: string;
