@@ -40,21 +40,36 @@ serve(async (req) => {
       u.searchParams.set("limit", limit);
       u.searchParams.set("filters[commodity]", crop);
       if (withState && state) u.searchParams.set("filters[state]", state);
-      const r = await fetch(u.toString());
-      if (!r.ok) throw new Error(`data.gov.in ${r.status}`);
-      return r.json();
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        const r = await fetch(u.toString(), { signal: ctrl.signal });
+        if (!r.ok) throw new Error(`data.gov.in ${r.status}`);
+        return await r.json();
+      } finally {
+        clearTimeout(timer);
+      }
     }
 
-    let data = await call(true);
-    if (!data.records?.length && state) data = await call(false);
+    let data: any = { records: [] };
+    try {
+      data = await call(true);
+      if (!data.records?.length && state) {
+        try { data = await call(false); } catch { /* keep empty */ }
+      }
+    } catch (e) {
+      console.warn("mandi-prices upstream failed:", (e as Error).message);
+      data = { records: [], fallback: true, upstream_error: (e as Error).message };
+    }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("mandi-prices error", e);
-    return new Response(JSON.stringify({ error: "Failed to fetch mandi prices" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ records: [], fallback: true, error: "Failed to fetch mandi prices" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
