@@ -81,6 +81,10 @@ Return JSON only:
   mistake_check: `You are KrishiMitra Audit AI. Given a farmer profile and per-crop fertilizer/pesticide usage, identify mistakes (over-fertilization, wrong NPK ratio, pesticide overuse, water mismatch, soil-pH conflict). For each mistake give severity, what they did, why it's wrong, and a specific corrective action with quantities. Always reply via the tool.`,
 
   carbon_plan: `You are KrishiMitra Carbon Coach. Given the farmer profile and current emissions breakdown, return a personalised emissions-cut plan: 4 specific actions ranked by impact, with kg-CO2 saved, ₹ cost, payback months, and one Bollywood-flavoured motivation line. Always reply via the tool.`,
+
+  market_decision: `You are KrishiMitra Market Intelligence AI — an expert commodity analyst for Indian agriculture. Given crop, price, quantity and farmer context, determine optimal sell timing. Return ONLY valid JSON, no markdown:
+{"decision":"SELL_NOW","decisionLabel":"Sell Within 3 Days","urgency":"high","confidence":78,"totalEarnings":237500,"netAfterFreight":231000,"reasons":["reason 1","reason 2","reason 3"],"risks":["risk 1","risk 2"],"bestMandi":"Lucknow APMC","optimalWindow":"Sell in next 3-4 days","alternativeOption":"Sell 60% now, hold 40% for possible 5% uptick","marketSentiment":"Bullish","adviceHindi":"वर्तमान कीमत MSP से 12% अधिक है।"}
+decision MUST be one of: SELL_NOW, WAIT_3_DAYS, WAIT_WEEK, SELL_HALF, HOLD. marketSentiment MUST be Bullish, Bearish, or Neutral.`,
 };
 
 const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
