@@ -29,6 +29,15 @@ Be specific with dosages, timings, costs in ₹, and local context. Keep replies
 }
 If not a plant: {"error":"Please upload a clear crop/leaf image."}`,
 
+  soil: `You are KrishiMitra Soil Scientist — an expert pedologist for Indian agriculture. Analyze the provided soil photo. Return ONLY valid JSON, no markdown fences:
+{"soilType":"Sandy Loam","phEstimate":"6.5-7.0","phMidpoint":6.7,"organicMatter":"Low","organicPct":1.2,"color":"Light Brown","hexColor":"#8B6914","texture":"loose and gritty","drainage":"Good","fertility":"Moderate","nitrogen":"Deficient","recommendations":[{"priority":1,"action":"Add 3 tons FYM per acre","reason":"boost organic carbon","cost":"₹1200"},{"priority":2,"action":"Apply urea 50kg/acre before sowing","reason":"fix nitrogen deficiency","cost":"₹550"},{"priority":3,"action":"Mulch with crop residue 5cm","reason":"reduce moisture loss","cost":"₹0"}],"cropSuitability":["Groundnut","Millets","Sorghum"],"avoidCrops":["Rice","Sugarcane"],"urgentAction":"Test soil moisture before next irrigation","confidence":72}`,
+
+  crop_photo: `You are KrishiMitra Crop Vision AI. Analyze the provided crop photo. Return ONLY valid JSON:
+{"cropDetected":"Rice","growthStage":"Vegetative","stagePercent":40,"healthScore":78,"healthStatus":"Healthy","visibleIssues":[],"nextAction":"Apply top-dress urea 20kg/acre within 7 days","daysToHarvest":55,"aiCaption":"Young paddy stands in rows, reaching upward with quiet determination."}`,
+
+  pest_alert: `You are KrishiMitra Pest Intelligence AI. Generate a pest early warning report for an Indian farmer. Return ONLY valid JSON:
+{"alerts":[{"pest":"Brown Plant Hopper","emoji":"🦟","risk":"High","riskScore":82,"cropAffected":"Rice","symptom":"yellowing at plant base, hopper burn patches","preventiveSpray":"Imidacloprid 17.8 SL @ 125ml in 200L water per acre","nextCheckDays":3}],"weeklyAdvisory":"paragraph of 2 sentences","weatherRiskNote":"one sentence about weather risk"}`,
+
   crop_recommendation: `${PERSONALITY}
 
 You receive a detailed farmer profile. Recommend top 4-5 crops tuned to their EXACT context (state, soil pH, NPK, water, budget, risk tolerance, equipment, market access). Reference their actual data in the reason.
@@ -231,6 +240,25 @@ serve(async (req) => {
           { type: "image_url", image_url: { url: image } },
         ],
       });
+    } else if (action === "soil" && image) {
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: "Analyze this Indian farm soil photo. Return JSON only as specified." },
+        ],
+      });
+    } else if (action === "crop_photo" && image) {
+      const cropHint = (typeof (globalThis as any).cropHint === "string") ? (globalThis as any).cropHint : "crop";
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: `Analyze this ${cropHint} farm photo. Return JSON only.` },
+        ],
+      });
+    } else if (action === "pest_alert") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate pest warning." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
@@ -258,7 +286,9 @@ serve(async (req) => {
     }
 
     const isStreaming = action === "chat";
-    const model = action === "disease" ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
+    const model = (action === "disease" || action === "soil" || action === "crop_photo")
+      ? "google/gemini-2.5-flash"
+      : "google/gemini-3-flash-preview";
 
     // Tool-calling schema for crop_recommendation to guarantee structured output
     const cropRecTool = {
@@ -443,7 +473,7 @@ serve(async (req) => {
     // Groq fallback for non-streaming, non-image actions when Lovable AI is out of credits, rate-limited, or 5xx
     const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
     const isRecoverable = !response.ok && (response.status === 402 || response.status === 429 || response.status >= 500);
-    if (isRecoverable && !isStreaming && action !== "disease" && GROQ_KEY) {
+    if (isRecoverable && !isStreaming && action !== "disease" && action !== "soil" && action !== "crop_photo" && GROQ_KEY) {
       console.warn(`[krishi-ai] Lovable AI ${response.status} — falling back to Groq`);
       const groqBody: any = {
         model: "llama-3.3-70b-versatile",
