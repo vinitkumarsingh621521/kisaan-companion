@@ -7,6 +7,9 @@ import MarketPriceWidget from "@/components/dashboard/MarketPriceWidget";
 import MultiMandiCompare from "@/components/market/MultiMandiCompare";
 import PriceSparkline from "@/components/market/PriceSparkline";
 import FreightArbitrageCalc from "@/components/market/FreightArbitrageCalc";
+import SellDecisionEngine from "@/components/market/SellDecisionEngine";
+import PriceTrendChart from "@/components/market/PriceTrendChart";
+import PriceAlertSystem from "@/components/market/PriceAlertSystem";
 import { motion } from "framer-motion";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import { MapPin, Navigation, Truck, TrendingUp, Bell, RefreshCw, Trash2, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
@@ -899,7 +902,18 @@ export default function MarketPage() {
             </p>
           </motion.div>
 
+          {/* === AI Market Intelligence Hub === */}
+          <div className="space-y-5 mb-6">
+            <SellDecisionEngine />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="lg:col-span-2"><PriceTrendChart /></div>
+              <div><PriceAlertSystem /></div>
+            </div>
+          </div>
+          {/* === End AI Market Intelligence === */}
+
           <TodayMarketBriefing farmerCrop={primaryCrop} farmerState={state || "India"} />
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             <MarketPriceWidget />
