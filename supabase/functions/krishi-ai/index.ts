@@ -254,7 +254,7 @@ serve(async (req) => {
         role: "user",
         content: [
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
-          { type: "text", text: `Analyze this ${cropHint} farm photo. Return JSON only.` },
+          { type: "text", text: `Analyze this ${_cropHint} farm photo. Return JSON only.` },
         ],
       });
     } else if (action === "pest_alert") {
