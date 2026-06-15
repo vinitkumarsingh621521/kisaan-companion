@@ -69,14 +69,15 @@ export default function TodayActionCard() {
     try {
       const weather = ctx?.weather?.forecast?.[0];
       const weatherSummary = weather
-        ? `${weather.condition}, high ${weather.temp_high}°C, rain ${weather.rain_pct}%`
+        ? `${weather.emoji} high ${weather.temp_high}°C / low ${weather.temp_low}°C, rain ${weather.rain_pct}%`
         : "weather unavailable";
       const prompt = `Generate a 5-item personalized farming action plan for today:
 - Farmer: ${ctx?.farmer_name || "Farmer"}, State: ${ctx?.location?.state || "India"}
 - Crops: ${ctx?.crops?.current?.join(", ") || "mixed crops"}
 - Today's weather: ${weatherSummary}
 - Month: ${new Date().toLocaleString("en-IN", { month: "long" })}
-- Season: ${ctx?.season || "Kharif"}
+- Season: ${ctx?.climate?.current_season || "Kharif"}
+
 
 Return JSON only (no markdown):
 {"actions":[
