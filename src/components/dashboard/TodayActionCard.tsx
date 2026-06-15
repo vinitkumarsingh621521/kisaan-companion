@@ -67,7 +67,13 @@ export default function TodayActionCard() {
 
   const fetchAiPlan = useCallback(async () => {
     if (!ctx) return;
+    const { data: sess } = await supabase.auth.getSession();
+    if (!sess?.session?.access_token) {
+      toast.info("Sign in to generate your personalized AI farm plan");
+      return;
+    }
     setAiLoading(true);
+
     try {
       const weather = ctx?.weather?.forecast?.[0];
       const weatherSummary = weather
