@@ -40,7 +40,7 @@ const STYLE: Record<Decision, { wrap: string; emoji: string }> = {
 };
 
 export default function SellDecisionEngine() {
-  const { context: ctx } = usePersonalization();
+  const { ctx } = usePersonalization();
   const [crop, setCrop] = useState("");
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
