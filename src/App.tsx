@@ -32,6 +32,7 @@ const KrishiAakashPage = lazy(() => import("./pages/KrishiAakashPage"));
 const MausamYantraPage = lazy(() => import("./pages/MausamYantraPage"));
 const KrishiRaagPage = lazy(() => import("./pages/KrishiRaagPage"));
 const KrishiSwapnaPage = lazy(() => import("./pages/KrishiSwapnaPage"));
+const VisionPage = lazy(() => import("./pages/VisionPage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -84,6 +85,7 @@ function AnimatedRoutes() {
           <Route path="/dashboard" element={<PageTransition><AuthGuard>{lazyRoute(<Dashboard />)}</AuthGuard></PageTransition>} />
           <Route path="/ai-advisor" element={<PageTransition><AuthGuard>{lazyRoute(<AIAdvisor />)}</AuthGuard></PageTransition>} />
           <Route path="/crop-advisor" element={<PageTransition><AuthGuard>{lazyRoute(<CropAdvisor />)}</AuthGuard></PageTransition>} />
+          <Route path="/vision" element={<PageTransition><AuthGuard>{lazyRoute(<VisionPage />)}</AuthGuard></PageTransition>} />
           <Route path="/market" element={<PageTransition><AuthGuard>{lazyRoute(<MarketPage />)}</AuthGuard></PageTransition>} />
           <Route path="/schemes" element={<PageTransition><AuthGuard>{lazyRoute(<SchemesPage />)}</AuthGuard></PageTransition>} />
           <Route path="/community" element={<PageTransition><AuthGuard>{lazyRoute(<CommunityPage />)}</AuthGuard></PageTransition>} />

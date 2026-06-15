@@ -43,6 +43,7 @@ export default function Navbar() {
     { label: "Raag", path: "/raag", badge: "♪" },
     { label: "Swapna", path: "/swapna", badge: "☾" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
+    { label: "🔍 Dristikon", path: "/vision", badge: "AI" },
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
     { label: t("nav.news"), path: "/news" },
