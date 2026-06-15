@@ -256,7 +256,16 @@ export default function CropGrowthDiary() {
                           <span className="font-semibold text-foreground">{entry.analysis.stagePercent}%</span>
                         </div>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
-                          <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${entry.analysis.stagePercent}%` }} />
+                          <div
+                            className={`h-full transition-all ${
+                              entry.analysis.growthStage === "Seedling" ? "bg-gradient-to-r from-lime-400 to-lime-500" :
+                              entry.analysis.growthStage === "Vegetative" ? "bg-gradient-to-r from-green-500 to-emerald-600" :
+                              entry.analysis.growthStage === "Flowering" ? "bg-gradient-to-r from-yellow-400 to-amber-500" :
+                              entry.analysis.growthStage === "Fruiting" ? "bg-gradient-to-r from-orange-400 to-orange-600" :
+                              "bg-gradient-to-r from-red-400 to-rose-600"
+                            }`}
+                            style={{ width: `${entry.analysis.stagePercent}%` }}
+                          />
                         </div>
                       </div>
                       <p className={`text-sm font-semibold ${

@@ -969,10 +969,6 @@ export default function MarketPage() {
           </div>
 
           <div className="mb-5">
-            <PriceAlertPanel farmerCrops={farmerCrops} />
-          </div>
-
-          <div className="mb-5">
             <FreightArbitrageCalc mandis={mandis} baseKm={baseKm} />
           </div>
 
