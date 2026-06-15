@@ -66,6 +66,14 @@ export default function PestRadarWidget() {
   const [advisory, setAdvisory] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [usedFallback, setUsedFallback] = useState(false);
+  const [checkedAlerts, setCheckedAlerts] = useState<Set<number>>(new Set());
+  const toggleAlert = (i: number) => {
+    setCheckedAlerts((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -143,7 +151,7 @@ export default function PestRadarWidget() {
                 key={i}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.01 }}
-                className="rounded-xl border border-border p-3 bg-card flex gap-3"
+                className={`rounded-xl border border-border p-3 bg-card flex gap-3 ${checkedAlerts.has(i) ? "opacity-60" : ""}`}
               >
                 <div className="text-3xl flex-shrink-0">{a.emoji}</div>
                 <div className="flex-1 min-w-0">
@@ -156,6 +164,16 @@ export default function PestRadarWidget() {
                   <p className="text-xs text-muted-foreground">Symptom: {a.symptom}</p>
                   <p className="text-xs mt-1.5 px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300">💊 Spray: {a.preventiveSpray}</p>
                   <p className="text-[11px] text-muted-foreground mt-1">✓ Check again in {a.nextCheckDays} days</p>
+                  <button
+                    onClick={() => toggleAlert(i)}
+                    className={`mt-2 text-[11px] font-semibold px-3 py-1 rounded-full border transition-colors ${
+                      checkedAlerts.has(i)
+                        ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300"
+                        : "bg-muted text-muted-foreground border-border hover:bg-green-50 hover:text-green-700"
+                    }`}
+                  >
+                    {checkedAlerts.has(i) ? "✓ Inspected" : "Mark as Inspected"}
+                  </button>
                 </div>
               </motion.div>
             ))}

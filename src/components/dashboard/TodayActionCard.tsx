@@ -54,6 +54,18 @@ function getCacheKey() {
   return `km.aiplan.${getDateStr()}`;
 }
 
+const FALLBACK_PLAN: DailyPlan = {
+  farmMood: "Cautious",
+  dayGreeting: "Good morning, Kisan! Here's your general plan for today.",
+  actions: [
+    { emoji: "🌱", category: "Crop Care", text: "Walk through your fields and inspect crop health — check for any yellowing or unusual spots", priority: "High", timeEst: "45 min" },
+    { emoji: "💧", category: "Weather", text: "Check soil moisture levels before deciding on irrigation today", priority: "High", timeEst: "20 min" },
+    { emoji: "📊", category: "Market", text: "Check today's mandi price for your primary crop before making any sales", priority: "Medium", timeEst: "10 min" },
+    { emoji: "📋", category: "Admin", text: "Update your farm diary and log any observations from today's field inspection", priority: "Medium", timeEst: "15 min" },
+    { emoji: "🔍", category: "Planning", text: "Review soil health and plan next fertilizer application timing", priority: "Low", timeEst: "30 min" },
+  ],
+};
+
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
 export default function TodayActionCard() {
@@ -140,7 +152,8 @@ Return JSON only (no markdown):
       setDailyPlan(plan);
     } catch (e) {
       console.error("AI plan error:", e);
-      toast.error("Couldn't generate today's farm plan");
+      toast.error("Couldn't generate today's farm plan — showing default plan");
+      setDailyPlan(FALLBACK_PLAN);
     } finally {
       setAiLoading(false);
     }

@@ -278,6 +278,17 @@ export default function SoilPhotoAnalyzer() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    onClick={() => {
+                      if (!analysis) return;
+                      const text = `🌍 *Soil Analysis Report — KisaanCompanion AI*\n\nSoil Type: ${analysis.soilType}\npH: ${analysis.phEstimate} | Fertility: ${analysis.fertility}\nOrganic Matter: ${analysis.organicMatter} (${analysis.organicPct}%)\nDrainage: ${analysis.drainage} | Nitrogen: ${analysis.nitrogen}\n\n✅ Best Crops: ${analysis.cropSuitability.join(", ")}\n❌ Avoid: ${analysis.avoidCrops.join(", ")}\n\n⚡ Urgent: ${analysis.urgentAction}\n\n📱 Get free AI soil analysis: kisaancompanion.in`;
+                      window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+                    }}
+                  >
+                    📱 Share on WhatsApp
+                  </Button>
                   <Button variant="outline" onClick={exportPDF}>📄 Export PDF Report</Button>
                   <Button variant="ghost" onClick={reset}>🔄 Analyze Another</Button>
                 </div>
