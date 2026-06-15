@@ -902,7 +902,18 @@ export default function MarketPage() {
             </p>
           </motion.div>
 
+          {/* === AI Market Intelligence Hub === */}
+          <div className="space-y-5 mb-6">
+            <SellDecisionEngine />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="lg:col-span-2"><PriceTrendChart /></div>
+              <div><PriceAlertSystem /></div>
+            </div>
+          </div>
+          {/* === End AI Market Intelligence === */}
+
           <TodayMarketBriefing farmerCrop={primaryCrop} farmerState={state || "India"} />
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             <MarketPriceWidget />
