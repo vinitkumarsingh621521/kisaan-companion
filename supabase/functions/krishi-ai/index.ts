@@ -263,6 +263,8 @@ serve(async (req) => {
       });
     } else if (action === "pest_alert") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate pest warning." });
+    } else if (action === "market_decision") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyze sell decision." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
