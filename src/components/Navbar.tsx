@@ -44,6 +44,7 @@ export default function Navbar() {
     { label: "Swapna", path: "/swapna", badge: "☾" },
     { label: t("nav.cropAdvisor"), path: "/crop-advisor" },
     { label: "🔍 Dristikon", path: "/vision", badge: "AI" },
+    { label: "💊 Nuska", path: "/prescription", badge: "NEW" },
     { label: t("nav.market"), path: "/market" },
     { label: t("nav.schemes"), path: "/schemes" },
     { label: t("nav.news"), path: "/news" },
