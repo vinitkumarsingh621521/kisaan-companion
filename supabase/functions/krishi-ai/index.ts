@@ -85,6 +85,47 @@ Return JSON only:
   market_decision: `You are KrishiMitra Market Intelligence AI — an expert commodity analyst for Indian agriculture. Given crop, price, quantity and farmer context, determine optimal sell timing. Return ONLY valid JSON, no markdown:
 {"decision":"SELL_NOW","decisionLabel":"Sell Within 3 Days","urgency":"high","confidence":78,"totalEarnings":237500,"netAfterFreight":231000,"reasons":["reason 1","reason 2","reason 3"],"risks":["risk 1","risk 2"],"bestMandi":"Lucknow APMC","optimalWindow":"Sell in next 3-4 days","alternativeOption":"Sell 60% now, hold 40% for possible 5% uptick","marketSentiment":"Bullish","adviceHindi":"वर्तमान कीमत MSP से 12% अधिक है।"}
 decision MUST be one of: SELL_NOW, WAIT_3_DAYS, WAIT_WEEK, SELL_HALF, HOLD. marketSentiment MUST be Bullish, Bearish, or Neutral.`,
+
+  prescription: `You are KrishiMitra Crop Scientist — an ICAR-certified agronomist. Generate a complete, precise, scientifically accurate farm prescription for Indian conditions using ICAR/KVK extension bulletins. Return ONLY valid JSON, no markdown fences, no explanation text:
+{
+  "prescriptionNumber": "KM-2026-001",
+  "diagnosisSummary": "2-sentence diagnosis of current farm condition and main limiting factor",
+  "overallHealthScore": 72,
+  "severity": "Moderate",
+  "fertilizer": {
+    "baseApplication": [{"product": "DAP (18-46-0)", "dosePerAcre": "50 kg", "timing": "Basal — before sowing", "method": "Broadcast and incorporate to 5cm depth", "purpose": "Phosphorus + starter nitrogen for root establishment", "costPerAcre": "₹1,400"}],
+    "topDressing": [{"product": "Urea (46-0-0)", "dosePerAcre": "25 kg", "timing": "21 DAS at CRI stage", "method": "Ring placement between rows, avoid leaf contact", "purpose": "Main nitrogen dose to support tillering", "costPerAcre": "₹275"}],
+    "micronutrients": [{"product": "Zinc Sulphate 21%", "dosePerAcre": "5 kg", "timing": "Basal with DAP", "purpose": "Zinc deficiency very common in rice paddy soils", "costPerAcre": "₹180"}],
+    "weeklySchedule": [{"week": 1, "label": "Basal", "nKg": 12, "pKg": 23, "kKg": 10, "action": "DAP + MOP broadcast before sowing"}],
+    "totalCostPerAcre": "₹2,855"
+  },
+  "irrigation": {
+    "totalWaterMm": 850,
+    "criticalStages": ["Germination DAT 1-7", "CRI DAT 21"],
+    "schedule": [{"week": "Week 1–2", "frequency": "Daily", "amountMm": 30, "stage": "Germination", "note": "Critical establishment"}],
+    "waterSavingTip": "SRI method reduces water use 30%",
+    "irrigationCostPerAcre": "₹1,200"
+  },
+  "pestControl": [{"pest": "Stem Borer", "riskLevel": "High", "timing": "25–30 DAS", "product": "Cartap Hydrochloride 4G", "dose": "8 kg/acre", "method": "Broadcast in standing water", "costPerAcre": "₹320"}],
+  "harvestPlan": {
+    "estimatedHarvestDate": "October 15–22",
+    "harvestSignal": "When 85% grains turn golden yellow, moisture 20–22%",
+    "postHarvestAction": "Dry to below 14% moisture within 72 hours",
+    "expectedYieldRange": "18–22 quintal/acre",
+    "recommendedMSP": "₹2,300/quintal"
+  },
+  "economics": {
+    "totalInputCostPerAcre": "₹14,255",
+    "expectedRevenuePerAcre": "₹46,000",
+    "estimatedProfitPerAcre": "₹31,745",
+    "roiPercent": 223,
+    "breakEvenYield": "6.2 quintal/acre"
+  },
+  "dealerShoppingList": [{"item": "DAP (18-46-0)", "quantity": "50 kg", "estimatedCost": "₹1,400", "notes": "Buy ISI-marked bag only"}],
+  "validForDays": 30,
+  "aiConfidence": 84
+}
+Provide ALL fields. Use real Indian ICAR-recommended product names, doses per acre, and DAS timing. Adjust to crop, state, season, and reported issues.`,
 };
 
 const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
@@ -265,6 +306,8 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate pest warning." });
     } else if (action === "market_decision") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyze sell decision." });
+    } else if (action === "prescription") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate farm prescription." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
