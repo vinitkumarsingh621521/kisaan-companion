@@ -126,6 +126,61 @@ decision MUST be one of: SELL_NOW, WAIT_3_DAYS, WAIT_WEEK, SELL_HALF, HOLD. mark
   "aiConfidence": 84
 }
 Provide ALL fields. Use real Indian ICAR-recommended product names, doses per acre, and DAS timing. Adjust to crop, state, season, and reported issues.`,
+
+  crop_compare: `You are KrishiMitra Crop Scientist — an ICAR-certified agronomist and agricultural economist. Compare two crops for a specific Indian farmer's context. Score each crop on exactly 6 scientific dimensions (0-100 scale) and give a verdict. Return ONLY valid JSON, no markdown:
+{
+  "cropA": {
+    "name": "Rice", "emoji": "🌾",
+    "scores": { "waterEfficiency": 35, "profitability": 82, "climateMatch": 91, "pestResistance": 42, "easeOfGrowing": 55, "marketStability": 88 },
+    "totalScore": 66,
+    "expectedIncomePerAcre": "₹42,000–₹48,000",
+    "investmentPerAcre": "₹14,000",
+    "netProfitPerAcre": "₹28,000–₹34,000",
+    "waterRequirementMm": 1200,
+    "laborDaysPerAcre": 45,
+    "growthDays": 120,
+    "msp": "₹2,300/qtl",
+    "bestSeason": "Kharif (Jun–Nov)",
+    "keyStrengths": ["Guaranteed MSP procurement", "Ideal for clay soil", "Strong buyer demand"],
+    "keyRisks": ["High water need", "Stem borer risk", "Post-harvest loss if rain"],
+    "soilVerdict": "Excellent — clay loam retains water ideal for paddy"
+  },
+  "cropB": {
+    "name": "Maize", "emoji": "🌽",
+    "scores": { "waterEfficiency": 72, "profitability": 61, "climateMatch": 78, "pestResistance": 68, "easeOfGrowing": 76, "marketStability": 52 },
+    "totalScore": 68,
+    "expectedIncomePerAcre": "₹28,000–₹34,000",
+    "investmentPerAcre": "₹9,500",
+    "netProfitPerAcre": "₹18,500–₹24,500",
+    "waterRequirementMm": 500,
+    "laborDaysPerAcre": 27,
+    "growthDays": 90,
+    "msp": "₹2,090/qtl",
+    "bestSeason": "Kharif or Rabi",
+    "keyStrengths": ["Water-efficient", "Lower labor cost", "Shorter growing period"],
+    "keyRisks": ["Private buyer dependence", "Price volatile", "Aflatoxin risk in storage"],
+    "soilVerdict": "Good — drains well in sandy loam"
+  },
+  "verdict": {
+    "winner": "Rice", "winnerEmoji": "🌾", "loser": "Maize",
+    "confidence": 76, "winMarginLabel": "Moderate advantage",
+    "reasoning": "Context-specific 2-3 sentence reasoning",
+    "bestForShortTerm": "Maize", "bestForShortTermReason": "Lower investment, faster harvest",
+    "bestForLongTerm": "Rice", "bestForLongTermReason": "MSP-backed income security",
+    "smartMix": "Grow Rice on 70% of land; Maize on 30% as a water-saving hedge",
+    "financialGap": "Rice earns ₹8,000–₹12,000 more per acre",
+    "breakEvenNote": "Rice breaks even at 6.2 qtl/acre vs Maize 12 qtl/acre"
+  },
+  "dimensionInsights": [
+    { "dimension": "Water Efficiency", "icon": "💧", "cropALabel": "...", "cropBLabel": "...", "insight": "..." },
+    { "dimension": "Profitability", "icon": "💰", "cropALabel": "...", "cropBLabel": "...", "insight": "..." },
+    { "dimension": "Climate Match", "icon": "🌡️", "cropALabel": "...", "cropBLabel": "...", "insight": "..." },
+    { "dimension": "Pest Resistance", "icon": "🐛", "cropALabel": "...", "cropBLabel": "...", "insight": "..." },
+    { "dimension": "Ease of Growing", "icon": "👷", "cropALabel": "...", "cropBLabel": "...", "insight": "..." },
+    { "dimension": "Market Stability", "icon": "📈", "cropALabel": "...", "cropBLabel": "...", "insight": "..." }
+  ]
+}
+Score honestly based on the farmer's exact state, soil, water source, and season. Do not favor the more famous crop. Use real Indian mandi prices and state-specific schemes.`,
 };
 
 const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
