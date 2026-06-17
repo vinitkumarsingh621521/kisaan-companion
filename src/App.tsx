@@ -89,6 +89,7 @@ function AnimatedRoutes() {
           <Route path="/crop-advisor" element={<PageTransition><AuthGuard>{lazyRoute(<CropAdvisor />)}</AuthGuard></PageTransition>} />
           <Route path="/vision" element={<PageTransition><AuthGuard>{lazyRoute(<VisionPage />)}</AuthGuard></PageTransition>} />
           <Route path="/prescription" element={<PageTransition><AuthGuard>{lazyRoute(<PrescriptionPage />)}</AuthGuard></PageTransition>} />
+          <Route path="/compare" element={<PageTransition><AuthGuard>{lazyRoute(<ComparePage />)}</AuthGuard></PageTransition>} />
           <Route path="/market" element={<PageTransition><AuthGuard>{lazyRoute(<MarketPage />)}</AuthGuard></PageTransition>} />
           <Route path="/schemes" element={<PageTransition><AuthGuard>{lazyRoute(<SchemesPage />)}</AuthGuard></PageTransition>} />
           <Route path="/community" element={<PageTransition><AuthGuard>{lazyRoute(<CommunityPage />)}</AuthGuard></PageTransition>} />
