@@ -6,10 +6,9 @@ import CropCompareEngine from "@/components/compare/CropCompareEngine";
 
 export default function ComparePage() {
   return (
-    <div className="min-h-screen relative">
-      <AgriPageBackground />
+    <AgriPageBackground variant="crops">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
+      <main className="container mx-auto px-4 pt-24 pb-16 max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -28,6 +27,6 @@ export default function ComparePage() {
         <CropCompareEngine />
       </main>
       <Footer />
-    </div>
+    </AgriPageBackground>
   );
 }
