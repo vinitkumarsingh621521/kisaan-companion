@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "research_papers_owner_read" ON storage.objects;
