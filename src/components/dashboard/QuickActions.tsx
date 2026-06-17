@@ -1,4 +1,4 @@
-import { Camera, Mic, CloudSun, BarChart3, MapPin, FileText, FlaskConical, Eye } from "lucide-react";
+import { Camera, Mic, CloudSun, BarChart3, MapPin, FileText, FlaskConical, Scale } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -10,7 +10,7 @@ const actions = [
   { icon: MapPin, label: "Mandi Map", color: "gradient-gold", to: "/market#mandi-map" },
   { icon: FileText, label: "Schemes", color: "gradient-sky", to: "/schemes" },
   { icon: FlaskConical, label: "Prescription", color: "gradient-primary", to: "/prescription" },
-  { icon: Eye, label: "Farm Vision", color: "gradient-sky", to: "/vision" },
+  { icon: Scale, label: "Compare", color: "gradient-primary", to: "/compare" },
 ];
 
 interface Ripple { id: number; x: number; y: number; }
