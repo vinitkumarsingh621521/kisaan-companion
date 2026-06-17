@@ -363,6 +363,8 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyze sell decision." });
     } else if (action === "prescription") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate farm prescription." });
+    } else if (action === "crop_compare") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Compare crops." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
