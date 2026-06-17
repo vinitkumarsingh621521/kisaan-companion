@@ -34,6 +34,7 @@ const KrishiRaagPage = lazy(() => import("./pages/KrishiRaagPage"));
 const KrishiSwapnaPage = lazy(() => import("./pages/KrishiSwapnaPage"));
 const VisionPage = lazy(() => import("./pages/VisionPage"));
 const PrescriptionPage = lazy(() => import("./pages/PrescriptionPage"));
+const ComparePage = lazy(() => import("./pages/ComparePage"));
 
 // Lazy-loaded routes (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
