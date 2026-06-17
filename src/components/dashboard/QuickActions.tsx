@@ -1,4 +1,4 @@
-import { Camera, Mic, CloudSun, BarChart3, MapPin, FileText, FlaskConical, Eye } from "lucide-react";
+import { Camera, Mic, CloudSun, BarChart3, MapPin, FileText, FlaskConical, Scale } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
