@@ -1,3 +1,5 @@
+import PageGuide from "@/components/PageGuide";
+import FeatureHint from "@/components/FeatureHint";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
