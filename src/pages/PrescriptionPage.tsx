@@ -10,6 +10,22 @@ export default function PrescriptionPage() {
     <AgriPageBackground variant="crops">
       <Navbar />
       <main className="container mx-auto px-4 pt-24 pb-16 max-w-3xl">
+        <PageGuide
+          pageId="prescription"
+          title="Kisaan Nuska — Farm Prescription"
+          subtitle="ICAR-standard AI prescription for your crop"
+          description="Answer 4 simple questions about your crop, soil, and farm — AI generates a complete doctor-style prescription with exact fertilizer doses, irrigation schedule, pest control timing, and financial projection. Download as PDF or share with your input dealer."
+          gradient="from-green-900 to-emerald-700"
+          aiContext="Kisaan Nuska generates a complete ICAR-standard farm prescription: fertilizer schedule, irrigation plan, pest control, harvest timing, and financial projection."
+          features={[
+            { icon: "💊", title: "Fertilizer Plan", desc: "Exact N-P-K products, doses per acre, and timing with weekly chart" },
+            { icon: "💧", title: "Irrigation Schedule", desc: "Week-by-week water requirements and critical stages" },
+            { icon: "🛡️", title: "Pest Control", desc: "Products, doses, and timing for your specific pest risks" },
+            { icon: "🌾", title: "Harvest Plan", desc: "Estimated harvest date, yield range, and post-harvest care" },
+            { icon: "💹", title: "Economics", desc: "ROI, break-even yield, and expected profit per acre" },
+            { icon: "🛒", title: "Dealer List", desc: "Ready-made shopping list to show at Kisan Sewa Kendra" },
+          ]}
+        />
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
