@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FeatureHint from "@/components/FeatureHint";
 
 const MSP: Record<string, number> = {
   Rice: 2300, Wheat: 2275, Cotton: 7121, Maize: 2090, Mustard: 5650,
@@ -47,6 +48,11 @@ export default function PriceTrendChart() {
         <div>
           <h2 className="text-xl font-display font-bold flex items-center gap-2">
             📈 Price Intelligence
+            <FeatureHint
+              title="Price Trend Forecast"
+              description="Shows 30 days of real price history plus a 7-day AI-predicted price line. The red dashed line shows the government MSP. Use this to spot the best selling window."
+              example="If predicted line trends up for next 5 days, consider waiting to sell."
+            />
             <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/20 border border-green-400/40">
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" /> LIVE
             </span>

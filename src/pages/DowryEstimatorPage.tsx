@@ -1,381 +1,680 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Skull, Scale, Gavel, AlertTriangle, ArrowLeft, Sparkles, Loader2, Send, RefreshCw, Lock } from "lucide-react";
+import {
+  Loader2, Sparkles, RefreshCw, TrendingUp, Download, Share2,
+  Plus, Trash2, IndianRupee,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { useDowryUnlock } from "@/hooks/useDowryUnlock";
-import { useActiveProfile } from "@/hooks/useActiveProfile";
-import { supabase } from "@/integrations/supabase/client";
+import Footer from "@/components/Footer";
+import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
+import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import dowryGreed from "@/assets/dowry-greed.jpg";
-import dowryJail from "@/assets/dowry-jail.jpg";
+import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { edgeToken } from "@/lib/edgeAuth";
+import jsPDF from "jspdf";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  CartesianGrid, PieChart, Pie, Cell, Legend,
+} from "recharts";
+import PageGuide from "@/components/PageGuide";
 
-type Q = {
-  key: string;
-  label: string;
-  type: "text" | "number" | "select" | "textarea";
-  options?: string[];
-  hint?: string;
-  profileKey?: string; // auto-fill from farmer_details[profileKey]
-  placeholder?: string;
-  sarcastic?: boolean;
-};
+const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
-const QUESTIONS: Q[] = [
-  // Personal
-  { key: "name", label: "Your honourable name 🤴 (so we can shame you properly)", type: "text", placeholder: "Mr. Greedy Singh", sarcastic: true },
-  { key: "age", label: "Age (years on this Earth wasted being like this)", type: "number", profileKey: "age", placeholder: "30", sarcastic: true },
-  { key: "education", label: "Education level", type: "select", options: ["No formal education", "Primary school", "Secondary school", "Higher secondary", "Graduate", "Post-graduate", "PhD (in greed)"], profileKey: "education" },
-  { key: "occupation", label: "Your real job (not 'businessman' please)", type: "text", placeholder: "Farmer / clerk / unemployed beta" },
-  { key: "monthly_salary", label: "Honest monthly salary (₹)", type: "number", placeholder: "15000" },
-  { key: "looks_self_rating", label: "How handsome are you out of 10? 😏", type: "select", options: ["10 — Shahrukh's twin", "8 — Decent", "6 — Average uncle", "4 — Mirror is scared", "2 — WhatsApp DP only"], sarcastic: true },
-  { key: "height_cm", label: "Height in cm (no lying, we'll measure)", type: "number", placeholder: "170" },
-  { key: "hair_status", label: "Hair situation 💇", type: "select", options: ["Full Bollywood mane", "Slight thinning", "Strategic hairstyle", "Bald & proud", "Patanjali oil dependent"], sarcastic: true },
-
-  // Land & Farm (auto-fill)
-  { key: "total_land", label: "Total land owned (acres)", type: "number", profileKey: "total_land", placeholder: "5" },
-  { key: "irrigated_land", label: "Irrigated land (acres)", type: "number", profileKey: "irrigated_land", placeholder: "3" },
-  { key: "ownership_type", label: "Land ownership", type: "select", options: ["Owned", "Leased", "Sharecropping", "Joint family", "Bank ka hai actually"], profileKey: "ownership_type" },
-  { key: "annual_income", label: "Annual income bracket", type: "select", options: ["Below ₹1 lakh", "₹1-3 lakh", "₹3-5 lakh", "₹5-10 lakh", "Above ₹10 lakh"], profileKey: "annual_income" },
-  { key: "monthly_profit", label: "Real monthly profit from farming (₹)", type: "number", placeholder: "12000" },
-  { key: "existing_loans", label: "Loans you're hiding 🤐", type: "select", options: ["No loans (sure?)", "KCC loan", "Bank loan", "Microfinance", "Multiple loans + uncle's chit fund"], profileKey: "existing_loans" },
-
-  // Cattle/Cows
-  { key: "cows", label: "Number of cows 🐄", type: "number", placeholder: "2" },
-  { key: "buffaloes", label: "Buffaloes", type: "number", placeholder: "1" },
-  { key: "goats", label: "Goats / sheep", type: "number", placeholder: "5" },
-  { key: "chickens", label: "Chickens (don't count the dead ones)", type: "number", placeholder: "10", sarcastic: true },
-  { key: "tractor", label: "Tractor situation 🚜", type: "select", options: ["Own tractor (top bhai)", "Tractor on EMI", "Borrowed from cousin", "Bullock cart (heritage)", "Walking is best exercise"] },
-
-  // House
-  { key: "house_type", label: "Your house", type: "select", options: ["Pucca + 2 floors", "Pucca single floor", "Half pucca half kuccha", "Kuccha", "Joint family ke ghar mein"] },
-  { key: "house_rooms", label: "Number of rooms (bathroom alag)", type: "number", placeholder: "3" },
-  { key: "vehicles", label: "Vehicles owned", type: "select", options: ["Car + bike", "Bike only", "Bicycle (eco-warrior)", "Bullock cart", "Apne paer hi gaadi hain"], sarcastic: true },
-  { key: "smartphone", label: "Phone", type: "select", options: ["Latest iPhone", "Mid-range Android", "Basic Android", "Keypad phone", "Bhai ka phone use karta hoon"], profileKey: "smartphone" },
-
-  // Family pressure
-  { key: "family_size", label: "Family size", type: "number", profileKey: "family_size", placeholder: "5" },
-  { key: "siblings_unmarried", label: "Unmarried siblings (more pressure 😅)", type: "number", placeholder: "2", sarcastic: true },
-  { key: "mother_demands", label: "Who's pushing for dowry?", type: "select", options: ["My darling mother 🙄", "Father (silent partner)", "Whole khandaan", "Just me (proud villain)", "Society pressure ji"], sarcastic: true },
-  { key: "caste_pride", label: "How much caste pride? 1-10", type: "number", placeholder: "8", sarcastic: true },
-
-  // Weird & sarcastic
-  { key: "favourite_dialogue", label: "Your favourite filmy dialogue (we'll judge)", type: "text", placeholder: "Mogambo khush hua", sarcastic: true },
-  { key: "biggest_achievement", label: "Biggest achievement so far", type: "text", placeholder: "Won kabaddi match in 2014" },
-  { key: "kitchen_skills", label: "Can you make tea? ☕", type: "select", options: ["Master chef", "Decent chai", "Only Maggi", "Mom does it", "What is kitchen?"], sarcastic: true },
-  { key: "social_media_followers", label: "Instagram followers (counting bots)", type: "number", placeholder: "243", sarcastic: true },
-  { key: "love_marriage_story", label: "Ever been rejected in love? 💔", type: "select", options: ["Never tried", "Rejected once", "Rejected many times", "Friend-zoned permanently", "Yes that's why this dowry plan"], sarcastic: true },
-  { key: "wife_qualifications_demanded", label: "Qualifications you DEMAND in wife", type: "text", placeholder: "MBA, fair, tall, can cook 50 dishes", sarcastic: true },
-  { key: "what_you_offer_in_return", label: "What do YOU offer in return? (be honest)", type: "textarea", placeholder: "Mera pyaar... and 2 acre land...", sarcastic: true },
-
-  // The big one
-  { key: "expected_dowry", label: "💰 How much DOWRY you think you'll get? (₹)", type: "number", placeholder: "1500000", hint: "Be ambitious, we'll destroy this number" },
-  { key: "expected_items", label: "Items demanded (car, gold, scooter…)", type: "textarea", placeholder: "Activa, 50 tola gold, cash, Royal Enfield, AC fridge…", sarcastic: true },
-  { key: "justification", label: "Why do YOU deserve this dowry?", type: "textarea", placeholder: "Because… tradition?", sarcastic: true },
+const CROPS_LIST = [
+  "Rice", "Wheat", "Maize", "Cotton", "Tomato", "Potato",
+  "Onion", "Mustard", "Soybean", "Sugarcane", "Chickpea", "Groundnut",
 ];
 
-export default function DowryEstimatorPage() {
-  const navigate = useNavigate();
-  const { unlocked } = useDowryUnlock();
+const COST_LABELS: Record<string, string> = {
+  seeds: "Seeds", fertilizer: "Fertilizer", pesticide: "Pesticide",
+  irrigation: "Irrigation", labor: "Labor", harvesting: "Harvesting", transport: "Transport",
+};
+
+const PIE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#10b981", "#f97316"];
+
+interface CropEntry {
+  id: string;
+  name: string;
+  area: number;
+  expectedYield: number;
+  pricePerQtl: number;
+}
+
+const DEFAULT_PRICES: Record<string, number> = {
+  Rice: 2300, Wheat: 2275, Maize: 2090, Cotton: 7121, Tomato: 1200,
+  Potato: 900, Onion: 1100, Mustard: 5650, Soybean: 4600,
+  Sugarcane: 375, Chickpea: 5440, Groundnut: 6377,
+};
+
+const DEFAULT_YIELD: Record<string, number> = {
+  Rice: 20, Wheat: 22, Maize: 25, Cotton: 8, Tomato: 120,
+  Potato: 100, Onion: 80, Mustard: 10, Soybean: 12,
+  Sugarcane: 300, Chickpea: 8, Groundnut: 15,
+};
+
+export default function KisaanArthNiti() {
   const { active } = useActiveProfile();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [crops, setCrops] = useState<CropEntry[]>([
+    {
+      id: "1",
+      name: (active?.farmer_details as any)?.current_crops?.[0] || "Rice",
+      area: 2,
+      expectedYield: 20,
+      pricePerQtl: 2300,
+    },
+  ]);
   const [loading, setLoading] = useState(false);
-  const [verdict, setVerdict] = useState<any>(null);
+  const [result, setResult] = useState<any>(null);
 
-  // Auto-fill from profile
-  useEffect(() => {
-    if (!active?.farmer_details) return;
-    const fd = active.farmer_details;
-    const init: Record<string, string> = {};
-    for (const q of QUESTIONS) {
-      if (q.profileKey && fd[q.profileKey] && !answers[q.key]) {
-        init[q.key] = String(fd[q.profileKey]);
-      }
-    }
-    if (Object.keys(init).length) setAnswers(prev => ({ ...init, ...prev }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active?.id]);
+  const addCrop = () => {
+    const newCrop = CROPS_LIST.find((c) => !crops.some((e) => e.name === c)) || "Wheat";
+    setCrops((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name: newCrop,
+        area: 1,
+        expectedYield: DEFAULT_YIELD[newCrop] || 15,
+        pricePerQtl: DEFAULT_PRICES[newCrop] || 2000,
+      },
+    ]);
+  };
 
-  // Hard guard — if locked, redirect home
-  useEffect(() => {
-    if (!unlocked) {
-      toast.error("🔒 This page is hidden. Type the secret password in the search bar.");
-      navigate("/", { replace: true });
-    }
-  }, [unlocked, navigate]);
+  const updateCrop = (id: string, field: keyof CropEntry, value: any) => {
+    setCrops((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const updated: CropEntry = { ...c, [field]: value };
+        if (field === "name") {
+          updated.expectedYield = DEFAULT_YIELD[value] || c.expectedYield;
+          updated.pricePerQtl = DEFAULT_PRICES[value] || c.pricePerQtl;
+        }
+        return updated;
+      }),
+    );
+  };
 
-  const filledCount = useMemo(() => QUESTIONS.filter(q => answers[q.key] && String(answers[q.key]).trim()).length, [answers]);
-  const progress = Math.round((filledCount / QUESTIONS.length) * 100);
-
-  const set = (k: string, v: string) => setAnswers(prev => ({ ...prev, [k]: v }));
-
-  const submit = async () => {
-    if (!answers.expected_dowry) {
-      toast.error("Bata na bhai, kitna dowry chahiye? Fill the expected amount first.");
+  const removeCrop = (id: string) => {
+    if (crops.length === 1) {
+      toast.error("Keep at least one crop");
       return;
     }
+    setCrops((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const analyse = async () => {
     setLoading(true);
+    setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("dowry-estimate", {
-        body: { answers, profile: active?.farmer_details || {} }
+      const ctx = (active?.farmer_details as any) || {};
+      const token = await edgeToken();
+      const cropDetails = crops
+        .map(
+          (c) =>
+            `${c.name}: ${c.area} acres, expected yield ${c.expectedYield} qtl/acre, price ₹${c.pricePerQtl}/qtl`,
+        )
+        .join("; ");
+
+      const prompt = `Generate a complete farm financial projection for:
+Farmer: ${ctx.name || active?.full_name || "Indian Farmer"}, State: ${ctx.state || "Uttar Pradesh"}
+Crops: ${cropDetails}
+Soil: ${ctx.soil_type || active?.soil_type || "Unknown"}, Water: ${ctx.irrigation_type || "Borewell"}
+Season: ${ctx.season || "Kharif"}, Total area: ${crops.reduce((s, c) => s + c.area, 0)} acres
+
+Calculate realistic Indian input costs (seeds, fertilizer, pesticide, irrigation, labor, harvesting, transport) per crop. Give actionable savings advice.`;
+
+      const resp = await fetch(AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "farm_finance",
+          messages: [{ role: "user", content: prompt }],
+          profileContext: ctx,
+          profile: active,
+        }),
       });
-      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "AI failed");
-      setVerdict((data as any).verdict);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+      const { result: raw } = await resp.json();
+      const text =
+        typeof raw === "string"
+          ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
+          : null;
+      setResult(text ? JSON.parse(text) : raw);
     } catch (e: any) {
-      toast.error(e.message || "Roast failed. Try again.");
+      toast.error("Analysis failed", { description: e?.message });
     } finally {
       setLoading(false);
     }
   };
 
-  const reset = () => { setVerdict(null); window.scrollTo({ top: 400, behavior: "smooth" }); };
+  /* PDF export */
+  const exportPDF = () => {
+    if (!result) return;
+    const doc = new jsPDF();
+    const W = doc.internal.pageSize.width;
+    let y = 10;
+    doc.setFillColor(22, 101, 52);
+    doc.rect(0, 0, W, 28, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(15);
+    doc.setFont("helvetica", "bold");
+    doc.text("Kisaan Arth Niti — Farm Financial Report", 10, 12);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `${active?.full_name || "Farmer"} | ${new Date().toLocaleDateString("en-IN")}`,
+      10,
+      22,
+    );
+    doc.setTextColor(0, 0, 0);
+    y = 36;
+    const kv = (k: string, v: string) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text(`${k}:`, 12, y);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(v, W - 68);
+      doc.text(lines, 60, y);
+      y += 5 * Math.max(1, lines.length);
+    };
+    const sec = (t: string) => {
+      if (y > 258) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setFillColor(240, 253, 244);
+      doc.rect(8, y - 4, W - 16, 8, "F");
+      doc.text(t, 10, y);
+      y += 10;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+    };
+    sec("Financial Summary");
+    kv("Total Income", `INR ${result.totalIncome?.toLocaleString("en-IN")}`);
+    kv("Total Expenses", `INR ${result.totalExpenses?.toLocaleString("en-IN")}`);
+    kv("Net Profit", `INR ${result.netProfit?.toLocaleString("en-IN")}`);
+    kv("Profit Margin", `${result.profitMargin}%`);
+    kv("ROI", `${result.roiPercent}%`);
+    kv("Risk Level", `${result.riskLevel} (${result.riskScore}/100)`);
+    kv("Break-even Yield", result.breakEvenYield);
+    y += 4;
+    sec("Top Savings Advice");
+    (result.topAdvice || []).forEach((a: string, i: number) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      const lines = doc.splitTextToSize(`${i + 1}. ${a}`, W - 22);
+      doc.text(lines, 12, y);
+      y += 5 * lines.length;
+    });
+    y += 4;
+    sec("Cash Flow Timeline");
+    (result.monthlyPlan || []).forEach((m: any) => {
+      kv(
+        m.month,
+        `Out: INR ${m.cashOut?.toLocaleString("en-IN")} | In: INR ${m.cashIn?.toLocaleString("en-IN")} — ${m.note}`,
+      );
+    });
+    doc.setFontSize(7.5);
+    doc.setTextColor(140, 140, 140);
+    doc.text("KisaanCompanion Arth Niti | kisaancompanion.in/farm-finance", 10, 287);
+    doc.save(`KisaanArth-${Date.now()}.pdf`);
+    toast.success("Financial report downloaded!");
+  };
 
-  if (!unlocked) return null;
+  const shareWA = () => {
+    if (!result) return;
+    const text = `💹 *Kisaan Arth Niti — Farm Financial Report*
+━━━━━━━━━━━━━━━━━
+Crops: ${crops.map((c) => `${c.name} (${c.area}ac)`).join(", ")}
 
-  const bg = verdict ? dowryJail : dowryGreed;
+💰 Total Income: *₹${result.totalIncome?.toLocaleString("en-IN")}*
+💸 Total Expenses: ₹${result.totalExpenses?.toLocaleString("en-IN")}
+✅ Net Profit: *₹${result.netProfit?.toLocaleString("en-IN")}*
+📈 ROI: *${result.roiPercent}%*
+⚠️ Risk Level: ${result.riskLevel}
+
+💡 Top tip: ${result.topAdvice?.[0] || ""}
+━━━━━━━━━━━━━━━━━
+📱 Free farm finance tool: kisaancompanion.in`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  };
 
   return (
-    <div className="min-h-screen relative">
+    <AgriPageBackground variant="crops">
       <Navbar />
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 transition-opacity duration-700">
-        <img src={bg} alt="" className="w-full h-full object-cover" loading="eager" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/85 to-background" />
-      </div>
+      <main className="container mx-auto px-4 pt-24 pb-16 max-w-6xl">
+        <PageGuide
+          pageId="arth-niti"
+          title="Kisaan Arth Niti — Farm Finance"
+          subtitle="AI farm income, profit & risk calculator"
+          description="Enter your crops, area and expected yield — AI computes income, expenses, ROI, risk score and gives personalised tips to grow your profit."
+          gradient="from-emerald-900 to-green-700"
+          aiContext="Kisaan Arth Niti is a farm financial planner: it calculates income, expense breakdown, ROI, break-even yield, risk score, cash-flow timeline, and AI savings tips for any combination of crops the farmer plans to grow."
+          features={[
+            { icon: "💰", title: "Income & Profit", desc: "Per-crop and total income, expenses and net profit" },
+            { icon: "📊", title: "Cost Breakdown", desc: "Pie chart of seed, fertilizer, labor, irrigation, harvest costs" },
+            { icon: "📈", title: "ROI & Margin", desc: "Return on investment and profit margin for the season" },
+            { icon: "⚠️", title: "Risk Score", desc: "0-100 risk rating with the main risk factors highlighted" },
+            { icon: "🗓️", title: "Cash Flow", desc: "Month-by-month cash-in vs cash-out plan" },
+            { icon: "💡", title: "AI Savings", desc: "Personalised tips to cut cost and boost profit" },
+          ]}
+        />
 
-      <div className="container mx-auto px-4 pt-20 pb-16 max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1">
-            <ArrowLeft className="h-4 w-4" /> Back (escape karma)
-          </Button>
-          <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-            <Lock className="h-3.5 w-3.5" /> Hidden page — auto-locks when you leave
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="inline-flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-full text-xs font-semibold mb-3">
+            <TrendingUp className="h-3.5 w-3.5" /> Farm Financial Intelligence
           </div>
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold mb-3">
-            <Skull className="h-3.5 w-3.5" /> SATIRE / EDUCATION ONLY · DOWRY IS A CRIME
-          </div>
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground drop-shadow-lg">
-            🤡 AI Dowry Reality Check 3000
+          <h1 className="font-display font-bold text-3xl md:text-5xl text-foreground">
+            Kisaan Arth Niti
           </h1>
-          <p className="text-foreground/90 mt-3 text-lg drop-shadow max-w-2xl mx-auto">
-            So you think your face is worth a Royal Enfield + 50 tola gold? Let our AI judge you mercilessly using science, math, and pure desi sarcasm.
+          <p className="text-muted-foreground mt-2 text-sm md:text-base max-w-2xl mx-auto">
+            Enter your crops and area — AI calculates your complete income, profit, ROI, risk
+            score, and gives personalised savings advice.
           </p>
         </motion.div>
 
-        <AnimatePresence mode="wait">
-          {!verdict ? (
-            <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Card className="p-6 bg-card/95 backdrop-blur-md border-2 border-destructive/30 shadow-2xl">
-                {/* Progress */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {filledCount}/{QUESTIONS.length} questions answered
+        {/* Crop input form */}
+        <div className="rounded-2xl border border-border bg-card shadow-lg p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-display font-semibold text-foreground text-lg">
+                Your Crops This Season
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Add all crops you plan to grow or are currently growing
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={addCrop} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Add Crop
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {crops.map((crop, i) => (
+              <div
+                key={crop.id}
+                className="rounded-xl border border-border bg-muted/30 p-3 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Crop {i + 1}</span>
+                  {crops.length > 1 && (
+                    <button
+                      onClick={() => removeCrop(crop.id)}
+                      className="text-destructive hover:text-destructive/80 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Crop</label>
+                    <Select
+                      value={crop.name}
+                      onValueChange={(v) => updateCrop(crop.id, "name", v)}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CROPS_LIST.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      Area (acres)
+                    </label>
+                    <input
+                      type="number"
+                      min={0.1}
+                      step={0.1}
+                      value={crop.area}
+                      onChange={(e) =>
+                        updateCrop(crop.id, "area", parseFloat(e.target.value) || 1)
+                      }
+                      className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      Expected Yield (qtl/ac)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={crop.expectedYield}
+                      onChange={(e) =>
+                        updateCrop(crop.id, "expectedYield", parseFloat(e.target.value) || 1)
+                      }
+                      className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary h-9"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      Price (₹/qtl)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={crop.pricePerQtl}
+                      onChange={(e) =>
+                        updateCrop(crop.id, "pricePerQtl", parseFloat(e.target.value) || 1)
+                      }
+                      className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                  <span>
+                    Est. Income:{" "}
+                    <span className="font-semibold text-emerald-600">
+                      ₹{(crop.area * crop.expectedYield * crop.pricePerQtl).toLocaleString("en-IN")}
                     </span>
-                    <span className="text-xs text-muted-foreground">{progress}% — {progress < 30 ? "warming up the roast 🔥" : progress < 70 ? "AI is sharpening knives 🔪" : "roast is ready, beta"}</span>
+                  </span>
+                  <span>
+                    Total production:{" "}
+                    <span className="font-semibold text-foreground">
+                      {(crop.area * crop.expectedYield).toFixed(0)} qtl
+                    </span>
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            <Button
+              onClick={analyse}
+              disabled={loading}
+              className="w-full gap-2 bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 text-white"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Calculating your farm finances...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" /> Analyse My Farm Finances
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  {
+                    label: "Total Income",
+                    value: `₹${result.totalIncome?.toLocaleString("en-IN")}`,
+                    color: "text-green-600",
+                    bg: "bg-green-50 dark:bg-green-950/20",
+                  },
+                  {
+                    label: "Net Profit",
+                    value: `₹${result.netProfit?.toLocaleString("en-IN")}`,
+                    color: "text-emerald-600",
+                    bg: "bg-emerald-50 dark:bg-emerald-950/20",
+                  },
+                  {
+                    label: "Profit Margin",
+                    value: `${result.profitMargin}%`,
+                    color: "text-blue-600",
+                    bg: "bg-blue-50 dark:bg-blue-950/20",
+                  },
+                  {
+                    label: "ROI",
+                    value: `${result.roiPercent}%`,
+                    color: "text-violet-600",
+                    bg: "bg-violet-50 dark:bg-violet-950/20",
+                  },
+                ].map(({ label, value, color, bg }) => (
+                  <div key={label} className={`rounded-xl p-4 border border-border ${bg}`}>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className={`text-xl md:text-2xl font-bold ${color} mt-1`}>{value}</p>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full gradient-primary transition-all duration-500" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-
-                {/* Auto-fill notice */}
-                {active?.farmer_details && Object.keys(active.farmer_details).length > 0 && (
-                  <div className="mb-5 p-3 rounded-lg bg-primary/10 border border-primary/30 flex items-start gap-2">
-                    <Sparkles className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-foreground">
-                      <strong>Auto-filled from your profile:</strong> land, income, education, family size, livestock — but you can edit anything. We'll use this against you. 😈
-                    </p>
-                  </div>
-                )}
-
-                {/* Questions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {QUESTIONS.map((q, idx) => (
-                    <div key={q.key} className={q.type === "textarea" ? "md:col-span-2" : ""}>
-                      <Label className="text-xs mb-1 block text-foreground font-medium">
-                        <span className="text-muted-foreground mr-1">Q{idx + 1}.</span>
-                        {q.label}
-                        {q.sarcastic && <span className="ml-1 text-[10px] text-destructive">😏</span>}
-                      </Label>
-                      {q.type === "select" && q.options ? (
-                        <Select value={answers[q.key] || ""} onValueChange={v => set(q.key, v)}>
-                          <SelectTrigger className="h-9"><SelectValue placeholder="Select honestly…" /></SelectTrigger>
-                          <SelectContent className="bg-popover z-50">
-                            {q.options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      ) : q.type === "textarea" ? (
-                        <Textarea
-                          value={answers[q.key] || ""}
-                          onChange={e => set(q.key, e.target.value)}
-                          placeholder={q.placeholder}
-                          rows={2}
-                          className="text-sm"
-                        />
-                      ) : (
-                        <Input
-                          className="h-9"
-                          type={q.type}
-                          value={answers[q.key] || ""}
-                          onChange={e => set(q.key, e.target.value)}
-                          placeholder={q.placeholder}
-                          onKeyDown={e => {
-                            if (e.key === "Enter" && q.key === "expected_dowry") submit();
-                          }}
-                        />
-                      )}
-                      {q.hint && <p className="text-[10px] text-muted-foreground italic mt-0.5">{q.hint}</p>}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-border flex flex-col sm:flex-row gap-3 items-center justify-between">
-                  <p className="text-xs text-muted-foreground italic">
-                    Press <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-foreground">Enter</kbd> in the dowry field, or click below to face judgement.
-                  </p>
-                  <Button
-                    onClick={submit}
-                    disabled={loading || !answers.expected_dowry}
-                    size="lg"
-                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2 shadow-lg"
-                  >
-                    {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> AI is laughing at you…</> : <><Send className="h-4 w-4" /> Get My Brutal Verdict 🔨</>}
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-          ) : (
-            <motion.div key="verdict" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-5">
-              {/* Big number */}
-              <Card className="p-8 bg-card/95 backdrop-blur-md border-2 border-destructive shadow-2xl text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold mb-4">
-                  <Gavel className="h-3.5 w-3.5" /> VERDICT IS IN
-                </div>
-                <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-3">{verdict.roast_title}</h2>
-                <div className="my-6">
-                  <div className="text-xs text-muted-foreground uppercase tracking-wider">You expected</div>
-                  <div className="text-2xl font-bold text-muted-foreground line-through">₹{Number(verdict.user_expected_inr).toLocaleString("en-IN")}</div>
-                  <div className="text-xs text-destructive uppercase tracking-wider mt-3">AI says you're actually worth</div>
-                  <div className="text-5xl md:text-6xl font-display font-bold text-destructive drop-shadow-lg">
-                    ₹{Number(verdict.estimated_inr).toLocaleString("en-IN")}
-                  </div>
-                  <div className="text-sm text-destructive font-semibold mt-2">{verdict.reality_gap_pct}% below your fantasy 📉</div>
-                </div>
-              </Card>
-
-              {/* Roast paragraphs */}
-              <Card className="p-6 bg-card/95 backdrop-blur-md border border-border shadow-xl">
-                <h3 className="font-display font-bold text-lg text-foreground mb-3 flex items-center gap-2">
-                  <Skull className="h-5 w-5 text-destructive" /> The Roast
-                </h3>
-                <div className="space-y-3">
-                  {verdict.roast_paragraphs?.map((p: string, i: number) => (
-                    <p key={i} className="text-sm text-foreground leading-relaxed">{p}</p>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Breakdown */}
-              <Card className="p-6 bg-card/95 backdrop-blur-md border border-border shadow-xl">
-                <h3 className="font-display font-bold text-lg text-foreground mb-3 flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-primary" /> Itemised Calculation
-                </h3>
-                <div className="space-y-2">
-                  {verdict.breakdown?.map((b: any, i: number) => (
-                    <div key={i} className="p-3 rounded-lg bg-muted/40 border border-border">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-medium text-foreground">{b.factor}</span>
-                        <span className={`text-sm font-bold ${b.contribution_inr < 0 ? "text-destructive" : "text-primary"}`}>
-                          {b.contribution_inr < 0 ? "−" : "+"}₹{Math.abs(b.contribution_inr).toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground italic mt-1">"{b.snark}"</p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Legal warning */}
-              <Card className="p-6 bg-destructive/10 backdrop-blur-md border-2 border-destructive shadow-xl">
-                <h3 className="font-display font-bold text-lg text-destructive mb-3 flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" /> ⚖️ LEGAL REALITY (this is real, not a joke)
-                </h3>
-                <div className="space-y-3 text-sm text-foreground">
-                  <div>
-                    <div className="font-semibold mb-1">Sections you're violating:</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {verdict.legal_warning?.sections?.map((s: string, i: number) => (
-                        <span key={i} className="text-xs px-2 py-1 rounded-md bg-destructive/20 text-destructive font-mono font-semibold">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-card border border-border">
-                      <div className="text-xs text-muted-foreground">Jail term</div>
-                      <div className="text-sm font-bold text-destructive">{verdict.legal_warning?.jail_years}</div>
-                    </div>
-                    <div className="p-3 rounded-lg bg-card border border-border">
-                      <div className="text-xs text-muted-foreground">Fine</div>
-                      <div className="text-sm font-bold text-destructive">{verdict.legal_warning?.fine_inr}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold mb-1">Real consequences:</div>
-                    <ul className="list-disc list-inside space-y-1 text-sm">
-                      {verdict.legal_warning?.consequences?.map((c: string, i: number) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Redemption */}
-              <Card className="p-6 bg-primary/10 backdrop-blur-md border-2 border-primary shadow-xl">
-                <h3 className="font-display font-bold text-lg text-primary mb-3 flex items-center gap-2">
-                  ✨ Redemption Path
-                </h3>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-foreground">
-                  {verdict.redemption_path?.map((r: string, i: number) => (
-                    <li key={i}>{r}</li>
-                  ))}
-                </ol>
-              </Card>
-
-              {/* Final burn */}
-              <Card className="p-6 bg-gradient-to-br from-destructive/20 to-foreground/10 backdrop-blur-md border-2 border-destructive shadow-2xl text-center">
-                <p className="text-lg font-display font-bold text-foreground italic">"{verdict.final_savage_line}"</p>
-                <p className="text-xs text-muted-foreground mt-2">— Your conscience, sponsored by AI</p>
-              </Card>
-
-              <div className="flex gap-3 justify-center pt-2">
-                <Button variant="outline" onClick={reset} className="gap-2">
-                  <RefreshCw className="h-4 w-4" /> Try again with different lies
-                </Button>
-                <Button onClick={() => navigate("/")} className="gap-2 gradient-primary border-0 text-primary-foreground">
-                  <ArrowLeft className="h-4 w-4" /> Reform myself & go home
-                </Button>
+                ))}
               </div>
 
-              <p className="text-center text-xs text-muted-foreground italic pt-4 max-w-2xl mx-auto">
-                ⚠️ This page is satire intended to discourage dowry. The Dowry Prohibition Act 1961, IPC §498A and §304B make giving, taking, or demanding dowry a serious criminal offence in India. Report dowry harassment: <strong className="text-foreground">Women Helpline 1091</strong> · <strong className="text-foreground">National Commission for Women 7827170170</strong>.
-              </p>
+              {/* Risk + break-even */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-sm font-semibold text-muted-foreground">Risk Score</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">
+                    {result.riskScore}/100
+                  </p>
+                  <p className="text-sm text-amber-600 font-medium">{result.riskLevel} Risk</p>
+                  <div className="mt-2 space-y-0.5">
+                    {(result.riskFactors || []).map((r: string, i: number) => (
+                      <p key={i} className="text-xs text-muted-foreground">
+                        • {r}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-sm font-semibold text-muted-foreground">Break-even Yield</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">
+                    {result.breakEvenYield}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Minimum yield needed to cover all costs
+                  </p>
+                  {result.comparisonVsLastYear && (
+                    <p className="text-xs text-emerald-600 mt-2 font-medium">
+                      {result.comparisonVsLastYear}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="rounded-2xl border border-border bg-card shadow-sm p-4">
+                <Tabs defaultValue="breakdown">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="breakdown">📊 Cost Breakdown</TabsTrigger>
+                    <TabsTrigger value="cashflow">🗓️ Cash Flow</TabsTrigger>
+                    <TabsTrigger value="advice">💡 Savings Tips</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="breakdown" className="space-y-5 mt-4">
+                    {(result.crops || []).map((c: any, idx: number) => {
+                      const pieData = Object.entries(c.costBreakdown || {}).map(([k, v]) => ({
+                        name: COST_LABELS[k] || k,
+                        value: v as number,
+                      }));
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-xl border border-border p-4 bg-muted/20"
+                        >
+                          <h3 className="font-semibold text-foreground mb-3">
+                            {c.name} ({c.area} acres)
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                Cost Breakdown
+                              </p>
+                              <ResponsiveContainer width="100%" height={220}>
+                                <PieChart>
+                                  <Pie
+                                    data={pieData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    outerRadius={75}
+                                    label={({ name, percent }) =>
+                                      `${name} ${((percent as number) * 100).toFixed(0)}%`
+                                    }
+                                    labelLine={false}
+                                  >
+                                    {pieData.map((_, i) => (
+                                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip
+                                    formatter={(v: any) =>
+                                      `₹${Number(v).toLocaleString("en-IN")}`
+                                    }
+                                  />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 content-center">
+                              {[
+                                { label: "Income", value: c.income, color: "text-green-600" },
+                                { label: "Expenses", value: c.expenses, color: "text-red-600" },
+                                { label: "Profit", value: c.profit, color: "text-emerald-600" },
+                                { label: "Per Acre", value: c.profitPerAcre, color: "text-blue-600" },
+                              ].map(({ label, value, color }) => (
+                                <div
+                                  key={label}
+                                  className="rounded-lg border border-border bg-card p-2"
+                                >
+                                  <p className="text-[11px] text-muted-foreground">{label}</p>
+                                  <p className={`text-sm font-semibold ${color}`}>
+                                    ₹{Number(value || 0).toLocaleString("en-IN")}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </TabsContent>
+
+                  <TabsContent value="cashflow" className="space-y-4 mt-4">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={result.monthlyPlan || []}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="hsl(var(--border))"
+                          opacity={0.5}
+                        />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis
+                          tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`}
+                          tick={{ fontSize: 9 }}
+                          width={50}
+                        />
+                        <Tooltip
+                          formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`}
+                          contentStyle={{
+                            background: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: 8,
+                            fontSize: 11,
+                          }}
+                        />
+                        <Legend />
+                        <Bar dataKey="cashOut" name="Cash Out" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="cashIn" name="Cash In" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+
+                    <div className="space-y-2">
+                      {(result.monthlyPlan || []).map((m: any, i: number) => (
+                        <div
+                          key={i}
+                          className="flex flex-wrap items-center gap-2 text-xs p-2 rounded-lg border border-border bg-muted/30"
+                        >
+                          <span className="font-semibold text-foreground">{m.month}</span>
+                          <span className="text-red-600">
+                            Out: ₹{m.cashOut?.toLocaleString("en-IN")}
+                          </span>
+                          {m.cashIn > 0 && (
+                            <span className="text-green-600">
+                              In: ₹{m.cashIn?.toLocaleString("en-IN")}
+                            </span>
+                          )}
+                          <span className="text-muted-foreground">— {m.note}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {result.savingOpportunity && (
+                      <div className="rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                          💡 Saving Opportunity
+                        </p>
+                        <p className="text-sm text-foreground mt-1">{result.savingOpportunity}</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="advice" className="space-y-3 mt-4">
+                    <h3 className="font-semibold text-foreground">
+                      AI-Generated Profit Improvement Tips
+                    </h3>
+                    {(result.topAdvice || []).map((advice: string, i: number) => (
+                      <div
+                        key={i}
+                        className="flex gap-3 p-3 rounded-xl border border-border bg-muted/30"
+                      >
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm">
+                          {i + 1}
+                        </span>
+                        <p className="text-sm text-foreground leading-snug">{advice}</p>
+                      </div>
+                    ))}
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button onClick={exportPDF} variant="outline" className="gap-1.5">
+                  <Download className="h-4 w-4" /> Download Report
+                </Button>
+                <Button onClick={shareWA} variant="outline" className="gap-1.5">
+                  <Share2 className="h-4 w-4" /> Share on WhatsApp
+                </Button>
+                <Button onClick={() => setResult(null)} variant="ghost" className="gap-1.5">
+                  <RefreshCw className="h-4 w-4" /> Recalculate
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-    </div>
+      </main>
+      <Footer />
+    </AgriPageBackground>
   );
 }

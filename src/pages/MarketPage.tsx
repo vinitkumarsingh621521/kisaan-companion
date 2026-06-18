@@ -1,3 +1,5 @@
+import PageGuide from "@/components/PageGuide";
+import FeatureHint from "@/components/FeatureHint";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useState } from "react";
 import { geoMercator, geoPath } from "d3-geo";
@@ -895,6 +897,22 @@ export default function MarketPage() {
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
+          <PageGuide
+            pageId="market"
+            title="Market Intelligence"
+            subtitle="AI-powered sell decisions and price forecasting"
+            description="This page helps you decide WHEN and WHERE to sell your crops for maximum profit. The AI Sell Engine analyses current prices, weather, and market trends to tell you whether to sell today or wait. The Price Chart shows 30-day history with a 7-day AI forecast."
+            gradient="from-emerald-900 to-teal-700"
+            aiContext="The market page has an AI sell decision engine (Kab Beche?), price trend forecast chart, price alert system, mandi comparison, and freight arbitrage calculator for maximising crop sale profit."
+            features={[
+              { icon: "🤖", title: "AI Sell Decision", desc: "Click 'Kab Beche?' — AI says whether to sell now or wait" },
+              { icon: "📈", title: "Price Forecast", desc: "30-day price history + 7-day AI prediction for any crop" },
+              { icon: "🔔", title: "Price Alerts", desc: "Set a target price — get notified when it's reached" },
+              { icon: "🗺️", title: "Mandi Map", desc: "Compare prices across multiple mandis in your state" },
+              { icon: "🚛", title: "Freight Calculator", desc: "Find the mandi with best net price after transport cost" },
+              { icon: "📱", title: "WhatsApp Share", desc: "Share market updates with family and fellow farmers" },
+            ]}
+          />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">📈 {t("market.title")}</h1>
             <p className="text-muted-foreground mt-1">

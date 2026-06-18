@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
-import { useDowryUnlock } from "@/hooks/useDowryUnlock";
+
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import SearchBar from "@/components/SearchBar";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { session, signOut } = useAuth();
   const { canInstall, installed, promptInstall } = usePWAInstall();
-  const { unlocked: dowryUnlocked } = useDowryUnlock();
+  
   const { isAdmin } = useIsAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showScrollLeft, setShowScrollLeft] = useState(false);
@@ -58,7 +58,7 @@ export default function Navbar() {
     { label: t("nav.achievements"), path: "/tools/achievements" },
     { label: t("nav.offline"), path: "/tools/offline" },
     { label: t("nav.team"), path: "/team" },
-    ...(dowryUnlocked ? [{ label: "🤡 Dowry Reality Check", path: "/dowry-estimator", badge: "🔓" }] : []),
+    { label: "💹 Arth Niti", path: "/dowry-estimator", badge: "NEW" },
   ] as { label: string; path: string; badge?: string }[];
 
   // Online/offline LED

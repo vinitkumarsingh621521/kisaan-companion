@@ -3,6 +3,7 @@ import { Activity, X } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { Skeleton } from "@/components/ui/skeleton";
+import FeatureHint from "@/components/FeatureHint";
 
 type AxisDef = { key: string; label: string; emoji: string };
 const AXES: AxisDef[] = [
@@ -268,6 +269,11 @@ export default function FarmHealthScore() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary" /> Farm Vitals
+          <FeatureHint
+            title="Farm Health Score"
+            description="A 0-100 score combining your soil health, crop conditions, water usage, and market timing. Higher score = healthier, more profitable farm."
+            example="Score of 72/100 means good soil but irrigation timing can be improved."
+          />
         </h3>
         <div className="flex items-center gap-1">
           {AXES.map((a, i) => (

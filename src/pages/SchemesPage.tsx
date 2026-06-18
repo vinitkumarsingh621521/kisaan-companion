@@ -1,3 +1,4 @@
+import PageGuide from "@/components/PageGuide";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
@@ -273,6 +274,22 @@ export default function SchemesPage() {
       <Breadcrumbs />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
+          <PageGuide
+            pageId="schemes"
+            title="Government Schemes"
+            subtitle="AI matches you with schemes you're eligible for"
+            description="AI analyses your farm profile and finds the government schemes you are most likely to qualify for — PM-KISAN, PMFBY, KCC, and 50+ others. Each scheme shows your match score, benefit amount, and how to apply. Track which schemes you've applied for and received."
+            gradient="from-orange-900 to-amber-700"
+            aiContext="Government Schemes page: AI matches farmer's profile to 50+ central and state schemes with eligibility score, benefit amount, and application status tracking."
+            features={[
+              { icon: "🎯", title: "AI Matching", desc: "AI scores your eligibility for every scheme based on your profile" },
+              { icon: "💰", title: "Benefit Calculator", desc: "See exact amount you can receive from each scheme" },
+              { icon: "📋", title: "Status Tracker", desc: "Mark schemes as Eligible → Applied → Received" },
+              { icon: "🔗", title: "Apply Links", desc: "Direct links to official government portals" },
+              { icon: "🏦", title: "Loan Helper", desc: "Generate documents needed for agricultural bank loans" },
+              { icon: "🛡️", title: "Insurance Guide", desc: "PMFBY crop insurance documentation assistant" },
+            ]}
+          />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">⚡ {t("schemes.title")}</h1>
             <p className="text-muted-foreground mt-1">

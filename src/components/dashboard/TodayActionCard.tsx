@@ -8,6 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { edgeToken } from "@/lib/edgeAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import FeatureHint from "@/components/FeatureHint";
+
+
 
 
 interface AiAction {
@@ -248,6 +251,11 @@ Return JSON only (no markdown):
         <h3 className="font-display font-bold text-foreground flex items-center gap-2 flex-wrap">
           <Sparkles className="h-5 w-5 text-primary" />
           Today's AI Farm Plan
+          <FeatureHint
+            title="AI Daily Farm Plan"
+            description="Every morning, AI generates 5 personalised farming tasks for YOU based on today's weather, your crop stage, and market conditions. Refresh to regenerate anytime."
+            example="☀️ High heat today → AI tells you to irrigate before 7AM"
+          />
           {actions.length > 0 && (
             <span className="text-xs font-normal text-muted-foreground">
               {doneCount}/{actions.length} done
