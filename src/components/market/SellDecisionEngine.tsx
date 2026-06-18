@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import { edgeToken } from "@/lib/edgeAuth";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import FeatureHint from "@/components/FeatureHint";
 
 type Decision = "SELL_NOW" | "WAIT_3_DAYS" | "WAIT_WEEK" | "SELL_HALF" | "HOLD";
 interface Verdict {
