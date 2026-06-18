@@ -22,7 +22,7 @@ export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { session, signOut } = useAuth();
   const { canInstall, installed, promptInstall } = usePWAInstall();
-  const { unlocked: dowryUnlocked } = useDowryUnlock();
+  
   const { isAdmin } = useIsAdmin();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showScrollLeft, setShowScrollLeft] = useState(false);
