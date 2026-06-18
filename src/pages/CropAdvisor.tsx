@@ -23,6 +23,22 @@ export default function CropAdvisor() {
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
+          <PageGuide
+            pageId="crop-advisor"
+            title="Crop Advisor"
+            subtitle="AI disease scanner and crop compatibility checker"
+            description="Upload a photo of your crop and AI instantly identifies diseases with treatment protocol. The Compatibility Matrix checks if two crops can grow together on the same field. All results include specific product names, doses, and timing."
+            gradient="from-green-900 to-lime-800"
+            aiContext="Crop Advisor: AI disease scanner, crop compatibility matrix, and multi-image batch scanning."
+            features={[
+              { icon: "🔬", title: "Disease Scanner", desc: "Photo → AI identifies disease, severity, and treatment" },
+              { icon: "💊", title: "Treatment Protocol", desc: "Specific spray products with dose and timing" },
+              { icon: "🔄", title: "Batch Scanner", desc: "Upload multiple photos at once for comparison" },
+              { icon: "⚖️", title: "Compatibility Matrix", desc: "Check if two crops can grow together on your field" },
+              { icon: "📸", title: "Camera Mode", desc: "Scan crops directly with your phone camera" },
+              { icon: "📋", title: "History", desc: "View and revisit all your previous scan results" },
+            ]}
+          />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-white drop-shadow-lg">
               🌾 {t("cropAdvisor.title")} {active?.full_name ? <span className="text-base font-normal text-white/70">— {active.full_name}</span> : null}
