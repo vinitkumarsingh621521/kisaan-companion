@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { edgeToken } from "@/lib/edgeAuth";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import FeatureHint from "@/components/FeatureHint";
 
 interface PriceAlert {
   id: string; crop: string; emoji: string;
