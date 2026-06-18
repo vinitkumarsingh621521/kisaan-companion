@@ -3,6 +3,7 @@ import { Activity, X } from "lucide-react";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { Skeleton } from "@/components/ui/skeleton";
+import FeatureHint from "@/components/FeatureHint";
 
 type AxisDef = { key: string; label: string; emoji: string };
 const AXES: AxisDef[] = [
