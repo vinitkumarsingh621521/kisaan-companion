@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FeatureHint from "@/components/FeatureHint";
 
 const MSP: Record<string, number> = {
   Rice: 2300, Wheat: 2275, Cotton: 7121, Maize: 2090, Mustard: 5650,
