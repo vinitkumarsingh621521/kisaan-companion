@@ -1,3 +1,4 @@
+import PageGuide from "@/components/PageGuide";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AIChatWidget from "@/components/dashboard/AIChatWidget";
