@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
-import { useDowryUnlock } from "@/hooks/useDowryUnlock";
+
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import SearchBar from "@/components/SearchBar";
 import { toast } from "sonner";
