@@ -58,7 +58,7 @@ export default function Navbar() {
     { label: t("nav.achievements"), path: "/tools/achievements" },
     { label: t("nav.offline"), path: "/tools/offline" },
     { label: t("nav.team"), path: "/team" },
-    ...(dowryUnlocked ? [{ label: "🤡 Dowry Reality Check", path: "/dowry-estimator", badge: "🔓" }] : []),
+    { label: "💹 Arth Niti", path: "/dowry-estimator", badge: "NEW" },
   ] as { label: string; path: string; badge?: string }[];
 
   // Online/offline LED
