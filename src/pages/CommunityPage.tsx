@@ -1,3 +1,4 @@
+import PageGuide from "@/components/PageGuide";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
