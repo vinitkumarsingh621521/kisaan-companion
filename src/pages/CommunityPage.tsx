@@ -402,6 +402,22 @@ Return ONLY one word — the category id. Nothing else.`;
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto">
+          <PageGuide
+            pageId="community"
+            title="Kisaan Community"
+            subtitle="Connect and share knowledge with farmers across India"
+            description="Post farming questions, share your successes, and learn from farmers across India. AI suggests helpful replies to others' questions. Tag your posts by topic. The leaderboard shows the most active and helpful community members."
+            gradient="from-blue-900 to-indigo-700"
+            aiContext="Community page: farmers post questions and updates, AI suggests reply drafts, posts tagged by category, real-time updates, leaderboard."
+            features={[
+              { icon: "📝", title: "Post Questions", desc: "Ask anything about farming — community and AI will help" },
+              { icon: "🤖", title: "AI Reply Suggestions", desc: "AI drafts helpful replies to community questions for you" },
+              { icon: "🏷️", title: "Topic Tags", desc: "Browse posts by disease, market, weather, or technique" },
+              { icon: "🏆", title: "Leaderboard", desc: "See the most helpful farmers in the community" },
+              { icon: "💬", title: "Comments", desc: "Reply to posts and start discussions" },
+              { icon: "🔴", title: "Live Updates", desc: "New posts appear instantly without refreshing" },
+            ]}
+          />
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 {t("community.title")}</h1>
             <p className="text-muted-foreground mt-1">{t("community.subtitle")}</p>
