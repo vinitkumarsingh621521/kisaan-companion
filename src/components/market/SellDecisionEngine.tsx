@@ -141,7 +141,14 @@ export default function SellDecisionEngine() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="rounded-2xl overflow-hidden border border-border bg-card shadow-lg">
       <div className="bg-gradient-to-r from-emerald-900 to-green-700 text-white p-5">
-        <h2 className="text-2xl font-display font-bold">🤖 Kab Beche? — AI Sell Decision Engine</h2>
+        <h2 className="text-2xl font-display font-bold">
+          🤖 Kab Beche? — AI Sell Decision Engine
+          <FeatureHint
+            title="AI Sell Decision Engine"
+            description="Enter your crop, quantity, and current mandi price. AI analyses market trends, weather, and seasonal patterns to tell you whether to sell today or wait — with a confidence percentage."
+            example="Rice at ₹2,450/qtl → AI says 'Sell within 3 days (78% confidence)'"
+          />
+        </h2>
         <p className="text-white/80 text-sm mt-1">Should you sell today or wait for a better price?</p>
       </div>
 
