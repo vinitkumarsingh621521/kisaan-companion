@@ -87,6 +87,11 @@ export default function PriceAlertSystem() {
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
           <Bell className="h-5 w-5 text-amber-500" /> Price Alerts
+          <FeatureHint
+            title="Price Alerts"
+            description="Set a target price for any crop. The system watches the market and notifies you when that price is reached. Never miss the right selling moment."
+            example="Set 'Alert when Wheat goes above ₹2,500' and get notified automatically."
+          />
         </h3>
         <Button size="sm" variant="ghost" onClick={() => setShowForm((s) => !s)}>
           {showForm ? <><X className="h-4 w-4" /> Close</> : <><Plus className="h-4 w-4" /> Add Alert</>}
