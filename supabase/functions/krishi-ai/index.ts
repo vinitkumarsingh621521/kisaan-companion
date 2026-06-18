@@ -412,6 +412,8 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate farm prescription." });
     } else if (action === "crop_compare") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Compare crops." });
+    } else if (action === "farm_finance") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate farm finance projection." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
