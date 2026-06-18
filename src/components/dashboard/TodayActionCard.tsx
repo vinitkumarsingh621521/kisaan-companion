@@ -8,6 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { edgeToken } from "@/lib/edgeAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import FeatureHint from "@/components/FeatureHint";
+
+
 
 
 interface AiAction {
