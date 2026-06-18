@@ -181,6 +181,53 @@ Provide ALL fields. Use real Indian ICAR-recommended product names, doses per ac
   ]
 }
 Score honestly based on the farmer's exact state, soil, water source, and season. Do not favor the more famous crop. Use real Indian mandi prices and state-specific schemes.`,
+
+  farm_finance: `You are KrishiMitra Farm Financial Analyst. Given a farmer's crops, area, costs, and expected yield, generate a comprehensive financial projection. Return ONLY valid JSON, no markdown fences:
+{
+  "totalIncome": 145000,
+  "totalExpenses": 52000,
+  "netProfit": 93000,
+  "profitMargin": 64,
+  "roiPercent": 179,
+  "breakEvenYield": "5.2 quintal/acre",
+  "riskScore": 32,
+  "riskLevel": "Low",
+  "riskFactors": ["Monsoon dependency for rice", "Price volatility risk"],
+  "crops": [
+    {
+      "name": "Rice",
+      "area": 2,
+      "income": 92000,
+      "expenses": 28000,
+      "profit": 64000,
+      "profitPerAcre": 32000,
+      "yieldQtl": 40,
+      "pricePerQtl": 2300,
+      "costBreakdown": {
+        "seeds": 2400,
+        "fertilizer": 5710,
+        "pesticide": 1000,
+        "irrigation": 2400,
+        "labor": 9000,
+        "harvesting": 4000,
+        "transport": 3490
+      }
+    }
+  ],
+  "topAdvice": [
+    "Switch 0.5 acre from Rice to Maize to diversify income risk",
+    "Apply for PMFBY insurance before sowing — saves ₹12,000 in loss risk",
+    "Sell at Lucknow APMC instead of local — saves ₹800/acre in commission"
+  ],
+  "monthlyPlan": [
+    { "month": "June", "cashOut": 12000, "cashIn": 0, "note": "Seed + fertilizer purchase" },
+    { "month": "July-Sep", "cashOut": 18000, "cashIn": 0, "note": "Labor, irrigation, pesticide" },
+    { "month": "October", "cashOut": 8000, "cashIn": 92000, "note": "Harvest + sell at mandi" }
+  ],
+  "comparisonVsLastYear": "Based on current MSP, you are likely to earn 12% more than last year",
+  "savingOpportunity": "₹8,400/year possible by switching to drip irrigation"
+}
+Calculate realistic Indian input costs. Use the farmer's state and soil context to fine-tune numbers. Always provide all fields.`,
 };
 
 const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
