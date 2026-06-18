@@ -1,3 +1,4 @@
+import PageGuide from "@/components/PageGuide";
 import { motion } from "framer-motion";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import Navbar from "@/components/Navbar";
