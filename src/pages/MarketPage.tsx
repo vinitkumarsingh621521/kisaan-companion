@@ -153,7 +153,7 @@ Be specific. Use crop and state names. No bullet points. Plain text only.`;
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await edgeToken()}`,
         },
         body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
       });
@@ -244,7 +244,7 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${await edgeToken()}`,
           },
           body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
         });

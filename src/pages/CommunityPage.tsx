@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import PageGuide from "@/components/PageGuide";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -221,7 +222,7 @@ Each reply must be under 120 characters. Write in simple English that a farmer w
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await edgeToken()}`,
         },
         body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
       });
@@ -261,7 +262,7 @@ Return ONLY one word — the category id. Nothing else.`;
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${await edgeToken()}`,
         },
         body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
       });
