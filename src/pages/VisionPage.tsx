@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import SoilPhotoAnalyzer from "@/components/vision/SoilPhotoAnalyzer";
 import CropGrowthDiary from "@/components/vision/CropGrowthDiary";
 import PestRadarWidget from "@/components/vision/PestRadarWidget";
+import SmartScanner from "@/components/vision/SmartScanner";
 
 export default function VisionPage() {
   return (
