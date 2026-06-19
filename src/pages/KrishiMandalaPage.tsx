@@ -1,3 +1,4 @@
+import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -96,7 +97,7 @@ async function callAi(prompt: string): Promise<string> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${await edgeToken()}`,
     },
     body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: prompt }] }),
   });

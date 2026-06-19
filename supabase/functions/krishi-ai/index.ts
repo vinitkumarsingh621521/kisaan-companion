@@ -228,9 +228,77 @@ Score honestly based on the farmer's exact state, soil, water source, and season
   "savingOpportunity": "₹8,400/year possible by switching to drip irrigation"
 }
 Calculate realistic Indian input costs. Use the farmer's state and soil context to fine-tune numbers. Always provide all fields.`,
+
+  pest_identify: `You are KrishiMitra Pest & Insect Identification AI — an expert entomologist and plant pathologist. Analyze the provided image of an insect, pest, or plant damage. Return ONLY valid JSON:
+{
+  "identified": true,
+  "name": "Brown Plant Hopper",
+  "scientificName": "Nilaparvata lugens",
+  "emoji": "🦟",
+  "type": "Insect Pest",
+  "riskLevel": "High",
+  "riskScore": 82,
+  "cropsAffected": ["Rice", "Wheat"],
+  "description": "Small brown insect found at base of rice plants, causes hopper burn",
+  "damageSymptom": "Yellowing and wilting starting from base of plant, circular brown patches called hopper burn",
+  "immediateAction": "Spray Imidacloprid 17.8 SL @ 125ml per 200L water per acre, directed at plant base",
+  "preventiveMeasure": "Avoid excessive nitrogen fertilizer which attracts BPH, use resistant varieties",
+  "economicThreshold": "Spray when 5-10 hoppers per hill are observed during tillering stage",
+  "naturalEnemy": "Spiders and mirid bugs — avoid broad-spectrum pesticides that kill these",
+  "isHarmful": true,
+  "confidence": 84
+}`,
+
+  fertilizer_scan: `You are KrishiMitra Fertilizer Label Reader — an expert agricultural chemist. Analyze the provided image of a fertilizer bag, pesticide bottle, or agri-input label. Extract all details and assess suitability. Return ONLY valid JSON:
+{
+  "productName": "DAP (Di-Ammonium Phosphate)",
+  "manufacturer": "IFFCO",
+  "npkRatio": "18-46-0",
+  "nitrogen": 18,
+  "phosphorus": 46,
+  "potassium": 0,
+  "otherNutrients": ["Sulphur 1.5%"],
+  "productType": "Basal fertilizer",
+  "recommendedFor": ["Rice", "Wheat", "Maize", "All field crops at sowing time"],
+  "applicationRate": "50 kg per acre at sowing, broadcast and incorporate",
+  "applicationTiming": "Basal — before or at sowing time only",
+  "safetyWarnings": ["Wear gloves during application", "Do not mix with urea directly", "Store in dry place below 35°C"],
+  "isFake": false,
+  "qualityFlags": ["Check ISI mark", "Check seal integrity", "Verify batch number on bag"],
+  "priceAssessment": "Market price typically ₹1,350-1,450 per 50kg bag — if cheaper, verify authenticity",
+  "isISICertified": true,
+  "expiryVisible": false,
+  "confidence": 88
+}`,
+
+  satellite_ai: `You are KrishiMitra Satellite & Vegetation Intelligence AI — an expert in remote sensing and precision agriculture. You will receive phenology/NDVI data for a farmer's crops. Analyze the data and generate actionable farm intelligence. Return ONLY valid JSON:
+{
+  "overallHealth": "Moderate",
+  "healthScore": 71,
+  "currentMonthAnalysis": "NDVI of 0.68 indicates moderate-to-good crop cover.",
+  "criticalInsight": "Vegetation index is 9% below optimal for Kharif rice at this stage",
+  "topAlerts": [
+    { "type": "Water Stress", "severity": "Moderate", "action": "Increase irrigation frequency" },
+    { "type": "Growth Lag", "severity": "Low", "action": "Apply urea top dressing 20 kg/acre" }
+  ],
+  "monthlyForecast": [
+    { "month": "Current", "ndviPrediction": 0.68, "recommendation": "Irrigate and top-dress nitrogen" },
+    { "month": "Next month", "ndviPrediction": 0.82, "recommendation": "Maintain management, scout for pests" },
+    { "month": "+2 months", "ndviPrediction": 0.71, "recommendation": "Begin harvest preparation" }
+  ],
+  "optimalHarvestWindow": "October 12-22 (when NDVI drops to 0.45-0.55 from peak)",
+  "yieldEstimate": "18-21 quintal/acre based on current biomass trajectory",
+  "actionThisWeek": "Irrigate immediately and apply foliar micronutrient spray",
+  "comparedToAverage": "Your farm NDVI is 6% below district average",
+  "seasonSummary": "Overall season trajectory is positive."
+}`,
 };
 
 const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
+const FREE_JSON_GEMINI_ACTIONS = new Set([
+  "prescription", "crop_compare", "farm_finance",
+  "market_decision", "pest_alert", "satellite_ai",
+]);
 
 function toGeminiSchema(schema: any): any {
   if (!schema || typeof schema !== "object") return schema;
@@ -414,6 +482,24 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Compare crops." });
     } else if (action === "farm_finance") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate farm finance projection." });
+    } else if (action === "pest_identify" && image) {
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: "Identify this pest, insect, or plant damage. Return JSON only." },
+        ],
+      });
+    } else if (action === "fertilizer_scan" && image) {
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: "Read this fertilizer or pesticide label and assess it. Return JSON only." },
+        ],
+      });
+    } else if (action === "satellite_ai") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyse farm satellite data." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
@@ -441,9 +527,10 @@ serve(async (req) => {
     }
 
     const isStreaming = action === "chat";
-    const model = (action === "disease" || action === "soil" || action === "crop_photo")
-      ? "google/gemini-2.5-flash"
-      : "google/gemini-3-flash-preview";
+    const model = (
+      action === "disease" || action === "soil" || action === "crop_photo"
+      || action === "pest_identify" || action === "fertilizer_scan"
+    ) ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
 
     // Tool-calling schema for crop_recommendation to guarantee structured output
     const cropRecTool = {
@@ -614,6 +701,44 @@ serve(async (req) => {
       }
     }
 
+    if (FREE_JSON_GEMINI_ACTIONS.has(action)) {
+      const gemKey = Deno.env.get("GOOGLE_AI_STUDIO_API_KEY") || Deno.env.get("Gemini_API_Key_Rahul");
+      if (gemKey) {
+        const prompt = apiMessages.map((m) =>
+          `${String(m.role).toUpperCase()}: ${
+            typeof m.content === "string" ? m.content
+            : Array.isArray(m.content) ? m.content.map((p: any) => p.text || "").join(" ")
+            : JSON.stringify(m.content)
+          }`
+        ).join("\n\n");
+        try {
+          const gemResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gemKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2, response_mime_type: "application/json" },
+              }),
+            }
+          );
+          if (gemResp.ok) {
+            const gemData = await gemResp.json();
+            const gemText = gemData?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+            const cleaned = gemText.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+            JSON.parse(cleaned);
+            return new Response(
+              JSON.stringify({ result: cleaned, provider: "gemini-direct" }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (e) {
+          console.warn("[krishi-ai] Gemini direct failed for", action, e);
+        }
+      }
+    }
+
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const callLovable = () =>
@@ -628,7 +753,10 @@ serve(async (req) => {
     // Groq fallback for non-streaming, non-image actions when Lovable AI is out of credits, rate-limited, or 5xx
     const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
     const isRecoverable = !response.ok && (response.status === 402 || response.status === 429 || response.status >= 500);
-    if (isRecoverable && !isStreaming && action !== "disease" && action !== "soil" && action !== "crop_photo" && GROQ_KEY) {
+    if (isRecoverable && !isStreaming
+      && action !== "disease" && action !== "soil" && action !== "crop_photo"
+      && action !== "pest_identify" && action !== "fertilizer_scan"
+      && GROQ_KEY) {
       console.warn(`[krishi-ai] Lovable AI ${response.status} — falling back to Groq`);
       const groqBody: any = {
         model: "llama-3.3-70b-versatile",

@@ -2,7 +2,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { motion } from "framer-motion";
-import { Satellite, Layers, Calendar, Activity, Droplets, Thermometer, Leaf, AlertTriangle, BookOpen, Download } from "lucide-react";
+import { Satellite, Layers, Calendar, Activity, Droplets, Thermometer, Leaf, AlertTriangle, BookOpen, Download, Sparkles, Loader2, RefreshCw, Brain } from "lucide-react";
+import { edgeToken } from "@/lib/edgeAuth";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,51 @@ export default function SatellitePage() {
     const a = document.createElement("a"); a.href = url; a.download = `ndvi-timeseries-${district}.csv`; a.click();
     URL.revokeObjectURL(url);
     toast.success("NDVI time-series exported");
+  };
+
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const runAiAnalysis = async () => {
+    setAiLoading(true);
+    try {
+      const token = await edgeToken();
+      const currentMonthIdx = new Date().getMonth();
+      const currentPheno = pheno[currentMonthIdx];
+      const phenoSummary = pheno.map(p => `${p.month}: NDVI=${p.val.toFixed(2)}, Stage=${p.stage}${p.alert ? `, Alert=${p.alert}` : ""}`).join("; ");
+
+      const prompt = `Analyse this farm's satellite phenology data:
+State: ${state}, District: ${district}
+Crops: ${crops.join(", ")}, Annual rainfall: ${rainfall}mm
+Current month NDVI: ${currentPheno?.val?.toFixed(2)}, Growth stage: ${currentPheno?.stage}
+Full phenology: ${phenoSummary}
+Peak NDVI: ${peak?.val?.toFixed(2)} in ${peak?.month}
+Current alerts: ${alerts.map(a => `${a.month}: ${a.alert}`).join("; ") || "None"}
+
+Generate satellite farm intelligence and yield estimate.`;
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "satellite_ai",
+            messages: [{ role: "user", content: prompt }],
+          }),
+        }
+      );
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+      const { result: raw } = await resp.json();
+      const text = typeof raw === "string"
+        ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
+        : null;
+      setAiAnalysis(text ? JSON.parse(text) : raw);
+    } catch (e: any) {
+      toast.error("AI analysis failed", { description: e?.message });
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -199,6 +245,107 @@ export default function SatellitePage() {
                 <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => window.open("https://bhuvan.nrsc.gov.in/", "_blank")}>Open ISRO Bhuvan</Button>
               </div>
             </div>
+          </div>
+
+          {/* AI Satellite Intelligence */}
+          <div className="mt-6 glass-card p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Brain className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-lg text-foreground">AI Satellite Intelligence</h2>
+                  <p className="text-xs text-muted-foreground">AI interprets your vegetation data and gives crop management advice</p>
+                </div>
+              </div>
+              <Button onClick={runAiAnalysis} disabled={aiLoading} size="sm" className="flex items-center gap-1.5">
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {aiLoading ? "Analysing..." : aiAnalysis ? "Refresh" : "Run AI Analysis"}
+              </Button>
+            </div>
+
+            {!aiAnalysis && !aiLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Sparkles className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Click "Run AI Analysis" to get AI interpretation of your satellite data</p>
+                <p className="text-xs mt-1">AI will explain your NDVI, predict yield, and give this week's action</p>
+              </div>
+            )}
+
+            {aiLoading && (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 mx-auto text-primary animate-spin mb-2" />
+                <p className="text-sm text-muted-foreground">Analysing your satellite phenology data...</p>
+              </div>
+            )}
+
+            {aiAnalysis && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className={`p-4 rounded-xl ${
+                    aiAnalysis.healthScore >= 70 ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900" :
+                    aiAnalysis.healthScore >= 50 ? "bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900" :
+                    "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900"
+                  }`}>
+                    <div className={`text-3xl font-display font-bold ${
+                      aiAnalysis.healthScore >= 70 ? "text-green-700 dark:text-green-400" :
+                      aiAnalysis.healthScore >= 50 ? "text-amber-700 dark:text-amber-400" :
+                      "text-red-700 dark:text-red-400"
+                    }`}>{aiAnalysis.healthScore}/100</div>
+                    <div className="text-xs uppercase font-semibold text-muted-foreground mt-1">Farm Health Score · {aiAnalysis.overallHealth}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card border border-border">
+                    <div className="text-xs uppercase font-semibold text-muted-foreground">Yield Estimate</div>
+                    <div className="font-display font-bold text-base text-foreground mt-1">{aiAnalysis.yieldEstimate}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">Based on current biomass trajectory</div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <h4 className="font-semibold text-xs text-foreground mb-1">🛰️ Satellite Insight</h4>
+                  <p className="text-xs text-muted-foreground">{aiAnalysis.criticalInsight}</p>
+                </div>
+
+                {(aiAnalysis.topAlerts || []).map((alert: any, i: number) => (
+                  <div key={i} className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">{alert.severity}</span>
+                      <span className="text-xs font-semibold text-foreground">{alert.type}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">⚡ {alert.action}</p>
+                  </div>
+                ))}
+
+                <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900">
+                  <h4 className="font-semibold text-xs text-foreground mb-1">✅ Action This Week</h4>
+                  <p className="text-xs text-muted-foreground">{aiAnalysis.actionThisWeek}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-card border border-border">
+                    <h4 className="font-semibold text-xs text-foreground mb-1">🌾 Optimal Harvest Window</h4>
+                    <p className="text-xs text-muted-foreground">{aiAnalysis.optimalHarvestWindow}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-card border border-border">
+                    <h4 className="font-semibold text-xs text-foreground mb-1">📊 vs District Average</h4>
+                    <p className="text-xs text-muted-foreground">{aiAnalysis.comparedToAverage}</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted/40">
+                  <h4 className="font-semibold text-xs text-foreground mb-1">📅 Season Summary</h4>
+                  <p className="text-xs text-muted-foreground">{aiAnalysis.seasonSummary}</p>
+                </div>
+
+                <button
+                  onClick={() => setAiAnalysis(null)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <RefreshCw className="h-3 w-3" /> Clear analysis
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>
