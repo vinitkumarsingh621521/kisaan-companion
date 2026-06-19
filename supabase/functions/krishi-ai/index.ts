@@ -753,7 +753,10 @@ serve(async (req) => {
     // Groq fallback for non-streaming, non-image actions when Lovable AI is out of credits, rate-limited, or 5xx
     const GROQ_KEY = Deno.env.get("Groq_api_key_Rahul");
     const isRecoverable = !response.ok && (response.status === 402 || response.status === 429 || response.status >= 500);
-    if (isRecoverable && !isStreaming && action !== "disease" && action !== "soil" && action !== "crop_photo" && GROQ_KEY) {
+    if (isRecoverable && !isStreaming
+      && action !== "disease" && action !== "soil" && action !== "crop_photo"
+      && action !== "pest_identify" && action !== "fertilizer_scan"
+      && GROQ_KEY) {
       console.warn(`[krishi-ai] Lovable AI ${response.status} — falling back to Groq`);
       const groqBody: any = {
         model: "llama-3.3-70b-versatile",
