@@ -64,6 +64,51 @@ export default function SatellitePage() {
     toast.success("NDVI time-series exported");
   };
 
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const runAiAnalysis = async () => {
+    setAiLoading(true);
+    try {
+      const token = await edgeToken();
+      const currentMonthIdx = new Date().getMonth();
+      const currentPheno = pheno[currentMonthIdx];
+      const phenoSummary = pheno.map(p => `${p.month}: NDVI=${p.val.toFixed(2)}, Stage=${p.stage}${p.alert ? `, Alert=${p.alert}` : ""}`).join("; ");
+
+      const prompt = `Analyse this farm's satellite phenology data:
+State: ${state}, District: ${district}
+Crops: ${crops.join(", ")}, Annual rainfall: ${rainfall}mm
+Current month NDVI: ${currentPheno?.val?.toFixed(2)}, Growth stage: ${currentPheno?.stage}
+Full phenology: ${phenoSummary}
+Peak NDVI: ${peak?.val?.toFixed(2)} in ${peak?.month}
+Current alerts: ${alerts.map(a => `${a.month}: ${a.alert}`).join("; ") || "None"}
+
+Generate satellite farm intelligence and yield estimate.`;
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "satellite_ai",
+            messages: [{ role: "user", content: prompt }],
+          }),
+        }
+      );
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+      const { result: raw } = await resp.json();
+      const text = typeof raw === "string"
+        ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
+        : null;
+      setAiAnalysis(text ? JSON.parse(text) : raw);
+    } catch (e: any) {
+      toast.error("AI analysis failed", { description: e?.message });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
