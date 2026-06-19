@@ -47,6 +47,7 @@ export default function VisionPage() {
           <SoilPhotoAnalyzer />
           <CropGrowthDiary />
           <PestRadarWidget />
+          <SmartScanner />
         </div>
       </main>
       <Footer />
