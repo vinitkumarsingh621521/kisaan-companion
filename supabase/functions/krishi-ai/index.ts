@@ -482,6 +482,24 @@ serve(async (req) => {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Compare crops." });
     } else if (action === "farm_finance") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Generate farm finance projection." });
+    } else if (action === "pest_identify" && image) {
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: "Identify this pest, insect, or plant damage. Return JSON only." },
+        ],
+      });
+    } else if (action === "fertilizer_scan" && image) {
+      apiMessages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: "Read this fertilizer or pesticide label and assess it. Return JSON only." },
+        ],
+      });
+    } else if (action === "satellite_ai") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyse farm satellite data." });
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",
@@ -509,9 +527,10 @@ serve(async (req) => {
     }
 
     const isStreaming = action === "chat";
-    const model = (action === "disease" || action === "soil" || action === "crop_photo")
-      ? "google/gemini-2.5-flash"
-      : "google/gemini-3-flash-preview";
+    const model = (
+      action === "disease" || action === "soil" || action === "crop_photo"
+      || action === "pest_identify" || action === "fertilizer_scan"
+    ) ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview";
 
     // Tool-calling schema for crop_recommendation to guarantee structured output
     const cropRecTool = {
