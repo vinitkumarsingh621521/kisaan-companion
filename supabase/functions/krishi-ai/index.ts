@@ -701,6 +701,44 @@ serve(async (req) => {
       }
     }
 
+    if (FREE_JSON_GEMINI_ACTIONS.has(action)) {
+      const gemKey = Deno.env.get("GOOGLE_AI_STUDIO_API_KEY") || Deno.env.get("Gemini_API_Key_Rahul");
+      if (gemKey) {
+        const prompt = apiMessages.map((m) =>
+          `${String(m.role).toUpperCase()}: ${
+            typeof m.content === "string" ? m.content
+            : Array.isArray(m.content) ? m.content.map((p: any) => p.text || "").join(" ")
+            : JSON.stringify(m.content)
+          }`
+        ).join("\n\n");
+        try {
+          const gemResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gemKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2, response_mime_type: "application/json" },
+              }),
+            }
+          );
+          if (gemResp.ok) {
+            const gemData = await gemResp.json();
+            const gemText = gemData?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
+            const cleaned = gemText.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+            JSON.parse(cleaned);
+            return new Response(
+              JSON.stringify({ result: cleaned, provider: "gemini-direct" }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (e) {
+          console.warn("[krishi-ai] Gemini direct failed for", action, e);
+        }
+      }
+    }
+
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const callLovable = () =>
