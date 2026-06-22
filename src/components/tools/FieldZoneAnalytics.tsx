@@ -187,6 +187,131 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      {/* AI Field Intelligence */}
+      <div className="space-y-3">
+        <button
+          onClick={runFieldAI}
+          disabled={aiLoading || zones.length === 0}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold shadow-lg shadow-violet-500/20 hover:shadow-xl disabled:opacity-60 transition-all"
+        >
+          {aiLoading ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Analysing your fields with AI...</>
+          ) : (
+            <><Brain className="h-4 w-4" /> 🤖 AI Field Intelligence</>
+          )}
+        </button>
+
+        <AnimatePresence>
+          {aiReport && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl overflow-hidden border border-border bg-card shadow-xl"
+            >
+              <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-700 to-fuchsia-700 text-white">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  <span className="font-display font-semibold text-sm">AI Field Intelligence Report</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={shareFieldReport} className="text-xs px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1">
+                    <Share2 className="h-3 w-3" /> WhatsApp
+                  </button>
+                  <button onClick={() => setAiExpanded(e => !e)} className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10">
+                    {aiExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <AnimatePresence initial={false}>
+                {aiExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className={`p-3 rounded-xl text-center ${
+                          aiReport.fieldHealthScore >= 70
+                            ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
+                            : "bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800"
+                        }`}>
+                          <div className={`text-lg font-bold ${aiReport.fieldHealthScore >= 70 ? "text-green-700 dark:text-green-300" : "text-amber-700 dark:text-amber-300"}`}>
+                            {aiReport.fieldHealthScore}/100
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">Field Score</div>
+                        </div>
+                        <div className="p-3 rounded-xl text-center bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                          <div className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{aiReport.totalRevenueEstimate}</div>
+                          <div className="text-[10px] text-muted-foreground">Est. Revenue</div>
+                        </div>
+                        <div className="p-3 rounded-xl text-center bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
+                          <div className="text-lg font-bold text-violet-700 dark:text-violet-300">{aiReport.roiPercent}%</div>
+                          <div className="text-[10px] text-muted-foreground">ROI</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                            <span className="text-xs font-semibold text-green-700 dark:text-green-300">Strength</span>
+                          </div>
+                          <p className="text-xs text-foreground">{aiReport.topStrength}</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                            <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Main Risk</span>
+                          </div>
+                          <p className="text-xs text-foreground">{aiReport.mainRisk}</p>
+                        </div>
+                      </div>
+
+                      {(aiReport.alerts || []).map((alert: any, i: number) => (
+                        <div key={i} className="p-3 rounded-xl bg-muted/40 border border-border flex items-start gap-2">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
+                            alert.severity === "High" ? "bg-destructive/15 text-destructive" :
+                            alert.severity === "Medium" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" :
+                            "bg-green-500/15 text-green-700 dark:text-green-400"
+                          }`}>{alert.severity}</span>
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-foreground">{alert.zone} — {alert.crop}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{alert.message}</div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {[
+                        { label: "🔄 Crop Rotation", value: aiReport.cropRotationAdvice },
+                        { label: "💧 Irrigation Tip", value: aiReport.irrigationTip },
+                        { label: "🌱 Soil Health", value: aiReport.soilHealthTip },
+                        { label: "⚡ This Week", value: aiReport.nextActionThisWeek },
+                      ].map(({ label, value }) => value && (
+                        <div key={label} className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                          <div className="text-xs font-semibold text-foreground mb-1">{label}</div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{value}</p>
+                        </div>
+                      ))}
+
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-violet-50 to-fuchsia-50 dark:from-violet-950/30 dark:to-fuchsia-950/30 border border-violet-200 dark:border-violet-800">
+                        <div className="text-xs font-semibold text-violet-800 dark:text-violet-200 mb-1">💡 Optimization Potential</div>
+                        <p className="text-xs text-foreground">{aiReport.optimizationPotential}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1 italic">{aiReport.seasonalOutlook}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+
       <div className="glass-card p-4">
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2 text-sm">
