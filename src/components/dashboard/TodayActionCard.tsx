@@ -314,9 +314,10 @@ Return JSON only (no markdown):
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className={`flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-white/40 ${
+                className={`card-hover flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/40 ${
                   checked[i] ? "opacity-60" : ""
                 }`}
+
               >
                 <Checkbox
                   checked={checked[i] ?? false}

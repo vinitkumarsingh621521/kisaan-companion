@@ -147,7 +147,7 @@ export default function PrescriptionCard({ prescription: rx, wizardData: wd, onR
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl overflow-hidden border border-border bg-card shadow-xl"
+      className={`rounded-2xl overflow-hidden border border-border bg-card shadow-xl ${rx.overallHealthScore >= 70 ? "glow-green" : ""}`}
     >
       <div className="bg-gradient-to-r from-green-900 to-emerald-700 text-white px-6 py-5">
         <div className="flex items-start justify-between mb-4">
