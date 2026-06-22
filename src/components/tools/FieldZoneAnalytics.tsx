@@ -3,10 +3,13 @@
 // drawn polygon, using the active farmer profile and crop reference data.
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Droplets, Beaker, TrendingUp, Wallet, Sun, Leaf, Lightbulb, LayoutGrid, Table as TableIcon, ArrowUpDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Droplets, Beaker, TrendingUp, Wallet, Sun, Leaf, Lightbulb, LayoutGrid, Table as TableIcon, ArrowUpDown, Brain, Sparkles, Loader2, Share2, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { toast } from "sonner";
+import { edgeToken } from "@/lib/edgeAuth";
 import type { Zone } from "@/components/tools/FieldMap";
 import type { FarmerProfile } from "@/hooks/useActiveProfile";
+
 
 // kg/ha N-P-K removal & water (mm season) & expected yield (t/ha) & farm-gate price (₹/qtl)
 const CROP_REF: Record<string, {
@@ -80,6 +83,58 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
   const [view, setView] = useState<"cards" | "table">(zones.length >= 4 ? "table" : "cards");
   const [sortKey, setSortKey] = useState<"acres" | "water_kl" | "N_kg" | "yield_t" | "revenue" | "phFit">("revenue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [aiReport, setAiReport] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiExpanded, setAiExpanded] = useState(true);
+
+  const runFieldAI = async () => {
+    if (zones.length === 0) { toast.error("Draw at least one field zone first"); return; }
+    setAiLoading(true);
+    setAiReport(null);
+    try {
+      const token = await edgeToken();
+      const zoneSummary = rows.map((r, i) =>
+        `Zone ${i + 1} (${r.crop}, ${r.hectares.toFixed(2)} ha): water=${r.water_kl.toFixed(0)} kL, N=${r.N_kg.toFixed(0)}kg P=${r.P_kg.toFixed(0)}kg K=${r.K_kg.toFixed(0)}kg, est yield=${r.yield_t.toFixed(1)}t, revenue=₹${r.revenue.toLocaleString("en-IN")}`
+      ).join("; ");
+      const ph = profile?.farmer_details?.soil_ph || "6.5";
+      const irrig = profile?.farmer_details?.irrigation_type || "Flood";
+      const state = profile?.farmer_details?.state || "India";
+      const name = profile?.full_name || "Farmer";
+      const prompt = `Analyse farm field zones for ${name} in ${state}. Soil pH: ${ph}, Irrigation: ${irrig}. Zones: ${zoneSummary}. Total area: ${rows.reduce((s, r) => s + r.hectares, 0).toFixed(2)} ha. Provide field intelligence report.`;
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            action: "field_intelligence",
+            messages: [{ role: "user", content: prompt }],
+            profileContext: profile?.farmer_details,
+          }),
+        }
+      );
+      if (!resp.ok) throw new Error(`Server error ${resp.status}`);
+      const { result: raw } = await resp.json();
+      const text = typeof raw === "string"
+        ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
+        : null;
+      setAiReport(text ? JSON.parse(text) : raw);
+      toast.success("AI Field Analysis complete!");
+    } catch (e: any) {
+      toast.error("AI analysis failed", { description: e?.message });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const shareFieldReport = () => {
+    if (!aiReport) return;
+    const zoneList = zones.map((z, i) => `• Zone ${i+1}: ${z.crop} (${z.hectares?.toFixed(1)} ha)`).join("\n");
+    const text = `🗺️ *My Farm Field Analysis — KisaanCompanion AI*\n━━━━━━━━━━━━━━━━━\n${zoneList}\n━━━━━━━━━━━━━━━━━\n📊 Field Score: *${aiReport.fieldHealthScore}/100*\n💰 Revenue Estimate: *${aiReport.totalRevenueEstimate}*\n📈 ROI: ${aiReport.roiPercent}%\n\n💪 Strength: ${aiReport.topStrength}\n⚠️ Main Risk: ${aiReport.mainRisk}\n\n✅ This Week: ${aiReport.nextActionThisWeek}\n💡 Optimization: ${aiReport.optimizationPotential}\n━━━━━━━━━━━━━━━━━\n📱 Analyse your field free: kisaancompanion.in`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  };
+
 
   const sortedRows = useMemo(() => {
     const arr = [...rows];
