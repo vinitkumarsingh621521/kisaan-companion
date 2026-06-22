@@ -292,7 +292,28 @@ Calculate realistic Indian input costs. Use the farmer's state and soil context 
   "comparedToAverage": "Your farm NDVI is 6% below district average",
   "seasonSummary": "Overall season trajectory is positive."
 }`,
+
+  field_intelligence: `You are KrishiMitra Field Intelligence AI — an expert precision agriculture scientist. Given farm field zones with area, crop, and resource data, generate a comprehensive field management report. Return ONLY valid JSON:
+{
+  "fieldHealthScore": 78,
+  "totalRevenueEstimate": "₹3,45,000",
+  "totalInvestmentEstimate": "₹62,000",
+  "roiPercent": 456,
+  "topStrength": "Well-distributed crop mix balances water use and income risk",
+  "mainRisk": "Zone 1 rice water demand may exceed groundwater recharge rate",
+  "cropRotationAdvice": "After Kharif harvest, plant mustard/chickpea in Zone 1 to restore nitrogen — saves ₹4,200/acre on next fertilizer",
+  "irrigationTip": "Switching Zone 2 from flood to sprinkler saves 35% water cost (~₹1,800/season)",
+  "soilHealthTip": "Apply 2 tons FYM before rabi sowing in Zone 1 — pH 6.2 is slightly acidic for wheat",
+  "alerts": [
+    { "zone": "Zone 1", "crop": "Rice", "severity": "High", "message": "Water requirement 22,500 kL — schedule borewell in advance for peak July demand" },
+    { "zone": "Zone 2", "crop": "Wheat", "severity": "Low", "message": "Ideal zone — split nitrogen into 3 doses for 12% yield uplift" }
+  ],
+  "nextActionThisWeek": "Scout Zone 1 for stem borer — apply Cartap Hydrochloride 4G @ 8 kg/acre if >10 hoppers per hill found",
+  "optimizationPotential": "₹28,000 additional income possible with drip + rotation changes",
+  "seasonalOutlook": "Your zone mix is above average for this district. Expect 14% better return than last season if irrigation is managed well."
+}`,
 };
+
 
 const DIRECT_GEMINI_ACTIONS = new Set(["mistake_check", "carbon_plan"]);
 const FREE_JSON_GEMINI_ACTIONS = new Set([
@@ -500,6 +521,9 @@ serve(async (req) => {
       });
     } else if (action === "satellite_ai") {
       apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyse farm satellite data." });
+    } else if (action === "field_intelligence") {
+      apiMessages.push({ role: "user", content: messages?.[0]?.content || "Analyse this field." });
+
     } else if (action === "crop_recommendation") {
       apiMessages.push({
         role: "user",

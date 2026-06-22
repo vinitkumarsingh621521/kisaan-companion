@@ -63,7 +63,7 @@ export default function PageGuide({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          action: "chat",
+          action: "saarthi_guide",
           messages: [
             {
               role: "user",
@@ -73,30 +73,23 @@ export default function PageGuide({
         }),
       });
 
-      // Streaming endpoint — read as text
-      const text = await resp.text();
-      // Try parse SSE / JSON
-      let clean = "";
-      try {
-        const j = JSON.parse(text);
-        clean = j.result || j.response || "";
-      } catch {
-        // Extract assistant content from SSE chunks
-        const matches = text.match(/"content":"((?:\\.|[^"\\])*)"/g) || [];
-        clean = matches
-          .map((m) => {
-            try {
-              return JSON.parse(`{${m}}`).content;
-            } catch {
-              return "";
-            }
-          })
-          .join("");
-      }
-      clean = clean.replace(/```[^`]*```/g, "").trim();
-      setAiReply(clean || "Saarthi couldn't load right now. Please try again!");
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      const data = await resp.json();
+      const clean = (
+        data.result ||
+        data.choices?.[0]?.message?.content ||
+        ""
+      ).replace(/```[^`]*```/g, "").trim();
+      setAiReply(
+        clean ||
+        "Namaste Kisan! 🙏 Yeh page aapke farm ke liye helpful features rakhta hai. Koi bhi feature click karke try karein!"
+      );
     } catch (e: any) {
+      setAiReply(
+        "Namaste Kisan! 🙏 Is page par aapko powerful AI farming tools milenge. Koi bhi feature tap karke start karein!"
+      );
       toast.error("Saarthi is busy — try again", { description: e?.message });
+
     } finally {
       setAiLoading(false);
     }

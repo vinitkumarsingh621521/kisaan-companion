@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity, Pause, Play, Square } from "lucide-react";
+import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity, Pause, Play, Square, Sparkles } from "lucide-react";
+
+const WAVE_BARS = [1, 2, 3, 4, 5, 6, 7];
+
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
@@ -371,13 +374,19 @@ export default function VoiceBubble() {
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 1, type: "spring", stiffness: 200 }}
+        whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(!open)}
-        className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full gradient-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
+        className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-green-600 to-emerald-700 text-white shadow-2xl shadow-green-500/30 flex items-center justify-center"
         aria-label="Voice assistant"
-        title="Krishi Voice — speak in any language"
       >
-        <Mic className="h-6 w-6" />
-        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-krishi-gold animate-pulse" />
+        {!open && (
+          <span className="absolute inset-0 rounded-full bg-green-500/30 animate-ping" />
+        )}
+        <Mic className="h-6 w-6 relative z-10" />
+        <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+        </span>
       </motion.button>
 
       <AnimatePresence>
@@ -386,153 +395,182 @@ export default function VoiceBubble() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-44 right-6 z-40 w-[340px] max-w-[90vw] glass-card p-4 shadow-2xl border-2 border-primary/20"
+            className="fixed bottom-44 right-6 z-40 w-[340px] max-w-[90vw] rounded-3xl overflow-hidden shadow-2xl border border-border bg-card"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
-                  <Volume2 className="h-4 w-4 text-primary-foreground" />
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-br from-green-700 to-emerald-800 text-white">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-4 w-4" />
                 </div>
-              <div>
-                  <div className="font-display font-semibold text-foreground text-sm">Krishi Voice</div>
-                  <div className="text-[10px] text-muted-foreground">Speak in {(LANG_BCP[voiceLang] || "en-IN").toUpperCase()}</div>
+                <div className="min-w-0">
+                  <div className="font-display font-semibold text-sm leading-tight">Krishi Voice</div>
+                  <div className="text-[10px] text-white/80 leading-tight">
+                    {recording ? "● Suno raha hoon..." : processing ? "● Soch raha hoon..." : "13 Indian languages"}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => setShowDiag((s) => !s)} className="p-1 rounded-md hover:bg-muted" title="Diagnostics">
-                  <Activity className={`h-4 w-4 ${showDiag ? "text-primary" : "text-muted-foreground"}`} />
+                <button onClick={() => setShowDiag((s) => !s)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors" aria-label="Diagnostics">
+                  <Activity className="h-4 w-4" />
                 </button>
-                <button onClick={() => setOpen(false)} className="p-1 rounded-md hover:bg-muted">
-                  <X className="h-4 w-4 text-muted-foreground" />
+                <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors" aria-label="Close">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            {/* Language picker */}
-            <div className="flex items-center gap-2 mb-2">
-              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                value={voiceLang}
-                onChange={(e) => setVoiceLang(e.target.value)}
-                className="text-xs flex-1 rounded-md border border-border bg-background px-2 py-1"
-              >
-                <option value="en">English</option>
-                <option value="hi">हिन्दी (Hindi)</option>
-                <option value="bn">বাংলা (Bengali)</option>
-                <option value="ta">தமிழ் (Tamil)</option>
-                <option value="te">తెలుగు (Telugu)</option>
-                <option value="mr">मराठी (Marathi)</option>
-                <option value="gu">ગુજરાતી (Gujarati)</option>
-                <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
-                <option value="kn">ಕನ್ನಡ (Kannada)</option>
-                <option value="ml">മലയാളം (Malayalam)</option>
-                <option value="or">ଓଡ଼ିଆ (Odia)</option>
-                <option value="as">অসমীয়া (Assamese)</option>
-                <option value="ur">اردو (Urdu)</option>
-              </select>
-            </div>
-
-            {showDiag && (
-              <div className="mb-2 p-2 rounded-lg bg-muted/40 text-[10px] space-y-0.5">
-                <div>🎤 Mic permission: <b>{diag.micPermission || "unknown"}</b></div>
-                <div>🛰 STT path: <b>{diag.sttProvider || "—"}</b>{typeof diag.sttConfidence === "number" ? ` · conf ${(diag.sttConfidence * 100).toFixed(0)}%` : ""}</div>
-                <div>🤖 Chat: <b>{diag.chatProvider || "—"}</b></div>
-                <div>🎧 Audio mime: <b>{diag.audioMime || "—"}</b></div>
-                <div>🌐 Language: <b>{voiceLang}</b></div>
-                <div>📡 Last: <b>{diag.lastStatus || "—"}</b></div>
-                {diag.sttError && <div className="text-destructive">⚠ {diag.sttError}</div>}
-              </div>
-            )}
-
-            {error && (
-              <div className="flex items-start gap-2 p-2 rounded-lg bg-destructive/10 text-destructive text-[11px] mb-2">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="max-h-48 overflow-y-auto space-y-2 mb-3 text-xs">
-              {history.length === 0 && (
-                <p className="text-muted-foreground italic text-center py-3">
-                  🎙️ Tap the mic and ask anything — I speak 13 Indian languages
-                </p>
-              )}
-              {history.slice(-6).map((m, i) => (
-                <div
-                  key={i}
-                  className={`p-2 rounded-lg ${
-                    m.role === "user" ? "bg-primary/10 text-foreground" : "bg-muted/50 text-foreground"
-                  }`}
+            <div className="p-4 space-y-3">
+              {/* Language picker */}
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <select
+                  value={voiceLang}
+                  onChange={(e) => setVoiceLang(e.target.value)}
+                  className="w-full text-xs rounded-xl border border-border bg-muted/40 px-3 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <span className="font-semibold mr-1">{m.role === "user" ? "You:" : "🌾"}</span>
-                  {m.text}
+                  <option value="en">English</option>
+                  <option value="hi">हिन्दी (Hindi)</option>
+                  <option value="bn">বাংলা (Bengali)</option>
+                  <option value="ta">தமிழ் (Tamil)</option>
+                  <option value="te">తెలుగు (Telugu)</option>
+                  <option value="mr">मराठी (Marathi)</option>
+                  <option value="gu">ગુજરાતી (Gujarati)</option>
+                  <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+                  <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                  <option value="ml">മലയാളം (Malayalam)</option>
+                  <option value="or">ଓଡ଼ିଆ (Odia)</option>
+                  <option value="as">অসমীয়া (Assamese)</option>
+                  <option value="ur">اردو (Urdu)</option>
+                </select>
+              </div>
+
+              {showDiag && (
+                <div className="p-2 rounded-xl bg-muted/40 text-[10px] space-y-0.5">
+                  <div>🎤 Mic permission: <b>{diag.micPermission || "unknown"}</b></div>
+                  <div>🛰 STT path: <b>{diag.sttProvider || "—"}</b>{typeof diag.sttConfidence === "number" ? ` · conf ${(diag.sttConfidence * 100).toFixed(0)}%` : ""}</div>
+                  <div>🤖 Chat: <b>{diag.chatProvider || "—"}</b></div>
+                  <div>🎧 Audio mime: <b>{diag.audioMime || "—"}</b></div>
+                  <div>📡 Last: <b>{diag.lastStatus || "—"}</b></div>
+                  {diag.sttError && <div className="text-destructive">⚠ {diag.sttError}</div>}
                 </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              {processing ? (
-                <div className="flex items-center gap-2 text-sm text-primary">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
-                </div>
-              ) : recording ? (
-                <button
-                  onClick={stopAll}
-                  className="w-16 h-16 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg animate-pulse"
-                  aria-label="Stop"
-                >
-                  <MicOff className="h-7 w-7" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleStart}
-                  className="w-16 h-16 rounded-full gradient-primary text-primary-foreground flex items-center justify-center shadow-lg hover:scale-110 transition"
-                  aria-label="Record"
-                >
-                  <Mic className="h-7 w-7" />
-                </button>
               )}
 
-              {playState !== "idle" && !recording && !processing && (
-                <div className="flex items-center gap-2 mt-1">
-                  {playState === "playing" ? (
-                    <button
-                      onClick={pausePlayback}
-                      className="px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5"
-                      aria-label="Pause voice"
-                    >
-                      <Pause className="h-3.5 w-3.5" /> Pause
-                    </button>
-                  ) : (
-                    <button
-                      onClick={resumePlayback}
-                      className="px-3 py-1.5 rounded-full bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium flex items-center gap-1.5"
-                      aria-label="Resume voice"
-                    >
-                      <Play className="h-3.5 w-3.5" /> Resume
-                    </button>
-                  )}
-                  <button
-                    onClick={stopPlayback}
-                    className="px-3 py-1.5 rounded-full bg-destructive/15 hover:bg-destructive/25 text-destructive text-xs font-medium flex items-center gap-1.5"
-                    aria-label="Stop voice"
+              {error && (
+                <div className="flex items-start gap-2 p-2 rounded-xl bg-destructive/10 text-destructive text-[11px]">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Suggestion chips */}
+              {!recording && !processing && history.length === 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground font-medium">Quick questions:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "🌤️ Aaj kya kaam karoon?",
+                      "💊 Meri fasal ko kya spray karoon?",
+                      "💰 Rice ka bhav kya hai?",
+                      "🌧️ Barish kab hogi?",
+                    ].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => {
+                          handleStart();
+                          window.dispatchEvent(new CustomEvent("krishi-prefill", { detail: { text: q } }));
+                        }}
+                        className="text-[10px] px-2.5 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors font-medium"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Chat history */}
+              <div className="max-h-40 overflow-y-auto space-y-2 text-xs">
+                {history.length === 0 && !recording && !processing && (
+                  <p className="text-muted-foreground italic text-center py-2 text-[11px]">
+                    🎙️ Mic tap karein — Hindi, English, ya koi bhi 13 bhasha mein baat karein
+                  </p>
+                )}
+                {history.slice(-6).map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <Square className="h-3.5 w-3.5" /> Stop
-                  </button>
-                </div>
-              )}
+                    <div className={`max-w-[85%] p-2.5 rounded-2xl ${
+                      m.role === "user"
+                        ? "bg-gradient-to-br from-green-600 to-emerald-700 text-white rounded-br-sm"
+                        : "bg-muted text-foreground rounded-bl-sm"
+                    }`}>
+                      {m.role === "assistant" && <span className="mr-1">🌾</span>}
+                      {m.text}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
 
-              <p className="text-[10px] text-muted-foreground text-center">
-                {recording
-                  ? "Listening… tap to stop"
-                  : processing
-                  ? "One moment…"
-                  : playState === "playing"
-                  ? "Speaking… you can pause or stop"
-                  : playState === "paused"
-                  ? "Paused — tap Resume to continue"
-                  : "Tap mic and speak"}
-              </p>
+              {/* Mic area */}
+              <div className="flex flex-col items-center gap-2 pt-1">
+                {recording && (
+                  <div className="flex items-end justify-center gap-1 h-10">
+                    {WAVE_BARS.map((_, i) => (
+                      <span
+                        key={i}
+                        className="wave-bar w-1 bg-gradient-to-t from-green-600 to-emerald-400 rounded-full origin-bottom"
+                        style={{ height: `${20 + (i % 3) * 8}px`, animationDelay: `${i * 80}ms` }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {processing && !recording && (
+                  <div className="flex items-center gap-2 text-xs text-primary">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>KrishiMitra soch raha hai...</span>
+                  </div>
+                )}
+
+                {!processing && (
+                  <button
+                    onClick={recording ? stopAll : handleStart}
+                    className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 ${
+                      recording
+                        ? "bg-destructive text-destructive-foreground animate-pulse"
+                        : "bg-gradient-to-br from-green-600 to-emerald-700 text-white"
+                    }`}
+                    aria-label={recording ? "Stop" : "Record"}
+                  >
+                    {recording ? <MicOff className="h-7 w-7" /> : <Mic className="h-7 w-7" />}
+                  </button>
+                )}
+
+                <p className="text-[10px] text-muted-foreground text-center">
+                  {recording ? "Tap to stop" : processing ? "Please wait…" : playState === "playing" ? "Playing reply…" : "Tap mic · Ask in any language"}
+                </p>
+
+                {playState !== "idle" && !recording && !processing && (
+                  <div className="flex items-center gap-2">
+                    {playState === "playing" ? (
+                      <button onClick={pausePlayback} className="px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-foreground text-xs font-medium flex items-center gap-1.5">
+                        <Pause className="h-3.5 w-3.5" /> Pause
+                      </button>
+                    ) : (
+                      <button onClick={resumePlayback} className="px-3 py-1.5 rounded-full bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium flex items-center gap-1.5">
+                        <Play className="h-3.5 w-3.5" /> Resume
+                      </button>
+                    )}
+                    <button onClick={stopPlayback} className="px-3 py-1.5 rounded-full bg-destructive/15 hover:bg-destructive/25 text-destructive text-xs font-medium flex items-center gap-1.5">
+                      <Square className="h-3.5 w-3.5" /> Stop
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -542,3 +580,4 @@ export default function VoiceBubble() {
     </>
   );
 }
+
