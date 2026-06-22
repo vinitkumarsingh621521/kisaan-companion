@@ -71,6 +71,14 @@ const lazyRoute = (el: JSX.Element) => (
   <Suspense fallback={<RouteSkeleton />}>{el}</Suspense>
 );
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pathname]);
+  return null;
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   const { i18n } = useTranslation();
@@ -79,7 +87,9 @@ function AnimatedRoutes() {
   }, [i18n.language]);
   return (
     <>
+      <ScrollToTop />
       <ActiveProfileBar />
+
       <AnimatePresence>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PageTransition><Index /></PageTransition>} />

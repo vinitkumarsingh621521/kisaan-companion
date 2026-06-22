@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity, Pause, Play, Square } from "lucide-react";
+import { Mic, X, Loader2, Volume2, MicOff, AlertCircle, Settings2, Activity, Pause, Play, Square, Sparkles } from "lucide-react";
+
+const WAVE_BARS = [1, 2, 3, 4, 5, 6, 7];
+
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
