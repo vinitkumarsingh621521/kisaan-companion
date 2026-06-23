@@ -53,7 +53,15 @@ export default function HeroSection() {
           >
             AI-Powered Crop
             <br />
-            <span className="text-gradient-gold">Recommendations</span>
+            <span className="relative inline-block text-gradient-gold">
+              Recommendations
+              <motion.span
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.8, duration: 0.7, ease: "easeOut" }}
+                className="absolute -bottom-1 left-0 h-1 w-full origin-left bg-gradient-to-r from-krishi-gold via-krishi-wheat to-transparent rounded-full"
+              />
+            </span>
             <br />
             for Every Farmer
           </motion.h1>
@@ -96,19 +104,24 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.5 }}
           className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          {stats.map((s, i) => (
+          {stats.map(({ label, value, icon: Icon }, i) => (
             <motion.div
-              key={s.label}
-              className="glass-card bg-card/10 backdrop-blur-md border-krishi-wheat/10 p-4 md:p-6 text-center group"
-              whileHover={{ scale: 1.05, y: -4 }}
+              key={label}
+              whileHover={{ scale: 1.04, y: -4 }}
               transition={{ type: "spring", stiffness: 300 }}
+              className="relative flex items-center gap-3 px-4 py-3 md:px-5 md:py-4 rounded-2xl bg-white/5 backdrop-blur-xl border border-krishi-wheat/15 shadow-xl shadow-black/20 hover:bg-white/10 hover:border-krishi-gold/40 transition-colors group overflow-hidden"
             >
-              <s.icon className="h-6 w-6 text-krishi-gold mx-auto mb-2 group-hover:scale-110 transition-transform" />
-              <AnimatedCounter
-                value={s.value}
-                className="stat-counter text-krishi-wheat text-2xl md:text-3xl"
-              />
-              <div className="text-krishi-wheat/60 text-sm mt-1">{s.label}</div>
+              <div className="absolute -top-8 -right-8 w-20 h-20 rounded-full bg-krishi-gold/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-krishi-gold/30 to-krishi-gold/10 border border-krishi-gold/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                <Icon className="h-5 w-5 text-krishi-gold" />
+              </div>
+              <div className="min-w-0 text-left">
+                <AnimatedCounter
+                  value={value}
+                  className="block stat-counter text-krishi-wheat text-xl md:text-2xl leading-none"
+                />
+                <div className="text-krishi-wheat/60 text-xs md:text-sm mt-1 truncate">{label}</div>
+              </div>
             </motion.div>
           ))}
         </motion.div>

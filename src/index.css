@@ -34,7 +34,7 @@
     --input: 80 15% 88%;
     --ring: 142 55% 35%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
 
     --sidebar-background: 142 30% 12%;
     --sidebar-foreground: 80 20% 95%;
@@ -117,11 +117,21 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/70 backdrop-blur-xl border border-border/50;
+    background: hsl(var(--card) / 0.75);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow:
+      0 4px 24px -4px hsl(0 0% 0% / 0.08),
+      inset 0 1px 0 hsl(0 0% 100% / 0.1);
     border-radius: 1.25rem;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: var(--shadow-glass);
+  }
+  .dark .glass-card {
+    background: hsl(var(--card) / 0.6);
+    border-color: hsl(var(--border) / 0.4);
+    box-shadow:
+      0 4px 24px -4px hsl(0 0% 0% / 0.2),
+      inset 0 1px 0 hsl(0 0% 100% / 0.05);
   }
 
   .glass-card-hover {
@@ -183,7 +193,105 @@
   .wave-bar {
     animation: waveBar 0.5s ease-in-out infinite alternate;
   }
+
+  /* Gradient animated border */
+  .gradient-border {
+    position: relative;
+    border-radius: 1rem;
+  }
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(142,55%,40%), hsl(38,85%,55%), hsl(200,75%,55%));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: borderRotate 3s linear infinite;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--accent)) 50%, hsl(var(--muted)) 75%);
+    background-size: 200% 100%;
+    animation: shimmerSlide 1.5s infinite;
+  }
+
+  .tilt-card {
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .tilt-card:hover {
+    transform: perspective(800px) rotateX(-3deg) rotateY(3deg) scale(1.01);
+    box-shadow: 8px 12px 40px -8px rgba(21, 128, 61, 0.25);
+  }
+
+  .float-slow { animation: floatSlow 6s ease-in-out infinite; }
+  .float-medium { animation: floatSlow 4s ease-in-out infinite reverse; }
+
+  .glow-card {
+    box-shadow:
+      0 0 0 1px hsl(142 55% 35% / 0.15),
+      0 8px 32px -4px hsl(142 55% 35% / 0.2),
+      0 2px 8px -2px hsl(0 0% 0% / 0.1);
+  }
+
+  .text-gradient-green {
+    background: linear-gradient(135deg, hsl(142,65%,40%), hsl(160,60%,55%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .text-gradient-sky {
+    background: linear-gradient(135deg, hsl(200,75%,50%), hsl(210,80%,65%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .bg-mesh-green {
+    background:
+      radial-gradient(ellipse at 0% 0%, hsl(142,40%,15%) 0%, transparent 60%),
+      radial-gradient(ellipse at 100% 0%, hsl(38,50%,20%) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 100%, hsl(200,40%,15%) 0%, transparent 60%),
+      hsl(142,25%,8%);
+  }
+
+  .organic-card {
+    border-radius: 1.5rem 1rem 1.5rem 1rem;
+  }
+
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(12px);
+    animation: staggerIn 0.4s ease forwards;
+  }
 }
+
+@keyframes borderRotate {
+  to { filter: hue-rotate(360deg); }
+}
+@keyframes shimmerSlide {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+@keyframes staggerIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.5); }
 
 @keyframes waveBar {
   from { transform: scaleY(0.3); opacity: 0.6; }

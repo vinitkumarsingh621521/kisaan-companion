@@ -37,7 +37,7 @@ export default function QuickActions() {
   };
 
   return (
-    <div className="glass-card p-5">
+    <div className="glass-card p-5 glow-card">
       <h3 className="font-display font-semibold text-foreground mb-4">Quick Actions</h3>
       <div className="grid grid-cols-4 gap-3">
         {actions.map((a) => (
@@ -47,7 +47,7 @@ export default function QuickActions() {
             onClick={(e) => onPress(a.label, e, a)}
             className="flex flex-col items-center gap-1.5 group relative"
           >
-            <div className={`relative overflow-hidden w-12 h-12 rounded-xl ${a.color} flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-95`}>
+            <div className={`relative overflow-hidden w-12 h-12 rounded-xl ${a.color} flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-active:scale-95 group-hover:shadow-lg group-hover:shadow-primary/25`}>
               <a.icon className={`h-5 w-5 ${a.color === "bg-muted" ? "text-foreground" : "text-primary-foreground"}`} />
               {(ripples[a.label] || []).map((r) => (
                 <span

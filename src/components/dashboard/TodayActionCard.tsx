@@ -245,7 +245,7 @@ Return JSON only (no markdown):
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl p-5 bg-gradient-to-br from-primary/10 via-krishi-gold/5 to-krishi-sky/5 border border-primary/20 mb-5"
+      className="rounded-2xl p-5 bg-gradient-to-br from-primary/10 via-krishi-gold/5 to-krishi-sky/5 border border-primary/20 mb-5 shadow-md hover:shadow-lg hover:shadow-primary/10 transition-shadow duration-300"
     >
       <div className="flex items-center justify-between mb-3 gap-2">
         <h3 className="font-display font-bold text-foreground flex items-center gap-2 flex-wrap">

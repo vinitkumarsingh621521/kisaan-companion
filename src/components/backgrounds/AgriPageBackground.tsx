@@ -269,6 +269,22 @@ export default function AgriPageBackground({ variant, children, className = "" }
       {/* Layer 3: contrast veil so any text on top reads cleanly */}
       <div aria-hidden className={`absolute inset-0 agri-veil-${uid} pointer-events-none`} />
 
+      {/* Floating organic orbs — biophilic feel */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute top-1/4 left-[8%] w-24 h-24 rounded-full bg-emerald-400/10 blur-2xl float-slow"
+          style={{ animationDelay: "-1s" }}
+        />
+        <div
+          className="absolute top-2/3 right-[10%] w-32 h-32 rounded-full bg-amber-400/10 blur-2xl float-medium"
+          style={{ animationDelay: "-3s" }}
+        />
+        <div
+          className="absolute bottom-1/4 left-[40%] w-20 h-20 rounded-full bg-sky-400/10 blur-2xl float-slow"
+          style={{ animationDelay: "-5s" }}
+        />
+      </div>
+
       {/* Content */}
       <div className="relative z-10">{children}</div>
     </div>

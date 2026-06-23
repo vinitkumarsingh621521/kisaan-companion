@@ -96,7 +96,7 @@ export default function PageGuide({
   };
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border bg-card shadow-sm mb-4">
+    <div className="rounded-xl overflow-hidden border border-primary/15 bg-card shadow-sm mb-4">
       {/* Collapsed bar */}
       <button
         onClick={() => setExpanded((e) => !e)}
