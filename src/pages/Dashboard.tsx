@@ -15,6 +15,7 @@ import FarmHealthScore from "@/components/dashboard/FarmHealthScore";
 import SeasonalAlertBanner from "@/components/dashboard/SeasonalAlertBanner";
 import ProfileCompletionBanner from "@/components/dashboard/ProfileCompletionBanner";
 import TodayActionCard from "@/components/dashboard/TodayActionCard";
+import FarmIntelBanner from "@/components/dashboard/FarmIntelBanner";
 import CropSuitabilityWarning from "@/components/dashboard/CropSuitabilityWarning";
 import FarmPulseTicker from "@/components/dashboard/FarmPulseTicker";
 import YieldForecastChart from "@/components/dashboard/YieldForecastChart";
@@ -83,6 +84,8 @@ export default function Dashboard() {
               <span className="font-medium">{location}</span>
             </p>
           </motion.div>
+
+          <FarmIntelBanner />
 
           <FarmPulseTicker />
 
