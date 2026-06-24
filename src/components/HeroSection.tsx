@@ -106,20 +106,35 @@ export default function HeroSection() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-wrap gap-3"
           >
-            <Link to="/dashboard">
-              <Button size="lg" className="gradient-primary border-0 text-primary-foreground font-semibold text-base px-8 h-12 hover:scale-105 transition-transform">
-                Open Dashboard
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
+            <Link to="/dashboard" className="group">
+              <div className="neon-ring rounded-xl">
+                <Button size="lg" className="relative gradient-primary border-0 text-primary-foreground font-semibold text-base px-8 h-12 transition-all duration-300 group-hover:shadow-[0_0_40px_hsl(142_70%_45%/0.6)]">
+                  Open Dashboard
+                  <ArrowRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </div>
             </Link>
             <Link to="/crop-advisor">
-              <Button size="lg" variant="outline" className="border-krishi-wheat/30 text-krishi-wheat hover:bg-krishi-wheat/10 font-semibold text-base px-8 h-12 hover:scale-105 transition-transform">
+              <Button size="lg" variant="outline" className="border-krishi-wheat/30 text-krishi-wheat hover:bg-krishi-wheat/10 font-semibold text-base px-8 h-12 hover:scale-105 transition-transform backdrop-blur-md">
                 <Mic className="h-5 w-5 mr-2" />
                 Ask AI Advisor
               </Button>
             </Link>
           </motion.div>
         </div>
+
+        {/* Scroll cue */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.4 }}
+          className="hidden md:flex absolute left-1/2 -translate-x-1/2 bottom-6 flex-col items-center gap-1 text-krishi-wheat/60 text-xs"
+        >
+          <span className="tracking-widest">SCROLL</span>
+          <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}>
+            <ChevronDown className="h-4 w-4" />
+          </motion.div>
+        </motion.div>
 
         {/* Stats bar with animated counters */}
         <motion.div
