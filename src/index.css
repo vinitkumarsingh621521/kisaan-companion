@@ -298,8 +298,142 @@
   to   { transform: scaleY(1.0); opacity: 1.0; }
 }
 
-
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-20px); }
+}
+
+/* =========================================================
+   FUTURISTIC LAYER — aurora, neon, holographic, marquee
+   ========================================================= */
+
+@layer utilities {
+  /* Animated grid mesh (faint scrolling lines) */
+  .bg-grid-mesh {
+    background-image:
+      linear-gradient(to right, hsl(var(--primary) / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--primary) / 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 90%);
+    animation: gridDrift 28s linear infinite;
+  }
+  .dark .bg-grid-mesh {
+    background-image:
+      linear-gradient(to right, hsl(var(--primary) / 0.18) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--primary) / 0.18) 1px, transparent 1px);
+  }
+
+  /* Aurora gradient blob layer */
+  .bg-aurora {
+    background:
+      radial-gradient(60% 80% at 10% 20%, hsl(142 70% 45% / 0.35), transparent 60%),
+      radial-gradient(50% 70% at 90% 10%, hsl(38 90% 55% / 0.30), transparent 60%),
+      radial-gradient(70% 60% at 50% 110%, hsl(200 80% 55% / 0.30), transparent 60%);
+    filter: blur(40px) saturate(1.2);
+    animation: auroraDrift 18s ease-in-out infinite alternate;
+  }
+
+  /* Holographic conic text */
+  .text-holo {
+    background: conic-gradient(from 180deg at 50% 50%,
+      hsl(142 75% 55%), hsl(45 95% 65%), hsl(200 90% 60%),
+      hsl(280 75% 65%), hsl(142 75% 55%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: holoSpin 6s linear infinite;
+  }
+
+  /* Neon outline button/card */
+  .neon-ring {
+    position: relative;
+    isolation: isolate;
+  }
+  .neon-ring::after {
+    content: "";
+    position: absolute; inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(from var(--angle, 0deg),
+      hsl(142 70% 50%), hsl(45 95% 60%), hsl(200 85% 55%), hsl(142 70% 50%));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: ringSpin 4s linear infinite;
+    z-index: -1;
+    opacity: 0.85;
+  }
+
+  /* Cursor-following spotlight overlay (uses --x / --y from JS) */
+  .cursor-spotlight {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+    background: radial-gradient(600px circle at var(--x, 50%) var(--y, 50%),
+      hsl(142 70% 50% / 0.10), transparent 60%);
+    transition: background 120ms ease-out;
+    mix-blend-mode: screen;
+  }
+  .dark .cursor-spotlight {
+    background: radial-gradient(600px circle at var(--x, 50%) var(--y, 50%),
+      hsl(142 70% 55% / 0.18), transparent 60%);
+  }
+
+  /* Glow-on-hover lift */
+  .lift-glow {
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease, border-color .35s ease;
+  }
+  .lift-glow:hover {
+    transform: translateY(-6px) scale(1.015);
+    box-shadow:
+      0 20px 50px -20px hsl(142 70% 35% / 0.45),
+      0 0 0 1px hsl(142 70% 50% / 0.35);
+  }
+
+  /* Continuous marquee */
+  .marquee {
+    display: flex;
+    width: max-content;
+    animation: marqueeSlide 38s linear infinite;
+  }
+  .marquee-fast { animation-duration: 22s; }
+
+  /* Scroll progress bar */
+  .scroll-progress {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 3px;
+    transform-origin: 0 50%;
+    background: linear-gradient(90deg,
+      hsl(142 70% 45%), hsl(45 95% 60%), hsl(200 85% 55%));
+    box-shadow: 0 0 12px hsl(142 70% 45% / 0.6);
+    z-index: 60;
+  }
+
+  /* Property registration for animated conic angle (Chromium/Safari) */
+  @property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+}
+
+@keyframes gridDrift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 48px 48px, 48px 48px; }
+}
+@keyframes auroraDrift {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  100% { transform: translate3d(-3%, 2%, 0) scale(1.08); }
+}
+@keyframes holoSpin {
+  to { filter: hue-rotate(360deg); }
+}
+@keyframes ringSpin {
+  to { --angle: 360deg; }
+}
+@keyframes marqueeSlide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
