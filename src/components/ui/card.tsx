@@ -3,7 +3,19 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
+  <div
+    ref={ref}
+    className={cn(
+      // Base shadcn surface
+      "rounded-xl border bg-card text-card-foreground shadow-sm",
+      // Pro Max neon polish — subtle by default, blooms on hover
+      "relative transition-all duration-300 ease-out",
+      "hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-22px_hsl(142_70%_35%/0.45),0_0_0_1px_hsl(142_70%_50%/0.25)]",
+      "hover:border-primary/40",
+      className,
+    )}
+    {...props}
+  />
 ));
 Card.displayName = "Card";
 
