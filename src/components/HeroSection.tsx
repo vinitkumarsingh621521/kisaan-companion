@@ -1,7 +1,8 @@
-import { motion } from "framer-motion";
-import { ArrowRight, Leaf, Cloud, TrendingUp, Mic } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Leaf, Cloud, TrendingUp, Mic, Sparkles, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import DynamicHeroBackground from "@/components/home/DynamicHeroBackground";
 
@@ -12,15 +13,27 @@ const stats = [
   { label: "Districts Covered", value: "200+", icon: Cloud },
 ];
 
+const ROTATING = ["Recommendations", "Soil Insights", "Yield Forecasts", "Mandi Prices", "Disease Scans"];
+
 export default function HeroSection() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % ROTATING.length), 2400);
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-krishi-soil">
-      {/* Live animated background — cycles through aurora, mycelium, spores, chlorophyll, helix */}
+      {/* Live animated background */}
       <div className="absolute inset-0">
         <DynamicHeroBackground />
       </div>
 
-      {/* Floating decorative elements */}
+      {/* Aurora + grid mesh layers */}
+      <div className="absolute inset-0 bg-aurora opacity-60 pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-mesh opacity-40 pointer-events-none" />
+
+      {/* Floating decorative orbs */}
       <motion.div
         className="absolute top-32 right-20 w-20 h-20 rounded-full bg-krishi-gold/10 blur-xl hidden lg:block"
         animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
@@ -39,9 +52,9 @@ export default function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="krishi-badge bg-krishi-gold/20 text-krishi-wheat border border-krishi-gold/30 mb-6">
-              <Leaf className="h-3.5 w-3.5" />
-              SIH 2025 — Problem Statement #25030
+            <span className="krishi-badge bg-krishi-gold/20 text-krishi-wheat border border-krishi-gold/30 mb-6 backdrop-blur-md">
+              <Sparkles className="h-3.5 w-3.5" />
+              SIH 2025 · Live AI · 13 Languages
             </span>
           </motion.div>
 
@@ -49,12 +62,23 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-krishi-wheat leading-tight mb-6"
+            className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-krishi-wheat leading-[1.05] mb-6"
           >
             AI-Powered Crop
             <br />
-            <span className="relative inline-block text-gradient-gold">
-              Recommendations
+            <span className="relative inline-block min-h-[1.1em]" style={{ minWidth: "8ch" }}>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={ROTATING[idx]}
+                  initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -20, filter: "blur(8px)" }}
+                  transition={{ duration: 0.5 }}
+                  className="inline-block text-holo"
+                >
+                  {ROTATING[idx]}
+                </motion.span>
+              </AnimatePresence>
               <motion.span
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
