@@ -18,8 +18,8 @@ export function useXP() {
     if (!user) { setData(null); setLoading(false); return; }
     // Server-side seed + daily streak bump (no direct table writes allowed)
     const { data: bumped } = await supabase.rpc("bump_streak");
-    if (bumped) {
-      const r: any = bumped;
+    if (bumped && typeof bumped === "object") {
+      const r = bumped as Partial<XPRow>;
       setData({
         xp: r.xp ?? 0,
         level: r.level ?? 1,

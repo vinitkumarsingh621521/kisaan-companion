@@ -11,6 +11,8 @@ export interface FarmerProfile {
   soil_type: string | null;
   preferred_language: string | null;
   avatar_url: string | null;
+  // Free-form JSON column from Postgres — typed loosely so React consumers
+  // can render values without per-site narrowing. Treat as untrusted input.
   farmer_details: Record<string, any>;
   is_active: boolean;
   created_at: string;
@@ -75,7 +77,7 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const activeId = (settings as any)?.active_profile_id;
+    const activeId = (settings as { active_profile_id?: string } | null)?.active_profile_id;
     const activeP = list.find(p => p.id === activeId) || list.find(p => p.is_active) || list[0] || null;
 
     setProfiles(list);
@@ -119,8 +121,11 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
     await refresh();
   };
 
-  const details = active?.farmer_details || {};
-  const filled = TRACKED_FIELDS.filter(f => details[f] && String(details[f]).trim().length > 0).length;
+  const details: Record<string, any> = active?.farmer_details || {};
+  const filled = TRACKED_FIELDS.filter(f => {
+    const v = details[f];
+    return v != null && String(v).trim().length > 0;
+  }).length;
   const completionPct = Math.round((filled / TRACKED_FIELDS.length) * 100);
 
   return (

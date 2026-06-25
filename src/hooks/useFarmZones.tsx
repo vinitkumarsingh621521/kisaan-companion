@@ -61,7 +61,12 @@ export function useFarmZones() {
         console.error("[farm_zones] fetch error", error);
         setStatus("error");
       } else if (data) {
-        const mapped: Zone[] = data.map((r: any) => ({
+        type ZoneRow = {
+          id: string; crop: string; color: string;
+          hectares: number | string; acres: number | string;
+          latlngs: unknown;
+        };
+        const mapped: Zone[] = (data as ZoneRow[]).map((r) => ({
           id: r.id,
           crop: r.crop,
           color: r.color,
@@ -97,7 +102,7 @@ export function useFarmZones() {
         color: zone.color,
         hectares: zone.hectares,
         acres: zone.acres,
-        latlngs: zone.latlngs as any,
+        latlngs: zone.latlngs as unknown as never,
       })
       .select()
       .single();
@@ -118,13 +123,17 @@ export function useFarmZones() {
     setZones((prev) => prev.map((z) => z.id === id ? { ...z, ...patch } : z));
     if (!userIdRef.current || id.startsWith("tmp-")) return;
     setStatus("syncing");
-    const dbPatch: any = {};
-    if (patch.latlngs) dbPatch.latlngs = patch.latlngs as any;
+    type ZoneUpdate = {
+      latlngs?: { lat: number; lng: number }[];
+      hectares?: number; acres?: number; crop?: string; color?: string;
+    };
+    const dbPatch: ZoneUpdate = {};
+    if (patch.latlngs) dbPatch.latlngs = patch.latlngs;
     if (patch.hectares !== undefined) dbPatch.hectares = patch.hectares;
     if (patch.acres !== undefined) dbPatch.acres = patch.acres;
     if (patch.crop !== undefined) dbPatch.crop = patch.crop;
     if (patch.color !== undefined) dbPatch.color = patch.color;
-    const { error } = await supabase.from("farm_zones").update(dbPatch).eq("id", id);
+    const { error } = await supabase.from("farm_zones").update(dbPatch as never).eq("id", id);
     if (error) { console.error("[farm_zones] update error", error); setStatus("error"); }
     else setStatus("synced");
   }, []);
