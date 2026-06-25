@@ -1,3 +1,6 @@
+// TODO: wire IoTLiveStream to a real IoT backend (MQTT bridge edge function
+// or Supabase Realtime channel). Current implementation streams simulated
+// telemetry only — see docs/README.md "Known incomplete features".
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
