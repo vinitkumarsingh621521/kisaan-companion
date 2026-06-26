@@ -27,6 +27,13 @@ export function errMsg(value: unknown, fallback = "Something went wrong"): strin
   return fallback;
 }
 
+/** Extract an error's `name` (e.g. "AbortError") from an `unknown` thrown value. */
+export function errName(value: unknown): string {
+  if (value instanceof Error) return value.name;
+  if (hasStringProp(value, "name")) return value.name;
+  return "";
+}
+
 /** Minimal Anthropic / Gemini-style content block shape used across edge-fn callers. */
 export interface AIContentBlock {
   type?: string;
