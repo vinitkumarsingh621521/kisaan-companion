@@ -126,7 +126,7 @@ export default function AIChatWidget() {
     try {
       await streamChat(newMessages);
     } catch (e: unknown) {
-      if (e.name !== "AbortError") {
+      if (errName(e) !== "AbortError") {
         toast.error(errMsg(e, "AI is temporarily unavailable"));
         setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Sorry, I couldn't process that. Please try again." }]);
       }
@@ -187,7 +187,7 @@ export default function AIChatWidget() {
       toast.info("🎤 Recording… tap the mic again to send");
     } catch (e: unknown) {
       setIsListening(false);
-      toast.error(e?.name === "NotAllowedError" ? "Microphone blocked" : "Could not access microphone");
+      toast.error(errName(e) === "NotAllowedError" ? "Microphone blocked" : "Could not access microphone");
     }
   };
 
