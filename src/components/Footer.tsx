@@ -40,18 +40,25 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
   return (
     <>
       <TeamSection compact />
-      <footer ref={ref} className="bg-foreground text-background py-16">
-        <div className="container mx-auto px-4">
+      <footer
+        ref={ref}
+        className="relative text-background py-16 overflow-hidden"
+        style={{ background: "var(--gradient-hero)" }}
+      >
+        {/* decorative biophilic glow */}
+        <div className="absolute inset-0 pointer-events-none opacity-70" style={{ background: "var(--gradient-emerald-glow)" }} />
+        <div className="absolute -top-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
+        <div className="container mx-auto px-4 relative">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <img src={logo} alt="KrishiMitra" className="h-8 w-8 brightness-200" />
-                <span className="font-display font-bold text-xl">KrishiMitra</span>
+                <span className="font-display font-bold text-2xl tracking-tight">Krishi<span className="text-gradient-brass">Mitra</span></span>
               </div>
-              <p className="text-background/60 text-sm leading-relaxed mb-4">
+              <p className="text-background/65 text-sm leading-relaxed mb-4">
                 {t("footer.tagline", "AI-powered crop recommendation platform for Indian farmers.")} Built for SIH 2025 — Problem Statement #25030.
               </p>
-              <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-background/10 text-background/80">{season}</span>
+              <span className="inline-block text-xs px-2.5 py-1 rounded-full bg-secondary/15 text-secondary border border-secondary/30">{season}</span>
             </div>
             <div>
               <h4 className="font-display font-semibold mb-3">{t("footer.features", "Features")}</h4>
