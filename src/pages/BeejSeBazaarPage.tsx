@@ -81,7 +81,7 @@ async function callAi(prompt: string): Promise<string> {
   const data = await resp.json();
   return (
     data.result || data.response || data.choices?.[0]?.message?.content ||
-    (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") || ""
+    (Array.isArray(data.content) ? data.content.find((c: { type?: string; text?: string }) => c.type === "text")?.text : "") || ""
   );
 }
 

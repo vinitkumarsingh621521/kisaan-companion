@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { errMsg, errName } from "@/lib/errors";
 
 type Msg = { role: "user" | "assistant"; text: string };
 
@@ -260,8 +261,8 @@ export default function VoiceBubble() {
           const r = await sendToBot({ text: finalText });
           setHistory([{ role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
           speak(r.reply, { audio: r.audio, mime: r.audioMime });
-        } catch (e: any) {
-          toast.error(e?.message || "Could not get reply");
+        } catch (e: unknown) {
+          toast.error(errMsg(e, "Could not get reply"));
         } finally {
           setProcessing(false);
         }
@@ -272,7 +273,7 @@ export default function VoiceBubble() {
       setRecording(true);
       setError(null);
       return true;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.warn("Browser STT failed to start, falling back to MediaRecorder", e);
       return false;
     }
@@ -294,8 +295,8 @@ export default function VoiceBubble() {
       mr.start();
       setRecording(true);
       setError(null);
-    } catch (e: any) {
-      const name = e?.name || "";
+    } catch (e: unknown) {
+      const name = errName(e);
       if (name === "NotAllowedError") {
         setError("Microphone blocked. Allow it in your browser address bar then retry.");
         toast.error("Microphone blocked");
@@ -306,7 +307,7 @@ export default function VoiceBubble() {
         setError("Audio recording not supported. Try Chrome on desktop or Android.");
         toast.error("Recording not supported");
       } else {
-        setError(e?.message || "Could not access microphone");
+        setError(errMsg(e, "Could not access microphone"));
         toast.error("Microphone error");
       }
     }
@@ -344,9 +345,9 @@ export default function VoiceBubble() {
       const r = await sendToBot({ audio: b64, mime });
       setHistory([{ role: "user", text: r.transcript }, { role: "assistant", text: r.reply }]);
       speak(r.reply, { audio: r.audio, mime: r.audioMime });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError("Voice network failed. I saved your mic access; please try once more in a few seconds.");
-      toast.error(e?.message || "Voice processing failed");
+      toast.error(errMsg(e, "Voice processing failed"));
     } finally {
       setProcessing(false);
     }

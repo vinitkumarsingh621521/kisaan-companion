@@ -240,7 +240,7 @@ export default function AgriPageBackground({ variant, children, className = "" }
             top: "-10%", left: "-12%",
             width: 420, height: 420,
             backgroundColor: theme.blobs[0],
-            ["--blob-op" as any]: 0.22,
+            ["--blob-op" as string]: 0.22,
             animationDelay: "0s, 0s",
           }}
         />
@@ -250,7 +250,7 @@ export default function AgriPageBackground({ variant, children, className = "" }
             top: "-5%", right: "-12%",
             width: 460, height: 460,
             backgroundColor: theme.blobs[1],
-            ["--blob-op" as any]: 0.18,
+            ["--blob-op" as string]: 0.18,
             animationDelay: "-7s, -3s",
           }}
         />
@@ -260,7 +260,7 @@ export default function AgriPageBackground({ variant, children, className = "" }
             bottom: "-20%", left: "35%",
             width: 540, height: 540,
             backgroundColor: theme.blobs[2],
-            ["--blob-op" as any]: 0.2,
+            ["--blob-op" as string]: 0.2,
             animationDelay: "-13s, -6s",
           }}
         />

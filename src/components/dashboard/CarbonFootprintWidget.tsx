@@ -6,6 +6,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { errMsg } from "@/lib/errors";
 
 type CarbonAction = {
   title: string;
@@ -105,8 +106,8 @@ export default function CarbonFootprintWidget() {
       const parsed: CarbonPlan = typeof raw === "string" ? JSON.parse(raw) : raw;
       setPlan(parsed);
       toast.success(`AI plan ready — could cut ${Math.round(co2 - parsed.target_total_kg)} kg CO₂`);
-    } catch (e: any) {
-      toast.error(e?.message || "Could not get carbon plan");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Could not get carbon plan"));
     } finally {
       setLoadingPlan(false);
     }

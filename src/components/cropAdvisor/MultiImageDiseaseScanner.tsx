@@ -4,6 +4,7 @@ import { Upload, X, Loader2, Bug, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { errMsg } from "@/lib/errors";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 const MAX_IMAGES = 5;
@@ -124,10 +125,10 @@ export default function MultiImageDiseaseScanner() {
             };
             return next;
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
           setResults((prev) => {
             const next = [...prev];
-            next[i] = { ...next[i], loading: false, error: e.message };
+            next[i] = { ...next[i], loading: false, error: errMsg(e) };
             return next;
           });
         }

@@ -9,6 +9,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { toArray } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errMsg } from "@/lib/errors";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -148,8 +149,8 @@ export default function CropRecommendationCard({ profile }: CropRecommendationCa
         setAiAdvice(content || "AI returned no structured data — try again.");
         toast.message("AI analysis complete");
       }
-    } catch (e: any) {
-      toast.error(e.message || "Failed to get AI recommendations");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Failed to get AI recommendations"));
     } finally {
       setIsLoadingAI(false);
     }

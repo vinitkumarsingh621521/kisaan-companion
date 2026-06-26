@@ -18,6 +18,7 @@ import { usePersonalization } from "@/hooks/usePersonalization";
 import { advisorInputSchema, type AdvisorInput, type AdvisoryResult } from "@/lib/aiAdvisorSchema";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { errMsg } from "@/lib/errors";
 
 const ADVISOR_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-advisor`;
 const historyKey = (id?: string) => `km.advisor.history.${id || "anon"}`;
@@ -84,13 +85,13 @@ export default function AIAdvisor() {
           return next;
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setChatMessages((prev) => {
         const next = [...prev];
-        next[next.length - 1] = { role: "assistant", content: `⚠ ${e.message || "Failed to get response"}` };
+        next[next.length - 1] = { role: "assistant", content: `⚠ ${errMsg(e, "Failed to get response")}` };
         return next;
       });
-      toast.error(e.message || "Follow-up failed");
+      toast.error(errMsg(e, "Follow-up failed"));
     } finally {
       setChatStreaming(false);
     }
@@ -211,8 +212,8 @@ export default function AIAdvisor() {
       setLastRun(Date.now());
       toast.success("25 insights ready! 🌾");
       saveToHistory(parsed.data, data);
-    } catch (e: any) {
-      toast.error(e.message || "Something went wrong");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Something went wrong"));
     } finally {
       setLoading(false);
     }

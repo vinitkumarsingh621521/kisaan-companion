@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { errMsg } from "@/lib/errors";
 
 const CROPS = [
   "Rice", "Wheat", "Maize", "Soybean", "Cotton", "Sugarcane", "Mustard",
@@ -146,8 +147,8 @@ export default function CropCompatibilityMatrix() {
       const parsed = JSON.parse(m[0]);
       setResult(parsed);
       toast.success("Compatibility report ready 🌾");
-    } catch (e: any) {
-      setError(e.message || "AI analysis unavailable — check connection");
+    } catch (e: unknown) {
+      setError(errMsg(e, "AI analysis unavailable — check connection"));
     } finally {
       setLoading(false);
     }

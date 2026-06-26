@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { Sprout, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import AgriPageBackground from "@/components/backgrounds/AgriPageBackground";
 import logo from "@/assets/logo.png";
+import { errMsg } from "@/lib/errors";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -49,8 +50,8 @@ export default function AuthPage() {
         if (error) throw error;
         toast.success("Account created! Please check your email to verify your account.");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Authentication failed");
+    } catch (error: unknown) {
+      toast.error(errMsg(error, "Authentication failed"));
     } finally {
       setLoading(false);
     }
@@ -66,8 +67,8 @@ export default function AuthPage() {
         toast.error("Google sign-in failed. Please try again.");
       }
       if (result.redirected) return;
-    } catch (error: any) {
-      toast.error(error.message || "Google sign-in failed");
+    } catch (error: unknown) {
+      toast.error(errMsg(error, "Google sign-in failed"));
     } finally {
       setLoading(false);
     }

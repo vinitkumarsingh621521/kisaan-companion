@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Save, Loader2, User, MapPin, Droplets, Sprou
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { errMsg } from "@/lib/errors";
 
 export interface FarmerDetails {
   [key: string]: string;
@@ -53,8 +54,8 @@ function PinLookup({ d, set }: { d: FarmerDetails; set: (k: string, v: string) =
       if (r.annual_rainfall && !d.annual_rainfall) set("annual_rainfall", String(r.annual_rainfall));
       if (r.soil_hint && !d.soil_color) set("soil_color", r.soil_hint);
       toast.success(`📍 ${r.district}, ${r.state} — auto-filled from PIN ${pin}`);
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errMsg(e));
     } finally { setLoading(false); }
   };
   return (

@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { useTranslation } from "react-i18next";
+import { errMsg } from "@/lib/errors";
 
 const MANDI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mandi-prices`;
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
@@ -163,7 +164,7 @@ Be specific. Use crop and state names. No bullet points. Plain text only.`;
         data.result ||
         data.response ||
         data.choices?.[0]?.message?.content ||
-        (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+        (Array.isArray(data.content) ? data.content.find((c: { type?: string; text?: string }) => c.type === "text")?.text : "") ||
         "";
       setAiInsight(text.trim());
     } catch {
@@ -254,7 +255,7 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
           data.result ||
           data.response ||
           data.choices?.[0]?.message?.content ||
-          (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+          (Array.isArray(data.content) ? data.content.find((c: { type?: string; text?: string }) => c.type === "text")?.text : "") ||
           "";
         const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -810,8 +811,8 @@ function TodayMarketBriefing({ farmerCrop, farmerState }: { farmerCrop: string; 
       const b: Briefing = { text: body, action, price, generatedAt: Date.now() };
       localStorage.setItem(cacheKey, JSON.stringify(b));
       setBriefing(b);
-    } catch (e: any) {
-      toast.error(e?.message || "Could not generate briefing");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Could not generate briefing"));
     } finally {
       setLoading(false);
     }

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { errMsg } from "@/lib/errors";
 
 const STORAGE_KEY = "km.diary.v2";
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
@@ -99,8 +100,8 @@ export default function CropGrowthDiary() {
       const { result } = await resp.json();
       const clean = typeof result === "string" ? result.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim() : null;
       return typeof result === "string" ? JSON.parse(clean!) : result;
-    } catch (e: any) {
-      toast.error("AI analysis failed", { description: e?.message || "" });
+    } catch (e: unknown) {
+      toast.error("AI analysis failed", { description: errMsg(e, "") });
       return null;
     }
   }
@@ -162,8 +163,8 @@ export default function CropGrowthDiary() {
           } catch {}
         }
       }
-    } catch (e: any) {
-      setReportText("Could not generate report: " + (e?.message || ""));
+    } catch (e: unknown) {
+      setReportText("Could not generate report: " + (errMsg(e, "")));
     } finally {
       setReportLoading(false);
     }

@@ -6,6 +6,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { errMsg } from "@/lib/errors";
 
 type Mistake = {
   area: string;
@@ -71,8 +72,8 @@ export default function MistakeDetectorWidget() {
       setAudit(parsed);
       const total = parsed.mistakes.reduce((s, m) => s + (m.potential_loss_inr || 0), 0);
       toast.success(`Grade ${parsed.overall_grade} · ₹${total.toLocaleString()} potential savings found`);
-    } catch (e: any) {
-      toast.error(e?.message || "Audit failed");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Audit failed"));
     } finally {
       setLoading(false);
     }

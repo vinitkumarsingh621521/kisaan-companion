@@ -357,7 +357,7 @@ export default function SchemesPage() {
                     <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
                       <div
                         className="km-bar h-full rounded-full"
-                        style={{ ["--w" as any]: `${b.w}%`, background: b.fill }}
+                        style={{ ["--w" as string]: `${b.w}%`, background: b.fill }}
                       />
                     </div>
                   </div>
