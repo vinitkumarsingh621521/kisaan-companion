@@ -1,98 +1,105 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   EMERALD BIOPHILIC — refined palette
+   Anchors: #0a1f14 deep forest / #0d7a5f emerald
+            #c9a84c brass-gold / #f5f0e0 warm parchment
+   ========================================================= */
+
 @layer base {
   :root {
-    --background: 80 20% 97%;
-    --foreground: 150 30% 10%;
+    --background: 44 36% 92%;          /* warm parchment #f5f0e0 */
+    --foreground: 150 51% 8%;          /* deep forest near #0a1f14 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 150 30% 10%;
+    --card: 44 40% 97%;
+    --card-foreground: 150 51% 8%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 150 30% 10%;
+    --popover: 44 40% 97%;
+    --popover-foreground: 150 51% 8%;
 
-    --primary: 142 55% 35%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 162 80% 26%;            /* #0d7a5f emerald */
+    --primary-foreground: 44 50% 96%;
 
-    --secondary: 38 85% 55%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 43 53% 54%;           /* #c9a84c brass-gold */
+    --secondary-foreground: 150 51% 8%;
 
-    --muted: 80 15% 92%;
-    --muted-foreground: 150 10% 45%;
+    --muted: 44 22% 87%;
+    --muted-foreground: 150 14% 32%;
 
-    --accent: 142 40% 92%;
-    --accent-foreground: 142 55% 25%;
+    --accent: 162 35% 88%;
+    --accent-foreground: 162 80% 20%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 44 50% 96%;
 
-    --border: 80 15% 88%;
-    --input: 80 15% 88%;
-    --ring: 142 55% 35%;
+    --border: 44 18% 82%;
+    --input: 44 18% 82%;
+    --ring: 162 80% 30%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
-    --sidebar-background: 142 30% 12%;
-    --sidebar-foreground: 80 20% 95%;
-    --sidebar-primary: 38 85% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 25% 18%;
-    --sidebar-accent-foreground: 80 20% 95%;
-    --sidebar-border: 142 20% 20%;
-    --sidebar-ring: 38 85% 55%;
+    --sidebar-background: 150 51% 8%;
+    --sidebar-foreground: 44 36% 92%;
+    --sidebar-primary: 43 70% 58%;
+    --sidebar-primary-foreground: 150 51% 8%;
+    --sidebar-accent: 162 40% 14%;
+    --sidebar-accent-foreground: 44 36% 92%;
+    --sidebar-border: 162 30% 16%;
+    --sidebar-ring: 43 70% 58%;
 
-    /* Custom tokens */
-    --krishi-green: 142 55% 35%;
-    --krishi-green-light: 142 40% 92%;
-    --krishi-gold: 38 85% 55%;
-    --krishi-gold-light: 38 80% 92%;
-    --krishi-earth: 25 30% 35%;
-    --krishi-sky: 200 75% 55%;
-    --krishi-sky-light: 200 70% 92%;
-    --krishi-soil: 25 40% 25%;
-    --krishi-wheat: 45 70% 70%;
+    --krishi-green: 162 80% 26%;
+    --krishi-green-light: 162 35% 88%;
+    --krishi-gold: 43 53% 54%;
+    --krishi-gold-light: 43 70% 90%;
+    --krishi-earth: 28 32% 30%;
+    --krishi-sky: 198 70% 48%;
+    --krishi-sky-light: 198 60% 90%;
+    --krishi-soil: 150 51% 8%;
+    --krishi-wheat: 44 60% 88%;
 
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 0 0% 100% / 0.3;
-    --glass-shadow: 0 0% 0% / 0.08;
+    --glass-bg: 44 40% 97% / 0.65;
+    --glass-border: 44 30% 100% / 0.35;
+    --glass-shadow: 150 51% 8% / 0.10;
 
-    --gradient-primary: linear-gradient(135deg, hsl(142, 55%, 35%), hsl(142, 45%, 50%));
-    --gradient-gold: linear-gradient(135deg, hsl(38, 85%, 55%), hsl(45, 90%, 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(142, 30%, 12%) 0%, hsl(142, 40%, 20%) 50%, hsl(38, 50%, 30%) 100%);
-    --gradient-sky: linear-gradient(135deg, hsl(200, 75%, 55%), hsl(200, 60%, 70%));
+    --gradient-primary: linear-gradient(135deg, hsl(162 80% 26%), hsl(162 70% 38%));
+    --gradient-gold: linear-gradient(135deg, hsl(43 53% 54%), hsl(43 78% 68%));
+    --gradient-hero:
+      linear-gradient(135deg, hsl(150 51% 8%) 0%, hsl(162 45% 16%) 45%, hsl(43 35% 22%) 100%);
+    --gradient-sky: linear-gradient(135deg, hsl(198 70% 48%), hsl(198 55% 70%));
+    --gradient-parchment: linear-gradient(180deg, hsl(44 36% 94%) 0%, hsl(44 22% 87%) 100%);
+    --gradient-emerald-glow: radial-gradient(60% 80% at 50% 0%, hsl(162 80% 30% / 0.18), transparent 70%);
 
-    --font-display: 'Outfit', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
+    --font-display: "DM Serif Display", Georgia, serif;
+    --font-body: "Fira Sans", system-ui, sans-serif;
 
-    --shadow-glass: 0 8px 32px hsl(var(--glass-shadow)), inset 0 1px 0 hsl(var(--glass-border));
-    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.06);
-    --shadow-elevated: 0 12px 40px hsl(0 0% 0% / 0.12);
+    --shadow-glass: 0 10px 40px hsl(var(--glass-shadow)), inset 0 1px 0 hsl(var(--glass-border));
+    --shadow-card: 0 6px 28px -8px hsl(150 51% 8% / 0.10);
+    --shadow-elevated: 0 18px 50px -12px hsl(150 51% 8% / 0.22);
+    --shadow-emerald: 0 14px 40px -10px hsl(162 80% 26% / 0.45);
   }
 
   .dark {
-    --background: 150 20% 6%;
-    --foreground: 80 20% 95%;
-    --card: 150 15% 10%;
-    --card-foreground: 80 20% 95%;
-    --popover: 150 15% 10%;
-    --popover-foreground: 80 20% 95%;
-    --primary: 142 55% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 38 85% 55%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 150 10% 15%;
-    --muted-foreground: 80 10% 60%;
-    --accent: 142 30% 15%;
-    --accent-foreground: 142 40% 80%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 150 10% 18%;
-    --input: 150 10% 18%;
-    --ring: 142 55% 45%;
+    --background: 150 45% 5%;
+    --foreground: 44 40% 94%;
+    --card: 150 38% 9%;
+    --card-foreground: 44 40% 94%;
+    --popover: 150 38% 9%;
+    --popover-foreground: 44 40% 94%;
+    --primary: 162 65% 45%;
+    --primary-foreground: 150 51% 6%;
+    --secondary: 43 70% 60%;
+    --secondary-foreground: 150 51% 6%;
+    --muted: 150 20% 14%;
+    --muted-foreground: 44 15% 70%;
+    --accent: 162 35% 16%;
+    --accent-foreground: 162 60% 80%;
+    --destructive: 0 62% 42%;
+    --destructive-foreground: 44 40% 94%;
+    --border: 150 20% 18%;
+    --input: 150 20% 18%;
+    --ring: 162 65% 50%;
   }
 }
 
