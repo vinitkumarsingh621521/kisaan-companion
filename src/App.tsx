@@ -20,6 +20,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import CommandPalette from "./components/CommandPalette";
 import OfflineBanner from "./components/OfflineBanner";
 import CursorAurora from "./components/fx/CursorAurora";
+import ScrollProgress from "./components/fx/ScrollProgress";
 import { ActiveProfileProvider } from "./hooks/useActiveProfile";
 import { AuthProvider } from "./hooks/useAuth";
 import { PWAInstallProvider } from "./hooks/usePWAInstall";
@@ -142,6 +143,7 @@ const App = () => (
                 <DowryUnlockProvider>
                   <OfflineBanner />
                   <CursorAurora />
+                  <ScrollProgress />
                   <ErrorBoundary>
                     <AnimatedRoutes />
                   </ErrorBoundary>
