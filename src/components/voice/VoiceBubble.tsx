@@ -296,7 +296,7 @@ export default function VoiceBubble() {
       setRecording(true);
       setError(null);
     } catch (e: unknown) {
-      const name = e?.name || "";
+      const name = errName(e);
       if (name === "NotAllowedError") {
         setError("Microphone blocked. Allow it in your browser address bar then retry.");
         toast.error("Microphone blocked");
