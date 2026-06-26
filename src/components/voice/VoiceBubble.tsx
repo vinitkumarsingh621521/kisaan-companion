@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { supabase } from "@/integrations/supabase/client";
-import { errMsg } from "@/lib/errors";
+import { errMsg, errName } from "@/lib/errors";
 
 type Msg = { role: "user" | "assistant"; text: string };
 

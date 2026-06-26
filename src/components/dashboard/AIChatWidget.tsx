@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { supabase } from "@/integrations/supabase/client";
-import { errMsg } from "@/lib/errors";
+import { errMsg, errName } from "@/lib/errors";
 
 type Message = { role: "user" | "assistant"; content: string };
 

@@ -9,7 +9,7 @@ import { Sprout, Droplets, FlaskConical, CalendarDays, Bot, Send, Loader2, X } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Zone } from "@/components/tools/FieldMap";
-import { errMsg } from "@/lib/errors";
+import { errMsg, errName } from "@/lib/errors";
 
 interface Props {
   zone: Zone | null;
@@ -205,7 +205,7 @@ export default function ZoneDetailSheet({ zone, open, onClose }: Props) {
         }
       }
     } catch (e: unknown) {
-      if (e.name !== "AbortError") {
+      if (errName(e) !== "AbortError") {
         toast.error(errMsg(e, "AI request failed"));
         setChat((c) => c.slice(0, -1));
       }
