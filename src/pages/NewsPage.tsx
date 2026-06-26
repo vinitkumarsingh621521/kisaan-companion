@@ -11,6 +11,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
+import { errMsg } from "@/lib/errors";
 import {
   Bookmark, BookmarkCheck, Zap,
   TrendingUp, Radio, ChevronDown, ChevronUp,
@@ -94,8 +95,8 @@ export default function NewsPage() {
         setFetchedAt((data as any)?.fetchedAt || Date.now());
         if (force) toast.success(t("news.refreshed", "Fetched latest headlines"));
         if (!list.length) toast.message(t("news.empty", "No headlines right now — try another category"));
-      } catch (e: any) {
-        toast.error(e?.message || t("news.failed", "Failed to load news"));
+      } catch (e: unknown) {
+        toast.error(errMsg(e) || t("news.failed", "Failed to load news"));
       } finally {
         setLoading(false);
       }

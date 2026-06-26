@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { errMsg } from "@/lib/errors";
 
 const ALL_CROPS = ["Rice", "Wheat", "Maize", "Soybean", "Cotton", "Sugarcane", "Mustard", "Groundnut", "Bajra", "Pulses", "Onion", "Potato", "Tomato"];
 
@@ -95,8 +96,8 @@ export default function MultiMandiCompare() {
       setRows(data.rows || []);
       setBestDeal(data.best_deal || null);
       setAdvice(data.advice || "");
-    } catch (e: any) {
-      toast.error(e.message || "Comparison failed");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Comparison failed"));
     } finally {
       setLoading(false);
     }

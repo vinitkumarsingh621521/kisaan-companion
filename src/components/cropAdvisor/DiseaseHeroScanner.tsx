@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
+import { errMsg } from "@/lib/errors";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -135,9 +136,9 @@ export default function DiseaseHeroScanner() {
           toast.success(`${parsed.diseases.length} issue(s) detected.`);
         } else if (parsed.error) { toast.error(parsed.error); setSummary(parsed.error); }
       } catch { setSummary(content); toast.success("Analysis complete!"); }
-    } catch (e: any) {
+    } catch (e: unknown) {
       clearInterval(progressInterval);
-      toast.error(e.message || "Disease analysis failed");
+      toast.error(errMsg(e, "Disease analysis failed"));
       setSummary("Analysis failed. Please try again with a clearer image.");
     } finally { setIsAnalyzing(false); }
   };

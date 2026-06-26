@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { useTranslation } from "react-i18next";
+import { errMsg } from "@/lib/errors";
 
 const MANDI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mandi-prices`;
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
@@ -810,8 +811,8 @@ function TodayMarketBriefing({ farmerCrop, farmerState }: { farmerCrop: string; 
       const b: Briefing = { text: body, action, price, generatedAt: Date.now() };
       localStorage.setItem(cacheKey, JSON.stringify(b));
       setBriefing(b);
-    } catch (e: any) {
-      toast.error(e?.message || "Could not generate briefing");
+    } catch (e: unknown) {
+      toast.error(errMsg(e, "Could not generate briefing"));
     } finally {
       setLoading(false);
     }

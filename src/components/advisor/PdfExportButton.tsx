@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import type { AdvisoryResult } from "@/lib/aiAdvisorSchema";
+import { errMsg } from "@/lib/errors";
 
 interface Props {
   targetId: string;
@@ -125,9 +126,9 @@ export default function PdfExportButton({ targetId, result, farmer }: Props) {
         .slice(0, 10)}.pdf`;
       pdf.save(filename);
       toast.success("PDF downloaded! 📄", { id: t });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("PDF export failed", e);
-      toast.error(`Export failed: ${e.message || "Unknown error"}`, { id: t });
+      toast.error(`Export failed: ${errMsg(e, "Unknown error")}`, { id: t });
     } finally {
       setBusy(false);
     }

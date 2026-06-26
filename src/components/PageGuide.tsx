@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, HelpCircle, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { edgeToken } from "@/lib/edgeAuth";
+import { errMsg } from "@/lib/errors";
 
 interface Feature {
   icon: string;
@@ -84,11 +85,11 @@ export default function PageGuide({
         clean ||
         "Namaste Kisan! 🙏 Yeh page aapke farm ke liye helpful features rakhta hai. Koi bhi feature click karke try karein!"
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       setAiReply(
         "Namaste Kisan! 🙏 Is page par aapko powerful AI farming tools milenge. Koi bhi feature tap karke start karein!"
       );
-      toast.error("Saarthi is busy — try again", { description: e?.message });
+      toast.error("Saarthi is busy — try again", { description: errMsg(e) });
 
     } finally {
       setAiLoading(false);

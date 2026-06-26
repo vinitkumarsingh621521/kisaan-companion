@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { errMsg } from "@/lib/errors";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -198,8 +199,8 @@ export default function CommunityPage() {
       setCommentText(prev => ({ ...prev, [postId]: "" }));
       await loadComments(postId);
       toast.success("Comment posted 💬");
-    } catch (e: any) {
-      toast.error("Failed: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Failed: " + errMsg(e));
     } finally {
       setCommentPosting(prev => ({ ...prev, [postId]: false }));
     }
@@ -367,8 +368,8 @@ Return ONLY one word — the category id. Nothing else.`;
       if (newId && submittedText) {
         setTimeout(() => tagPost(newId, submittedText), 1500);
       }
-    } catch (e: any) {
-      toast.error("Post failed: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Post failed: " + errMsg(e));
     } finally {
       setPosting(false);
     }

@@ -10,6 +10,7 @@ import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import jsPDF from "jspdf";
 import { toPng } from "html-to-image";
+import { errMsg } from "@/lib/errors";
 
 export default function ReportsPage() {
   const { active } = useActiveProfile();
@@ -246,8 +247,8 @@ export default function ReportsPage() {
 
       doc.save(`KrishiMitra_${active.full_name.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("📄 Multi-page report downloaded!");
-    } catch (e: any) {
-      toast.error("PDF generation failed: " + e.message);
+    } catch (e: unknown) {
+      toast.error("PDF generation failed: " + errMsg(e));
     } finally { setLoading(false); }
   };
 
@@ -261,8 +262,8 @@ export default function ReportsPage() {
       a.download = `KrishiMitra_Card_${active.full_name.replace(/\s+/g, "_")}.png`;
       a.click();
       toast.success("📸 Farm card downloaded — share on WhatsApp!");
-    } catch (e: any) {
-      toast.error("Export failed: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Export failed: " + errMsg(e));
     } finally { setExporting(false); }
   };
 

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Upload, FileText, Download, Eye, Loader2, BookOpen, ExternalLink, NotebookPen } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errMsg } from "@/lib/errors";
 
 type Paper = {
   id: string;
@@ -86,8 +87,8 @@ export default function ResearchPapersPanel() {
       toast.success(isIpynb ? "Notebook uploaded! Open in Colab from the list." : "Paper uploaded! 📄");
       setTitle(""); setAuthors(""); setAbstract(""); setFile(null);
       load();
-    } catch (err: any) {
-      toast.error(err.message || "Upload failed");
+    } catch (err: unknown) {
+      toast.error(errMsg(err, "Upload failed"));
     } finally {
       setUploading(false);
     }

@@ -20,6 +20,7 @@ import CropSeasonTimeline from "@/components/tools/CropSeasonTimeline";
 import { kml as kmlToGeoJSON } from "@tmcw/togeojson";
 import type { LatLng } from "leaflet";
 import type { Zone } from "@/components/tools/FieldMap";
+import { errMsg } from "@/lib/errors";
 
 const FieldMap = lazy(() => import("@/components/tools/FieldMap"));
 
@@ -86,7 +87,7 @@ export default function FieldMapperPage() {
       const results = (data as any)?.results || [];
       if (!results.length) { toast.error("No location matched. Try district, state."); }
       else { setSearchResults(results); setCenter([results[0].lat, results[0].lon]); toast.success(`Centered on ${results[0].label}`); }
-    } catch (e: any) { toast.error(e?.message || "Search failed"); }
+    } catch (e: unknown) { toast.error(errMsg(e, "Search failed")); }
     finally { setSearching(false); }
   };
   const useGPS = () => {
@@ -189,7 +190,7 @@ export default function FieldMapperPage() {
       toast.success(`Imported ${added} zone${added > 1 ? "s" : ""} as ${selectedCrop}`);
       // Re-center on first imported polygon
       if (polygons[0]?.length) setCenter([polygons[0][0].lat, polygons[0][0].lng]);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       toast.error("Could not parse file — use .geojson or .kml");
     }

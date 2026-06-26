@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { edgeToken } from "@/lib/edgeAuth";
 import type { Zone } from "@/components/tools/FieldMap";
 import type { FarmerProfile } from "@/hooks/useActiveProfile";
+import { errMsg } from "@/lib/errors";
 
 
 // kg/ha N-P-K removal & water (mm season) & expected yield (t/ha) & farm-gate price (₹/qtl)
@@ -121,8 +122,8 @@ export default function FieldZoneAnalytics({ zones, profile }: Props) {
         : null;
       setAiReport(text ? JSON.parse(text) : raw);
       toast.success("AI Field Analysis complete!");
-    } catch (e: any) {
-      toast.error("AI analysis failed", { description: e?.message });
+    } catch (e: unknown) {
+      toast.error("AI analysis failed", { description: errMsg(e) });
     } finally {
       setAiLoading(false);
     }

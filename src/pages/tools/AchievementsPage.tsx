@@ -11,6 +11,7 @@ import { useXP } from "@/hooks/useXP";
 import { useAuth } from "@/hooks/useAuth";
 import confetti from "canvas-confetti";
 import { toPng } from "html-to-image";
+import { errMsg } from "@/lib/errors";
 
 const ALL_BADGES = [
   { id: "first_login", name: "First Steps 👶", desc: "Sign in for the first time", xp: 10, emoji: "🎉" },
@@ -99,8 +100,8 @@ export default function AchievementsPage() {
       a.download = `KrishiMitra_Achievements_${Date.now()}.png`;
       a.click();
       toast.success("Achievement card downloaded — share it!");
-    } catch (e: any) {
-      toast.error("Export failed: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Export failed: " + errMsg(e));
     } finally { setSharing(false); }
   };
 

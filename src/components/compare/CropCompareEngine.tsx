@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import CompareResultCard from "./CompareResultCard";
+import { errMsg } from "@/lib/errors";
 
 const CROPS = [
   { name: "Rice", emoji: "🌾", hindi: "धान" },
@@ -86,8 +87,8 @@ Score each crop on all 6 dimensions (0-100) specifically for this farmer's conte
         ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
         : null;
       setResult(text ? JSON.parse(text) : raw);
-    } catch (e: any) {
-      toast.error("Comparison failed", { description: e?.message });
+    } catch (e: unknown) {
+      toast.error("Comparison failed", { description: errMsg(e) });
     } finally {
       setLoading(false);
     }

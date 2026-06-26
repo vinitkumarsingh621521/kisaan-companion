@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import { supabase } from "@/integrations/supabase/client";
+import { errMsg } from "@/lib/errors";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -124,9 +125,9 @@ export default function AIChatWidget() {
 
     try {
       await streamChat(newMessages);
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e.name !== "AbortError") {
-        toast.error(e.message || "AI is temporarily unavailable");
+        toast.error(errMsg(e, "AI is temporarily unavailable"));
         setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Sorry, I couldn't process that. Please try again." }]);
       }
     } finally {
@@ -177,14 +178,14 @@ export default function AIChatWidget() {
           const transcript = (data as any)?.transcript?.trim();
           if (!transcript) throw new Error("No speech recognized");
           await sendMessage(transcript);
-        } catch (e: any) {
-          toast.error(e?.message || "Could not recognize speech");
+        } catch (e: unknown) {
+          toast.error(errMsg(e, "Could not recognize speech"));
         }
       };
       recorder.start();
       setIsListening(true);
       toast.info("🎤 Recording… tap the mic again to send");
-    } catch (e: any) {
+    } catch (e: unknown) {
       setIsListening(false);
       toast.error(e?.name === "NotAllowedError" ? "Microphone blocked" : "Could not access microphone");
     }

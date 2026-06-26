@@ -11,6 +11,7 @@ import jsPDF from "jspdf";
 import { edgeToken } from "@/lib/edgeAuth";
 import { usePersonalization } from "@/hooks/usePersonalization";
 import FeatureHint from "@/components/FeatureHint";
+import { errMsg } from "@/lib/errors";
 
 type Decision = "SELL_NOW" | "WAIT_3_DAYS" | "WAIT_WEEK" | "SELL_HALF" | "HOLD";
 interface Verdict {
@@ -84,8 +85,8 @@ export default function SellDecisionEngine() {
       if (error) throw new Error(error);
       const parsed = typeof result === "string" ? JSON.parse(result.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim()) : result;
       setVerdict(parsed);
-    } catch (e: any) {
-      toast.error(`Analysis failed: ${e.message || "Try again"}`);
+    } catch (e: unknown) {
+      toast.error(`Analysis failed: ${errMsg(e, "Try again")}`);
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { errMsg } from "@/lib/errors";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -92,8 +93,8 @@ function ScanMode({
         ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
         : null;
       setResult(text ? JSON.parse(text) : raw);
-    } catch (e: any) {
-      toast.error("Scan failed", { description: e?.message });
+    } catch (e: unknown) {
+      toast.error("Scan failed", { description: errMsg(e) });
     } finally {
       clearInterval(interval);
       setLoading(false);

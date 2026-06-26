@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { edgeToken } from "@/lib/edgeAuth";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
 import PrescriptionCard from "./PrescriptionCard";
+import { errMsg } from "@/lib/errors";
 
 const CROPS = [
   { name: "Rice", emoji: "🌾" }, { name: "Wheat", emoji: "🌿" },
@@ -134,8 +135,8 @@ Provide precise ICAR-standard recommendations. Be specific with product names, d
         : null;
       const rx = text ? JSON.parse(text) : result;
       setPrescription(rx);
-    } catch (e: any) {
-      toast.error("Could not generate prescription", { description: e?.message || "Try again" });
+    } catch (e: unknown) {
+      toast.error("Could not generate prescription", { description: errMsg(e, "Try again") });
     } finally {
       setLoading(false);
     }

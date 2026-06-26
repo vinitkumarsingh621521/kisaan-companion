@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine, Area, AreaChart, CartesianGrid } from "recharts";
 import { buildPhenology, VI_REFERENCE } from "@/lib/phenology";
 import { toast } from "sonner";
+import { errMsg } from "@/lib/errors";
 
 const layers = [
   { id: "true",   label: "True Color",     icon: Layers },
@@ -102,8 +103,8 @@ Generate satellite farm intelligence and yield estimate.`;
         ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
         : null;
       setAiAnalysis(text ? JSON.parse(text) : raw);
-    } catch (e: any) {
-      toast.error("AI analysis failed", { description: e?.message });
+    } catch (e: unknown) {
+      toast.error("AI analysis failed", { description: errMsg(e) });
     } finally {
       setAiLoading(false);
     }

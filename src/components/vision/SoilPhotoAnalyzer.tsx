@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useActiveProfile } from "@/hooks/useActiveProfile";
+import { errMsg } from "@/lib/errors";
 
 interface SoilRec { priority: number; action: string; reason: string; cost: string; }
 interface SoilAnalysis {
@@ -80,7 +81,7 @@ export default function SoilPhotoAnalyzer() {
       const base64 = await resizeAndBase64(file);
       setPhotoBase64(base64);
       analyze(base64);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error("Could not read image");
     }
   }
@@ -100,10 +101,10 @@ export default function SoilPhotoAnalyzer() {
       if (errMsg) throw new Error(errMsg);
       const data: SoilAnalysis = typeof result === "string" ? JSON.parse(result.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim()) : result;
       setAnalysis(data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      setError(e?.message || "Analysis failed");
-      toast.error("Soil analysis failed", { description: e?.message || "" });
+      setError(errMsg(e, "Analysis failed"));
+      toast.error("Soil analysis failed", { description: errMsg(e, "") });
     } finally {
       setLoading(false);
     }

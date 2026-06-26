@@ -21,6 +21,7 @@ import {
   CartesianGrid, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import PageGuide from "@/components/PageGuide";
+import { errMsg } from "@/lib/errors";
 
 const AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/krishi-ai`;
 
@@ -147,8 +148,8 @@ Calculate realistic Indian input costs (seeds, fertilizer, pesticide, irrigation
           ? raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
           : null;
       setResult(text ? JSON.parse(text) : raw);
-    } catch (e: any) {
-      toast.error("Analysis failed", { description: e?.message });
+    } catch (e: unknown) {
+      toast.error("Analysis failed", { description: errMsg(e) });
     } finally {
       setLoading(false);
     }
