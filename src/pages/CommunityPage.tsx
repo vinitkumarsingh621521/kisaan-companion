@@ -230,7 +230,7 @@ Each reply must be under 120 characters. Write in simple English that a farmer w
       const data = await resp.json();
       const raw: string = data.result || data.response ||
         data.choices?.[0]?.message?.content ||
-        (Array.isArray(data.content) ? data.content.find((c:any) => c.type==="text")?.text : "") || "";
+        (Array.isArray(data.content) ? data.content.find((c: { type?: string; text?: string }) => c.type === "text")?.text : "") || "";
       const cleaned = raw.replace(/```json|```/gi,"").trim();
       const match = cleaned.match(/\[[\s\S]*\]/);
       if (match) {

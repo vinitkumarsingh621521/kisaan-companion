@@ -164,7 +164,7 @@ Be specific. Use crop and state names. No bullet points. Plain text only.`;
         data.result ||
         data.response ||
         data.choices?.[0]?.message?.content ||
-        (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+        (Array.isArray(data.content) ? data.content.find((c: { type?: string; text?: string }) => c.type === "text")?.text : "") ||
         "";
       setAiInsight(text.trim());
     } catch {
@@ -255,7 +255,7 @@ Values represent price competitiveness index 0-100 where 100 = state with highes
           data.result ||
           data.response ||
           data.choices?.[0]?.message?.content ||
-          (Array.isArray(data.content) ? data.content.find((c: any) => c.type === "text")?.text : "") ||
+          (Array.isArray(data.content) ? data.content.find((c: { type?: string; text?: string }) => c.type === "text")?.text : "") ||
           "";
         const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
