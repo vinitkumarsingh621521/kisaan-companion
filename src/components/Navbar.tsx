@@ -178,11 +178,12 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-card/85 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60 shadow-[0_1px_0_0_hsl(var(--secondary)/0.15)]">
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent pointer-events-none" />
       <div className="container mx-auto px-4 h-16 flex items-center gap-3">
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+        <Link to="/" className="flex items-center gap-2 flex-shrink-0 group">
           <div className="relative">
-            <img src={logo} alt="KrishiMitra" className="h-9 w-9" />
+            <img src={logo} alt="KrishiMitra" className="h-9 w-9 transition-transform group-hover:rotate-[-6deg] group-hover:scale-105" />
             {/* Online LED */}
             <span
               className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
@@ -191,8 +192,8 @@ export default function Navbar() {
               title={online ? "Online" : "Offline"}
             />
           </div>
-          <span className="font-display font-bold text-xl text-foreground hidden sm:inline">
-            Krishi<span className="text-primary">Mitra</span>
+          <span className="font-display text-2xl tracking-tight text-foreground hidden sm:inline leading-none">
+            Krishi<span className="text-gradient-emerald">Mitra</span>
           </span>
         </Link>
 
