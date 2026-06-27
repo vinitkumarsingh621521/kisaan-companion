@@ -523,6 +523,35 @@
     pointer-events: none;
     border-radius: inherit;
   }
+
+  /* ── Button tactile press ── */
+  .btn-press { transition: transform .1s ease, box-shadow .1s ease; }
+  .btn-press:active { transform: scale(0.97); }
+
+  /* ── Number counter scale-in ── */
+  @keyframes countIn {
+    from { transform: scale(0.85) translateY(4px); opacity: 0; }
+    to   { transform: scale(1) translateY(0);     opacity: 1; }
+  }
+  .count-in { animation: countIn .4s ease forwards; }
+
+  /* ── Badge unlock glow pulse ── */
+  @keyframes badgeUnlock {
+    0%   { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+    40%  { box-shadow: 0 0 24px 8px rgba(251,191,36,0.45); }
+    100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+  }
+  .badge-unlock { animation: badgeUnlock 1s ease forwards; }
+
+  /* ── Mega-dropdown item hover slide accent ── */
+  .nav-item-hover { position: relative; overflow: hidden; }
+  .nav-item-hover::before {
+    content: ""; position: absolute; left: -100%; top: 0;
+    width: 3px; height: 100%;
+    background: hsl(var(--primary)); border-radius: 0 2px 2px 0;
+    transition: left .15s ease;
+  }
+  .nav-item-hover:hover::before { left: 0; }
 }
 
 /* Refined focus ring */
