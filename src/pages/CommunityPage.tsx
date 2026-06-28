@@ -421,10 +421,14 @@ Return ONLY one word — the category id. Nothing else.`;
               { icon: "🔴", title: "Live Updates", desc: "New posts appear instantly without refreshing" },
             ]}
           />
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">👨‍🌾 {t("community.title")}</h1>
-            <p className="text-muted-foreground mt-1">{t("community.subtitle")}</p>
-          </motion.div>
+          <ColorfulPageBanner
+            emoji="🤝"
+            title="Kisaan Community"
+            subtitle="Connect · Share · Learn with farmers across India"
+            gradient="from-blue-900 via-indigo-900 to-violet-900"
+            badge="Live"
+            stat={{ emoji: "👨‍🌾", value: "1,50,000+", label: "Farmers joined" }}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Composer + feed */}
