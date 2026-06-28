@@ -481,7 +481,25 @@ Return ONLY one word — the category id. Nothing else.`;
                 </div>
               ) : (
                 <AnimatePresence>
-                  {posts.map((p, i) => (
+                  {posts.map((p, i) => {
+                    const tag = getTagForPost(postTags[p.id] || null);
+                    const borderClass =
+                      tag?.id === "disease"  ? "border-l-red-500" :
+                      tag?.id === "market"   ? "border-l-amber-500" :
+                      tag?.id === "weather"  ? "border-l-blue-500" :
+                      tag?.id === "tip"      ? "border-l-green-500" :
+                      tag?.id === "question" ? "border-l-purple-500" :
+                      tag?.id === "success"  ? "border-l-primary" :
+                      "border-l-border";
+                    const ringClass =
+                      tag?.id === "disease"  ? "ring-red-500/40" :
+                      tag?.id === "market"   ? "ring-amber-500/40" :
+                      tag?.id === "weather"  ? "ring-blue-500/40" :
+                      tag?.id === "tip"      ? "ring-green-500/40" :
+                      tag?.id === "question" ? "ring-purple-500/40" :
+                      tag?.id === "success"  ? "ring-primary/40" :
+                      "ring-border";
+                    return (
                     <motion.div
                       key={p.id}
                       layout
@@ -489,59 +507,113 @@ Return ONLY one word — the category id. Nothing else.`;
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: Math.min(i * 0.04, 0.3) }}
-                      className="glass-card p-5"
+                      className={`glass-card post-card p-5 border-l-4 ${borderClass}`}
                     >
-                      <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg overflow-hidden">
-                          {p.author_avatar ? (
-                            <img src={p.author_avatar} alt={p.author_name} className="w-full h-full object-cover" />
+                      {/* Top row: tag + time + delete */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {tag ? (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold ${tag.color}`}>
+                              <span>{tag.emoji}</span> {tag.label}
+                            </span>
                           ) : (
-                            <span>{p.author_name.charAt(0).toUpperCase()}</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                              🌾 General
+                            </span>
+                          )}
+                          {p.badge && (
+                            <span className="krishi-badge bg-krishi-gold-light text-krishi-earth text-[10px] whitespace-nowrap">
+                              {p.badge}
+                            </span>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground truncate">{p.author_name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {p.district || "India"} • {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                          </span>
+                          {user?.id === p.user_id && (
+                            <button
+                              onClick={() => deletePost(p)}
+                              className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors btn-press"
+                              aria-label="Delete post"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
-                        {p.badge && (
-                          <span className="ml-auto krishi-badge bg-krishi-gold-light text-krishi-earth text-xs whitespace-nowrap">{p.badge}</span>
-                        )}
-                        {postTags[p.id] && (() => {
-                          const tag = getTagForPost(postTags[p.id]);
-                          return tag ? (
-                            <span className={`krishi-badge text-[10px] whitespace-nowrap inline-flex items-center gap-1 ${tag.color}`}>
-                              <Tag className="h-2.5 w-2.5" /> {tag.emoji} {tag.label}
-                            </span>
-                          ) : null;
-                        })()}
                       </div>
-                      {p.content && <p className="text-foreground leading-relaxed mb-3 whitespace-pre-wrap">{p.content}</p>}
-                      {p.photo_url && (
-                        <img src={p.photo_url} alt="post" className="rounded-lg w-full max-h-96 object-cover mb-3" loading="lazy" />
+
+                      {/* Author row */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="relative">
+                          <div className={`w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-lg overflow-hidden ring-2 ${ringClass}`}>
+                            {p.author_avatar ? (
+                              <img src={p.author_avatar} alt={p.author_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="font-semibold text-primary">{p.author_name.charAt(0).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-foreground truncate">{p.author_name}</div>
+                          {p.district && (
+                            <div className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                              📍 {p.district}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      {p.content && (
+                        <p className="text-foreground leading-relaxed mb-3 whitespace-pre-wrap text-sm">
+                          {p.content}
+                        </p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      {p.photo_url && (
+                        <img
+                          src={p.photo_url}
+                          alt="post"
+                          className="rounded-xl w-full max-h-96 object-cover mb-3 border border-border"
+                          loading="lazy"
+                        />
+                      )}
+
+                      {/* Action bar */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-border/60">
                         <button
-                          className={`flex items-center gap-1 transition-colors ${likedIds.has(p.id) ? "text-destructive" : "hover:text-primary"}`}
                           onClick={() => toggleLike(p)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 btn-press ${
+                            likedIds.has(p.id)
+                              ? "bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400"
+                              : "hover:bg-muted/60 text-muted-foreground hover:text-rose-500"
+                          }`}
                         >
-                          <Heart className={`h-4 w-4 ${likedIds.has(p.id) ? "fill-current" : ""}`} /> {p.likes_count}
+                          <Heart className={`h-3.5 w-3.5 ${likedIds.has(p.id) ? "fill-current" : ""}`} />
+                          {p.likes_count}
                         </button>
+
                         <button
-                          className="flex items-center gap-1 hover:text-primary transition-colors"
                           onClick={() => toggleComments(p.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all duration-150 btn-press"
                         >
-                          <MessageSquare className="h-4 w-4" /> {p.comments_count}
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          {p.comments_count}
                           {expandedPost === p.id
-                            ? <ChevronUp className="h-3.5 w-3.5" />
-                            : <ChevronDown className="h-3.5 w-3.5" />}
+                            ? <ChevronUp className="h-3 w-3" />
+                            : <ChevronDown className="h-3 w-3" />}
                         </button>
-                        {user?.id === p.user_id && (
-                          <button className="ml-auto hover:text-destructive" onClick={() => deletePost(p)}>
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+
+                        <button
+                          onClick={() => toggleComments(p.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-150 btn-press ml-auto"
+                        >
+                          {aiRepliesLoading[p.id]
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Sparkles className="h-3.5 w-3.5" />}
+                          AI Reply
+                        </button>
                       </div>
 
                       <AnimatePresence>
@@ -556,10 +628,10 @@ Return ONLY one word — the category id. Nothing else.`;
                             <div className="mt-4 pt-4 border-t border-border space-y-3">
                               {/* AI Reply Suggestions */}
                               {(aiRepliesLoading[p.id] || (aiReplies[p.id]?.length || 0) > 0) && (
-                                <div className="rounded-xl bg-primary/5 border border-primary/10 p-3">
+                                <div className="rounded-xl bg-primary/5 border border-primary/15 p-3">
                                   <div className="flex items-center gap-1.5 mb-2">
                                     <Sparkles className="h-3.5 w-3.5 text-primary" />
-                                    <span className="text-[11px] font-semibold text-primary">AI Reply Suggestions</span>
+                                    <span className="text-[11px] font-semibold text-primary">✦ AI suggested replies</span>
                                     {aiRepliesLoading[p.id] && <Loader2 className="h-3 w-3 animate-spin text-primary ml-auto" />}
                                   </div>
                                   {aiRepliesLoading[p.id] ? (
@@ -567,15 +639,15 @@ Return ONLY one word — the category id. Nothing else.`;
                                       {[1,2,3].map(i => <Skeleton key={i} className="h-6 w-3/4 rounded-full" />)}
                                     </div>
                                   ) : (
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <div className="grid gap-1.5">
                                       {(aiReplies[p.id] || []).map((r, ri) => (
                                         <button
                                           key={ri}
                                           onClick={() => setCommentText(prev => ({ ...prev, [p.id]: r }))}
-                                          className="text-[11px] px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/15 transition-colors text-left max-w-[200px] truncate"
+                                          className="text-left text-xs px-3 py-2 rounded-xl bg-primary/8 dark:bg-primary/10 border border-primary/20 text-foreground hover:bg-primary/15 transition-colors leading-relaxed"
                                           title={r}
                                         >
-                                          {r}
+                                          💬 {r}
                                         </button>
                                       ))}
                                     </div>
@@ -600,12 +672,12 @@ Return ONLY one word — the category id. Nothing else.`;
                                 <div className="space-y-2.5">
                                   {(comments[p.id] || []).map((c: any) => (
                                     <div key={c.id} className="flex gap-2">
-                                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs flex-shrink-0 overflow-hidden">
+                                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs flex-shrink-0 overflow-hidden font-semibold text-primary">
                                         {c.author_avatar
                                           ? <img src={c.author_avatar} alt={c.author_name} className="w-full h-full object-cover" />
                                           : c.author_name.charAt(0).toUpperCase()}
                                       </div>
-                                      <div className="flex-1 min-w-0 bg-muted/40 rounded-lg px-3 py-2">
+                                      <div className="flex-1 min-w-0 bg-muted/40 rounded-2xl px-3 py-2">
                                         <div className="flex items-center gap-2">
                                           <span className="text-xs font-semibold text-foreground">{c.author_name}</span>
                                           <span className="text-[10px] text-muted-foreground">
@@ -624,28 +696,29 @@ Return ONLY one word — the category id. Nothing else.`;
                               )}
 
                               {/* Comment input */}
-                              <div className="flex gap-2 items-end">
-                                <div className="flex-1">
-                                  <textarea
-                                    value={commentText[p.id] || ""}
-                                    onChange={e => setCommentText(prev => ({ ...prev, [p.id]: e.target.value }))}
-                                    onKeyDown={e => {
-                                      if (e.key === "Enter" && !e.shiftKey) {
-                                        e.preventDefault();
-                                        postComment(p.id);
-                                      }
-                                    }}
-                                    placeholder={user ? "Write a reply… (Enter to send)" : "Sign in to reply"}
-                                    disabled={!user || commentPosting[p.id]}
-                                    rows={2}
-                                    className="w-full text-xs rounded-xl border border-border bg-background/70 px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
-                                  />
+                              <div className="flex gap-2 items-center">
+                                <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-xs flex-shrink-0 font-semibold text-primary">
+                                  {active?.full_name?.charAt(0)?.toUpperCase() || "F"}
                                 </div>
+                                <input
+                                  type="text"
+                                  value={commentText[p.id] || ""}
+                                  onChange={e => setCommentText(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                      e.preventDefault();
+                                      postComment(p.id);
+                                    }
+                                  }}
+                                  placeholder={user ? "Write a comment…" : "Sign in to reply"}
+                                  disabled={!user || commentPosting[p.id]}
+                                  className="flex-1 text-xs px-3 py-2 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                                />
                                 <Button
                                   size="sm"
                                   disabled={!user || commentPosting[p.id] || !(commentText[p.id]?.trim())}
                                   onClick={() => postComment(p.id)}
-                                  className="h-9 px-3 gap-1 gradient-primary border-0 text-primary-foreground flex-shrink-0"
+                                  className="h-9 px-3 gap-1 gradient-primary border-0 text-primary-foreground flex-shrink-0 btn-press"
                                 >
                                   {commentPosting[p.id]
                                     ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -657,7 +730,7 @@ Return ONLY one word — the category id. Nothing else.`;
                         )}
                       </AnimatePresence>
                     </motion.div>
-                  ))}
+                  );})}
                 </AnimatePresence>
               )}
             </div>
