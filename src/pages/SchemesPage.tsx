@@ -291,12 +291,14 @@ export default function SchemesPage() {
               { icon: "🛡️", title: "Insurance Guide", desc: "PMFBY crop insurance documentation assistant" },
             ]}
           />
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">⚡ {t("schemes.title")}</h1>
-            <p className="text-muted-foreground mt-1">
-              {t("schemes.subtitle")} {active?.farmer_details?.state ? `· ${active.farmer_details.state}` : ""}
-            </p>
-          </motion.div>
+          <ColorfulPageBanner
+            emoji="🏛️"
+            title="Government Schemes"
+            subtitle={`AI-matched subsidies · PM-KISAN · PMFBY · KCC · 50+ more${active?.farmer_details?.state ? ` · ${active.farmer_details.state}` : ""}`}
+            gradient="from-amber-900 via-orange-900 to-yellow-900"
+            badge="AI Matched"
+            stat={{ emoji: "💰", value: "₹12K+", label: "Annual support" }}
+          />
 
           {/* HERO IMPACT BANNER */}
           <div className="glass-card p-6 mb-6">
