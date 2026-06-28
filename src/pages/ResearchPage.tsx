@@ -1,3 +1,4 @@
+import ColorfulPageBanner from "@/components/ColorfulPageBanner";
 import { useState, lazy, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -157,17 +158,14 @@ export default function ResearchPage() {
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
           {/* Hero */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 krishi-badge bg-primary/10 text-primary mb-4">
-              <FlaskConical className="h-4 w-4" /> SIH-25030 Research Project
-            </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
-              🌾 {t("research.title")}
-            </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t("research.subtitle")}
-            </p>
-          </motion.div>
+          <ColorfulPageBanner
+            emoji="🔬"
+            title={t("research.title")}
+            subtitle={t("research.subtitle")}
+            gradient="from-slate-900 via-emerald-900 to-teal-900"
+            badge="SIH-25030"
+            stat={{ emoji: "📊", value: "12+", label: "Research papers" }}
+          />
 
           {/* Featured Notebook — Open in Colab */}
           <motion.div

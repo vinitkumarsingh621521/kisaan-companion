@@ -566,3 +566,56 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* =========================================================
+   PAGE IDENTITY LAYER — banners, accents, live states
+   ========================================================= */
+@layer utilities {
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .bg-animated-gradient {
+    background-size: 200% 200%;
+    animation: gradientShift 12s ease infinite;
+  }
+
+  .card-accent-green  { border-left: 4px solid hsl(142 55% 42%); }
+  .card-accent-amber  { border-left: 4px solid hsl(38 85% 55%); }
+  .card-accent-blue   { border-left: 4px solid hsl(210 80% 60%); }
+  .card-accent-red    { border-left: 4px solid hsl(0 80% 60%); }
+  .card-accent-violet { border-left: 4px solid hsl(270 75% 65%); }
+
+  @keyframes liveBorder {
+    0%, 100% { border-color: hsl(142 55% 42% / 0.5); }
+    50%      { border-color: hsl(142 55% 42% / 1); }
+  }
+  .live-border { animation: liveBorder 2s ease-in-out infinite; }
+
+  .post-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .post-card:hover {
+    transform: translateX(2px);
+    box-shadow: -4px 0 16px -4px hsl(142 55% 42% / 0.2);
+  }
+
+  @keyframes statReveal {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0 0% 0 0); }
+  }
+  .stat-reveal { animation: statReveal 0.6s ease forwards; }
+}
+
+/* Enhanced glass-card hover lift */
+.glass-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.glass-card:hover {
+  box-shadow:
+    0 8px 32px -4px hsl(162 55% 20% / 0.15),
+    0 2px 8px -2px hsl(0 0% 0% / 0.06);
+  transform: translateY(-1px);
+}
+

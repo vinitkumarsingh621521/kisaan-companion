@@ -1,3 +1,4 @@
+import ColorfulPageBanner from "@/components/ColorfulPageBanner";
 import PageGuide from "@/components/PageGuide";
 import FeatureHint from "@/components/FeatureHint";
 import { edgeToken } from "@/lib/edgeAuth";
@@ -914,12 +915,14 @@ export default function MarketPage() {
               { icon: "📱", title: "WhatsApp Share", desc: "Share market updates with family and fellow farmers" },
             ]}
           />
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">📈 {t("market.title")}</h1>
-            <p className="text-muted-foreground mt-1">
-              {t("market.subtitle")} · <span className="font-medium text-primary">{state || "India"}</span>
-            </p>
-          </motion.div>
+          <ColorfulPageBanner
+            emoji="📈"
+            title="Market Intelligence"
+            subtitle={`Live mandi prices · AI sell decisions · Price forecasting · ${state || "India"}`}
+            gradient="from-emerald-900 via-teal-900 to-green-900"
+            badge="AI Powered"
+            stat={{ emoji: "🏪", value: "200+", label: "Active mandis" }}
+          />
 
           {/* === AI Market Intelligence Hub === */}
           <div className="space-y-5 mb-6">

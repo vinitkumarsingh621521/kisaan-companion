@@ -1,3 +1,4 @@
+import ColorfulPageBanner from "@/components/ColorfulPageBanner";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
@@ -315,40 +316,35 @@ Maximum 60 words total.`;
       <Navbar />
       <main className="pt-20 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
+          <ColorfulPageBanner
+            emoji="📰"
+            title="Agri Intelligence News"
+            subtitle={`AI-curated farming news · Policy updates · Market signals${active?.farmer_details?.state ? ` · ${active.farmer_details.state}` : ""}${fetchedAt ? ` · Updated ${fmtFetchedAt(fetchedAt)}` : ""}`}
+            gradient="from-rose-900 via-red-900 to-pink-900"
+            badge="Daily Updated"
+            stat={{ emoji: "✦", value: "AI", label: "Curated news" }}
+          />
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3"
+            className="flex items-center justify-end gap-2 mb-5"
           >
-            <div>
-              <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground flex items-center gap-3">
-                <Newspaper className="h-8 w-8 text-primary" />
-                Agri Intelligence Feed
-              </h1>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Real headlines · AI-personalized for you
-                {active?.farmer_details?.state ? ` · ${active.farmer_details.state}` : ""}
-                {fetchedAt ? ` · Updated ${fmtFetchedAt(fetchedAt)}` : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab(activeTab === "saved" ? "feed" : "saved")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                  ${activeTab === "saved"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40"}`}
-              >
-                <Bookmark className="h-3.5 w-3.5" />
-                Saved ({bookmarks.size})
-              </button>
-              <Button variant="outline" size="sm"
-                onClick={() => fetchNews(activeCategory, true)}
-                disabled={loading} className="gap-2">
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-            </div>
+            <button
+              onClick={() => setActiveTab(activeTab === "saved" ? "feed" : "saved")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all
+                ${activeTab === "saved"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:border-primary/40"}`}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              Saved ({bookmarks.size})
+            </button>
+            <Button variant="outline" size="sm"
+              onClick={() => fetchNews(activeCategory, true)}
+              disabled={loading} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
           </motion.div>
 
           <AnimatePresence>
