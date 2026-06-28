@@ -1,3 +1,4 @@
+import ColorfulPageBanner from "@/components/ColorfulPageBanner";
 import { edgeToken } from "@/lib/edgeAuth";
 import { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";

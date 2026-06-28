@@ -1,3 +1,4 @@
+import ColorfulPageBanner from "@/components/ColorfulPageBanner";
 import PageGuide from "@/components/PageGuide";
 import FeatureHint from "@/components/FeatureHint";
 import { edgeToken } from "@/lib/edgeAuth";
