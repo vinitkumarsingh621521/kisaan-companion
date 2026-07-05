@@ -113,12 +113,13 @@ function AnimatedRoutes() {
           <Route path="/tools/achievements" element={<PageTransition><AuthGuard>{lazyRoute(<AchievementsPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/offline" element={<PageTransition>{lazyRoute(<OfflinePage />)}</PageTransition>} />
           <Route path="/dowry-estimator" element={<PageTransition><AuthGuard>{lazyRoute(<DowryEstimatorPage />)}</AuthGuard></PageTransition>} />
-          <Route path="/mandala" element={<PageTransition>{lazyRoute(<KrishiMandalaPage />)}</PageTransition>} />
+          <Route path="/cosmos" element={<PageTransition>{lazyRoute(<KrishiCosmosPage />)}</PageTransition>} />
+          <Route path="/mandala" element={<Navigate to="/cosmos?tab=mandala" replace />} />
+          <Route path="/yantra"  element={<Navigate to="/cosmos?tab=yantra"  replace />} />
+          <Route path="/swapna"  element={<Navigate to="/cosmos?tab=swapna"  replace />} />
+          <Route path="/raag"    element={<Navigate to="/cosmos?tab=raag"    replace />} />
+          <Route path="/aakash"  element={<Navigate to="/cosmos?tab=aakash"  replace />} />
           <Route path="/beej-se-bazaar" element={<PageTransition>{lazyRoute(<BeejSeBazaarPage />)}</PageTransition>} />
-          <Route path="/aakash" element={<PageTransition>{lazyRoute(<KrishiAakashPage />)}</PageTransition>} />
-          <Route path="/yantra" element={<PageTransition>{lazyRoute(<MausamYantraPage />)}</PageTransition>} />
-          <Route path="/raag" element={<PageTransition>{lazyRoute(<KrishiRaagPage />)}</PageTransition>} />
-          <Route path="/swapna" element={<PageTransition>{lazyRoute(<KrishiSwapnaPage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
