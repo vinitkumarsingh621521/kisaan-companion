@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,12 +28,8 @@ import { DowryUnlockProvider } from "./hooks/useDowryUnlock";
 
 const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
 const DowryEstimatorPage = lazy(() => import("./pages/DowryEstimatorPage"));
-const KrishiMandalaPage = lazy(() => import("./pages/KrishiMandalaPage"));
+const KrishiCosmosPage = lazy(() => import("./pages/KrishiCosmosPage"));
 const BeejSeBazaarPage = lazy(() => import("./pages/BeejSeBazaarPage"));
-const KrishiAakashPage = lazy(() => import("./pages/KrishiAakashPage"));
-const MausamYantraPage = lazy(() => import("./pages/MausamYantraPage"));
-const KrishiRaagPage = lazy(() => import("./pages/KrishiRaagPage"));
-const KrishiSwapnaPage = lazy(() => import("./pages/KrishiSwapnaPage"));
 const VisionPage = lazy(() => import("./pages/VisionPage"));
 const PrescriptionPage = lazy(() => import("./pages/PrescriptionPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
@@ -117,12 +113,13 @@ function AnimatedRoutes() {
           <Route path="/tools/achievements" element={<PageTransition><AuthGuard>{lazyRoute(<AchievementsPage />)}</AuthGuard></PageTransition>} />
           <Route path="/tools/offline" element={<PageTransition>{lazyRoute(<OfflinePage />)}</PageTransition>} />
           <Route path="/dowry-estimator" element={<PageTransition><AuthGuard>{lazyRoute(<DowryEstimatorPage />)}</AuthGuard></PageTransition>} />
-          <Route path="/mandala" element={<PageTransition>{lazyRoute(<KrishiMandalaPage />)}</PageTransition>} />
+          <Route path="/cosmos" element={<PageTransition>{lazyRoute(<KrishiCosmosPage />)}</PageTransition>} />
+          <Route path="/mandala" element={<Navigate to="/cosmos?tab=mandala" replace />} />
+          <Route path="/yantra"  element={<Navigate to="/cosmos?tab=yantra"  replace />} />
+          <Route path="/swapna"  element={<Navigate to="/cosmos?tab=swapna"  replace />} />
+          <Route path="/raag"    element={<Navigate to="/cosmos?tab=raag"    replace />} />
+          <Route path="/aakash"  element={<Navigate to="/cosmos?tab=aakash"  replace />} />
           <Route path="/beej-se-bazaar" element={<PageTransition>{lazyRoute(<BeejSeBazaarPage />)}</PageTransition>} />
-          <Route path="/aakash" element={<PageTransition>{lazyRoute(<KrishiAakashPage />)}</PageTransition>} />
-          <Route path="/yantra" element={<PageTransition>{lazyRoute(<MausamYantraPage />)}</PageTransition>} />
-          <Route path="/raag" element={<PageTransition>{lazyRoute(<KrishiRaagPage />)}</PageTransition>} />
-          <Route path="/swapna" element={<PageTransition>{lazyRoute(<KrishiSwapnaPage />)}</PageTransition>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
