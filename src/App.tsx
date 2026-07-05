@@ -28,12 +28,8 @@ import { DowryUnlockProvider } from "./hooks/useDowryUnlock";
 
 const VoiceBubble = lazy(() => import("./components/voice/VoiceBubble"));
 const DowryEstimatorPage = lazy(() => import("./pages/DowryEstimatorPage"));
-const KrishiMandalaPage = lazy(() => import("./pages/KrishiMandalaPage"));
+const KrishiCosmosPage = lazy(() => import("./pages/KrishiCosmosPage"));
 const BeejSeBazaarPage = lazy(() => import("./pages/BeejSeBazaarPage"));
-const KrishiAakashPage = lazy(() => import("./pages/KrishiAakashPage"));
-const MausamYantraPage = lazy(() => import("./pages/MausamYantraPage"));
-const KrishiRaagPage = lazy(() => import("./pages/KrishiRaagPage"));
-const KrishiSwapnaPage = lazy(() => import("./pages/KrishiSwapnaPage"));
 const VisionPage = lazy(() => import("./pages/VisionPage"));
 const PrescriptionPage = lazy(() => import("./pages/PrescriptionPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
