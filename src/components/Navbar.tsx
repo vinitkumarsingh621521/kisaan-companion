@@ -37,11 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Prescription",   path: "/prescription",   icon: "💊", desc: "ICAR-standard farm prescriptions" },
       { label: "Crop Compare",   path: "/compare",        icon: "⚖️", desc: "Compare any 2 crops scientifically" },
       { label: "Beej→Bazaar",    path: "/beej-se-bazaar", icon: "🌾", desc: "Seed-to-market crop planner" },
-      { label: "Krishi Mandala", path: "/mandala",        icon: "✦", desc: "Monthly crop & ritual calendar" },
-      { label: "Mausam Yantra",  path: "/yantra",         icon: "🌤️", desc: "Elemental weather intelligence" },
-      { label: "Krishi Swapna",  path: "/swapna",         icon: "☾", desc: "Farm oracle & dream guide" },
-      { label: "Krishi Raag",    path: "/raag",           icon: "♪", desc: "AI-generated farming music" },
-      { label: "Krishi Aakash",  path: "/aakash",         icon: "⭐", desc: "Star map & constellation guide" },
+      { label: "Krishi Cosmos",  path: "/cosmos",         icon: "✦", desc: "Mandala · Yantra · Swapna · Raag · Aakash — all in one" },
     ],
   },
   {
