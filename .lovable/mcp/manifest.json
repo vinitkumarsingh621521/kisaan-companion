@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "krishimate-mcp",
+      "version": "0.1.0",
+      "title": "KrishiMate Hub MCP"
+    },
+    "tools": [
+      {
+        "name": "get_mandi_prices",
+        "title": "Get mandi prices",
+        "description": "Fetch latest wholesale (mandi) prices for a crop from the Government of India data.gov.in API. Returns recent price records across mandis, optionally filtered by state.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "crop": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Commodity name, e.g. 'Onion', 'Wheat', 'Tomato'."
+            },
+            "state": {
+              "description": "Optional Indian state name to filter by, e.g. 'Maharashtra'.",
+              "type": "string"
+            },
+            "limit": {
+              "default": 10,
+              "description": "Max records to return (1-50).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "crop"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_daily_farming_tip",
+        "title": "Get daily farming tip",
+        "description": "Return a short, practical daily farming tip for an Indian smallholder farmer, optionally personalized by location, soil, and current crops.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "language": {
+              "default": "en",
+              "description": "Response language code.",
+              "type": "string",
+              "enum": [
+                "en",
+                "hi",
+                "bn",
+                "ta",
+                "te"
+              ]
+            },
+            "location": {
+              "description": "Farm location (city / district / state).",
+              "type": "string"
+            },
+            "soil_type": {
+              "description": "Soil type, e.g. 'black cotton', 'alluvial'.",
+              "type": "string"
+            },
+            "current_crops": {
+              "description": "Comma-separated list of crops currently grown.",
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_agri_news",
+        "title": "Get Indian agriculture news",
+        "description": "Fetch recent Indian agriculture news headlines from Google News RSS, filtered by category and language.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "category": {
+              "default": "All",
+              "description": "News category.",
+              "type": "string",
+              "enum": [
+                "All",
+                "Technology",
+                "Policy",
+                "Market",
+                "Research",
+                "Climate",
+                "Success"
+              ]
+            },
+            "language": {
+              "default": "en",
+              "description": "Language code.",
+              "type": "string",
+              "enum": [
+                "en",
+                "hi",
+                "bn",
+                "ta",
+                "te"
+              ]
+            },
+            "limit": {
+              "default": 8,
+              "description": "Max articles to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
